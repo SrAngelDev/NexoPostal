@@ -2,9 +2,9 @@ name: CI/CD NexoPostal
 
 on:
   push:
-    branches: [main, develop]
+    branches: [master, dev]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 env:
   DOTNET_VERSION: '10.0.x'
