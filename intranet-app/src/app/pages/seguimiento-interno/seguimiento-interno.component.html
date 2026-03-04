@@ -1,0 +1,441 @@
+<div class="page">
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <button class="nav-back" (click)="volverDashboard()">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <span class="material-symbols-outlined nav-icon">local_shipping</span>
+      <h1 class="nav-title">Seguimiento Interno</h1>
+    </div>
+    <div class="nav-actions">
+      <span class="nav-user">{{ userName }}</span>
+      <span class="nav-role">{{ userRole }}</span>
+      <button (click)="logout()" class="nav-logout">
+        <span class="material-symbols-outlined">logout</span>
+        Salir
+      </button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <!-- ===== TABS ===== -->
+    <div class="tabs">
+      <button
+        class="tab"
+        [class.tab-active]="tabActiva() === 'buscar'"
+        (click)="cambiarTab('buscar')">
+        <span class="material-symbols-outlined">search</span>
+        Buscar envío
+      </button>
+      <button
+        class="tab"
+        [class.tab-active]="tabActiva() === 'listar'"
+        (click)="cambiarTab('listar')">
+        <span class="material-symbols-outlined">list_alt</span>
+        Listado de envíos
+      </button>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- TAB: BUSCAR -->
+    <!-- ================================================================== -->
+    @if (tabActiva() === 'buscar') {
+      <section class="search-section">
+        <div class="search-card">
+          <div class="search-header">
+            <span class="material-symbols-outlined search-icon">qr_code_scanner</span>
+            <div>
+              <h2 class="search-title">Consultar envío</h2>
+              <p class="search-subtitle">Introduce el número de expedición (NXI-...) o de seguimiento público (NX...ES)</p>
+            </div>
+          </div>
+
+          <div class="search-bar">
+            <div class="search-input-wrapper">
+              <span class="material-symbols-outlined input-icon">search</span>
+              <input
+                type="text"
+                class="search-input"
+                [(ngModel)]="searchQuery"
+                placeholder="NXI-A1B2C3D4 o NX123456789ES"
+                (keyup.enter)="buscar()"
+                autofocus />
+              @if (searchQuery) {
+                <button class="search-clear" (click)="limpiarBusqueda()">
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              }
+            </div>
+            <button class="btn-search" (click)="buscar()" [disabled]="searchLoading()">
+              @if (searchLoading()) {
+                <span class="spinner"></span>
+              } @else {
+                <span class="material-symbols-outlined">manage_search</span>
+              }
+              Buscar
+            </button>
+          </div>
+
+          @if (searchError()) {
+            <div class="alert alert-error">
+              <span class="material-symbols-outlined">error</span>
+              {{ searchError() }}
+            </div>
+          }
+        </div>
+
+        <!-- ===== DETALLE DEL ENVÍO ===== -->
+        @if (envioDetalle(); as envio) {
+          <div class="detail-card animate-in">
+            <!-- Cabecera con IDs y estado -->
+            <div class="detail-header">
+              <div class="detail-ids">
+                <div class="id-badge id-expedicion">
+                  <span class="material-symbols-outlined">tag</span>
+                  <div>
+                    <span class="id-label">Expedición</span>
+                    <span class="id-value">{{ envio.numeroExpedicion }}</span>
+                  </div>
+                </div>
+                <div class="id-badge id-seguimiento">
+                  <span class="material-symbols-outlined">confirmation_number</span>
+                  <div>
+                    <span class="id-label">Seguimiento público</span>
+                    <span class="id-value">{{ envio.numeroSeguimiento }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="detail-estado-block">
+                <span class="estado-badge" [ngClass]="getEstadoClase(envio.estadoInterno)">
+                  {{ envio.descripcionEstadoInterno }}
+                </span>
+                <span class="estado-publico">
+                  Estado público: <strong>{{ envio.estadoPublico }}</strong>
+                </span>
+                <button class="btn-cambiar-estado" (click)="abrirModalEstado()">
+                  <span class="material-symbols-outlined">sync</span>
+                  Cambiar estado
+                </button>
+              </div>
+            </div>
+
+            <!-- Grid de datos -->
+            <div class="detail-grid">
+              <!-- Remitente -->
+              <div class="detail-section">
+                <h3 class="section-title">
+                  <span class="material-symbols-outlined">person</span>
+                  Remitente
+                </h3>
+                <div class="data-rows">
+                  <div class="data-row">
+                    <span class="data-label">Nombre</span>
+                    <span class="data-value">{{ envio.nombreRemitente }} {{ envio.apellidosRemitente }}</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="data-label">Teléfono</span>
+                    <span class="data-value">{{ envio.telefonoRemitente }}</span>
+                  </div>
+                  @if (envio.emailRemitente) {
+                    <div class="data-row">
+                      <span class="data-label">Email</span>
+                      <span class="data-value">{{ envio.emailRemitente }}</span>
+                    </div>
+                  }
+                  @if (envio.dniRemitente) {
+                    <div class="data-row">
+                      <span class="data-label">DNI</span>
+                      <span class="data-value">{{ envio.dniRemitente }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Destinatario -->
+              <div class="detail-section">
+                <h3 class="section-title">
+                  <span class="material-symbols-outlined">person_pin</span>
+                  Destinatario
+                </h3>
+                <div class="data-rows">
+                  <div class="data-row">
+                    <span class="data-label">Nombre</span>
+                    <span class="data-value">{{ envio.nombreDestinatario }} {{ envio.apellidosDestinatario }}</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="data-label">Teléfono</span>
+                    <span class="data-value">{{ envio.telefonoDestinatario }}</span>
+                  </div>
+                  @if (envio.emailDestinatario) {
+                    <div class="data-row">
+                      <span class="data-label">Email</span>
+                      <span class="data-value">{{ envio.emailDestinatario }}</span>
+                    </div>
+                  }
+                  @if (envio.dniDestinatario) {
+                    <div class="data-row">
+                      <span class="data-label">DNI</span>
+                      <span class="data-value">{{ envio.dniDestinatario }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Logística -->
+              <div class="detail-section">
+                <h3 class="section-title">
+                  <span class="material-symbols-outlined">route</span>
+                  Logística
+                </h3>
+                <div class="data-rows">
+                  <div class="data-row">
+                    <span class="data-label">Origen</span>
+                    <span class="data-value">{{ envio.origen }} ({{ envio.codigoPostalOrigen }})</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="data-label">Destino</span>
+                    <span class="data-value">{{ envio.destino }} ({{ envio.codigoPostalDestino }})</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="data-label">Peso</span>
+                    <span class="data-value">{{ envio.pesoKg }} kg</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="data-label">Dimensiones</span>
+                    <span class="data-value">{{ envio.dimensiones }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Administración -->
+              <div class="detail-section">
+                <h3 class="section-title">
+                  <span class="material-symbols-outlined">receipt_long</span>
+                  Administración
+                </h3>
+                <div class="data-rows">
+                  <div class="data-row">
+                    <span class="data-label">Tarifa</span>
+                    <span class="data-value">{{ envio.tipoTarifa }}</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="data-label">Entrega estimada</span>
+                    <span class="data-value">{{ envio.tiempoEntregaEstimado }}</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="data-label">Coste</span>
+                    <span class="data-value fw-600">{{ formatearMoneda(envio.costeCalculado) }}</span>
+                  </div>
+                  <div class="data-row">
+                    <span class="data-label">Pagado</span>
+                    <span class="data-value">
+                      @if (envio.pagado) {
+                        <span class="badge-pagado">Sí</span>
+                      } @else {
+                        <span class="badge-no-pagado">No</span>
+                      }
+                    </span>
+                  </div>
+                  <div class="data-row">
+                    <span class="data-label">Fecha creación</span>
+                    <span class="data-value">{{ formatearFecha(envio.fechaCreacion) }}</span>
+                  </div>
+                  @if (envio.fechaPago) {
+                    <div class="data-row">
+                      <span class="data-label">Fecha pago</span>
+                      <span class="data-value">{{ formatearFecha(envio.fechaPago) }}</span>
+                    </div>
+                  }
+                  @if (envio.observaciones) {
+                    <div class="data-row">
+                      <span class="data-label">Observaciones</span>
+                      <span class="data-value obs-text">{{ envio.observaciones }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </section>
+    }
+
+    <!-- ================================================================== -->
+    <!-- TAB: LISTAR -->
+    <!-- ================================================================== -->
+    @if (tabActiva() === 'listar') {
+      <section class="list-section">
+        <!-- Filtros -->
+        <div class="filters-card">
+          <h2 class="filters-title">
+            <span class="material-symbols-outlined">filter_alt</span>
+            Filtros
+          </h2>
+          <div class="filters-row">
+            <div class="filter-group">
+              <label class="filter-label">Estado interno</label>
+              <select class="filter-select" [(ngModel)]="filtroEstado">
+                <option value="">Todos los estados</option>
+                @for (grupo of gruposEstados; track grupo.grupo) {
+                  <optgroup [label]="grupo.grupo">
+                    @for (estado of grupo.estados; track estado.valor) {
+                      <option [value]="estado.valor">{{ estado.etiqueta }}</option>
+                    }
+                  </optgroup>
+                }
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Código postal destino</label>
+              <input
+                type="text"
+                class="filter-input"
+                [(ngModel)]="filtroCP"
+                placeholder="Ej: 28001"
+                maxlength="5" />
+            </div>
+            <button class="btn-filtrar" (click)="cargarListado()" [disabled]="listadoLoading()">
+              @if (listadoLoading()) {
+                <span class="spinner"></span>
+              } @else {
+                <span class="material-symbols-outlined">search</span>
+              }
+              Buscar
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabla de resultados -->
+        @if (envios().length > 0) {
+          <div class="table-wrapper animate-in">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Expedición</th>
+                  <th>Seguimiento</th>
+                  <th>Estado interno</th>
+                  <th>Origen</th>
+                  <th>Destino</th>
+                  <th>Peso</th>
+                  <th>Tarifa</th>
+                  <th>Pagado</th>
+                  <th>Fecha</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (envio of envios(); track envio.numeroExpedicion) {
+                  <tr>
+                    <td class="td-code">{{ envio.numeroExpedicion }}</td>
+                    <td class="td-code td-secondary">{{ envio.numeroSeguimiento }}</td>
+                    <td>
+                      <span class="estado-badge estado-badge-sm" [ngClass]="getEstadoClase(envio.estadoInterno)">
+                        {{ formatearEstado(envio.estadoInterno) }}
+                      </span>
+                    </td>
+                    <td>{{ envio.origen }}</td>
+                    <td>{{ envio.destino }} ({{ envio.codigoPostalDestino }})</td>
+                    <td>{{ envio.pesoKg }} kg</td>
+                    <td>{{ envio.tipoTarifa }}</td>
+                    <td>
+                      @if (envio.pagado) {
+                        <span class="badge-pagado">Sí</span>
+                      } @else {
+                        <span class="badge-no-pagado">No</span>
+                      }
+                    </td>
+                    <td>{{ formatearFecha(envio.fechaCreacion) }}</td>
+                    <td>
+                      <button class="btn-ver" (click)="verDetalle(envio.numeroExpedicion)">
+                        <span class="material-symbols-outlined">visibility</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (!listadoLoading()) {
+          <div class="empty-state">
+            <span class="material-symbols-outlined empty-icon">inventory_2</span>
+            <p class="empty-text">Aplica filtros y pulsa «Buscar» para ver los envíos.</p>
+          </div>
+        }
+      </section>
+    }
+  </main>
+
+  <!-- ================================================================== -->
+  <!-- MODAL CAMBIAR ESTADO -->
+  <!-- ================================================================== -->
+  @if (showEstadoModal()) {
+    <div class="modal-overlay" (click)="cerrarModalEstado()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">
+            <span class="material-symbols-outlined">sync</span>
+            Cambiar estado interno
+          </h3>
+          <button class="modal-close" (click)="cerrarModalEstado()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          @if (envioDetalle(); as envio) {
+            <p class="modal-info">
+              Envío <strong>{{ envio.numeroExpedicion }}</strong> — Estado actual:
+              <span class="estado-badge estado-badge-sm" [ngClass]="getEstadoClase(envio.estadoInterno)">
+                {{ envio.descripcionEstadoInterno }}
+              </span>
+            </p>
+          }
+
+          <div class="form-group">
+            <label class="form-label">Nuevo estado</label>
+            <select class="form-select" [(ngModel)]="nuevoEstado">
+              <option value="" disabled>Selecciona un estado</option>
+              @for (grupo of gruposEstados; track grupo.grupo) {
+                <optgroup [label]="grupo.grupo">
+                  @for (estado of grupo.estados; track estado.valor) {
+                    <option [value]="estado.valor">{{ estado.etiqueta }}</option>
+                  }
+                </optgroup>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Observaciones (opcional)</label>
+            <textarea
+              class="form-textarea"
+              [(ngModel)]="observaciones"
+              rows="3"
+              placeholder="Ej: Segundo intento por ausencia del destinatario"></textarea>
+          </div>
+
+          @if (estadoError()) {
+            <div class="alert alert-error">
+              <span class="material-symbols-outlined">error</span>
+              {{ estadoError() }}
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" (click)="cerrarModalEstado()">Cancelar</button>
+          <button
+            class="btn-confirm"
+            (click)="confirmarCambioEstado()"
+            [disabled]="!nuevoEstado || actualizandoEstado()">
+            @if (actualizandoEstado()) {
+              <span class="spinner spinner-sm"></span>
+            }
+            Confirmar cambio
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

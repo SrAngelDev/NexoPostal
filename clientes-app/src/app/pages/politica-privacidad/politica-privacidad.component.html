@@ -1,0 +1,166 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Navbar -->
+  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
+      <a (click)="navigateTo('/')" class="flex items-center gap-2 text-2xl font-bold cursor-pointer">
+        <span class="material-symbols-outlined text-3xl">local_shipping</span>
+        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
+      </a>
+      <ul class="hidden md:flex gap-8">
+        <li><a (click)="navigateTo('/particulares')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Particulares</a></li>
+        <li><a (click)="navigateTo('/empresas')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Empresas</a></li>
+        <li><a (click)="navigateTo('/ayuda')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Ayuda</a></li>
+      </ul>
+      <button (click)="navigateTo('/')" class="px-6 py-2 rounded-lg bg-[#FFC107] text-black hover:bg-[#FFB300] transition-all font-semibold text-sm">
+        Ir al inicio
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="bg-gradient-to-br from-[#1A237E] to-[#283593] text-white py-12 text-center">
+    <div class="max-w-4xl mx-auto px-5">
+      <span class="material-symbols-outlined text-5xl mb-3 text-[#FFC107]">shield</span>
+      <h1 class="text-3xl font-bold mb-2">Política de Privacidad</h1>
+      <p class="text-sm opacity-75">Última actualización: 1 de enero de 2026</p>
+    </div>
+  </header>
+
+  <!-- Contenido -->
+  <section class="py-12">
+    <div class="max-w-4xl mx-auto px-5">
+      <div class="bg-white rounded-xl shadow-md p-8 md:p-12 space-y-8 text-gray-700 leading-relaxed">
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">1. Responsable del Tratamiento</h2>
+          <p class="text-sm">NexoPostal S.A. (en adelante, "NexoPostal"), con CIF A-12345678 y domicilio social en Calle de la Innovación, 42, 28001 Madrid, es el responsable del tratamiento de los datos personales recogidos a través de esta plataforma.</p>
+          <ul class="text-sm mt-3 space-y-1 list-disc list-inside text-gray-600">
+            <li>Email de contacto DPO: <span class="text-[#1A237E] font-medium">privacidad&#64;nexopostal.es</span></li>
+            <li>Teléfono: 900 123 456</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">2. Datos que Recopilamos</h2>
+          <p class="text-sm mb-3">Recopilamos únicamente los datos necesarios para la prestación de nuestros servicios logísticos:</p>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="bg-indigo-50 p-4 rounded-lg">
+              <h4 class="font-semibold text-[#1A237E] text-sm mb-2">Datos de identificación</h4>
+              <ul class="text-xs text-gray-600 space-y-1">
+                <li>• Nombre y apellidos</li>
+                <li>• DNI / NIE</li>
+                <li>• Dirección de email</li>
+                <li>• Número de teléfono</li>
+              </ul>
+            </div>
+            <div class="bg-indigo-50 p-4 rounded-lg">
+              <h4 class="font-semibold text-[#1A237E] text-sm mb-2">Datos del servicio</h4>
+              <ul class="text-xs text-gray-600 space-y-1">
+                <li>• Direcciones de origen y destino</li>
+                <li>• Historial de envíos</li>
+                <li>• Datos de facturación</li>
+                <li>• Registros de seguimiento</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">3. Finalidad del Tratamiento</h2>
+          <p class="text-sm mb-3">Sus datos personales serán tratados para las siguientes finalidades:</p>
+          <ul class="text-sm space-y-2 text-gray-600">
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">check_circle</span> Gestión y ejecución de los envíos contratados.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">check_circle</span> Emisión de facturas y gestión de cobros.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">check_circle</span> Comunicación del estado de los envíos (notificaciones por email y SMS).</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">check_circle</span> Atención al cliente y resolución de incidencias.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">check_circle</span> Cumplimiento de obligaciones legales y fiscales.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">4. Base Legal</h2>
+          <p class="text-sm">El tratamiento de sus datos se basa en la ejecución del contrato de servicios logísticos (art. 6.1.b RGPD), el cumplimiento de obligaciones legales aplicables (art. 6.1.c RGPD) y, cuando proceda, el consentimiento del interesado (art. 6.1.a RGPD).</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">5. Destinatarios de los Datos</h2>
+          <p class="text-sm mb-3">Sus datos podrán ser comunicados a:</p>
+          <ul class="text-sm space-y-2 text-gray-600">
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[#1A237E] text-base mt-0.5">arrow_right</span> Transportistas y repartidores de la red logística de NexoPostal.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[#1A237E] text-base mt-0.5">arrow_right</span> Proveedores de servicios de pago (Stripe, Inc.) para el procesamiento seguro de transacciones.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[#1A237E] text-base mt-0.5">arrow_right</span> Administraciones Públicas cuando exista una obligación legal.</li>
+          </ul>
+          <p class="text-sm mt-3">No realizamos transferencias internacionales de datos fuera del Espacio Económico Europeo.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">6. Conservación de los Datos</h2>
+          <p class="text-sm">Los datos se conservarán mientras se mantenga la relación contractual y, una vez finalizada, durante los plazos legales de prescripción aplicables (5 años para datos fiscales según la Ley General Tributaria; 3 años para datos de carácter comercial).</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">7. Derechos del Usuario</h2>
+          <p class="text-sm mb-3">Usted puede ejercer los siguientes derechos en cualquier momento contactando a <span class="text-[#1A237E] font-medium">privacidad&#64;nexopostal.es</span>:</p>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div class="bg-gray-50 p-3 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl">visibility</span>
+              <p class="text-xs font-semibold text-gray-700 mt-1">Acceso</p>
+            </div>
+            <div class="bg-gray-50 p-3 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl">edit</span>
+              <p class="text-xs font-semibold text-gray-700 mt-1">Rectificación</p>
+            </div>
+            <div class="bg-gray-50 p-3 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl">delete</span>
+              <p class="text-xs font-semibold text-gray-700 mt-1">Supresión</p>
+            </div>
+            <div class="bg-gray-50 p-3 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl">block</span>
+              <p class="text-xs font-semibold text-gray-700 mt-1">Oposición</p>
+            </div>
+            <div class="bg-gray-50 p-3 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl">lock</span>
+              <p class="text-xs font-semibold text-gray-700 mt-1">Limitación</p>
+            </div>
+            <div class="bg-gray-50 p-3 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl">download</span>
+              <p class="text-xs font-semibold text-gray-700 mt-1">Portabilidad</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-3">También tiene derecho a presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD) en <span class="text-[#1A237E]">www.aepd.es</span>.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">8. Seguridad</h2>
+          <p class="text-sm">NexoPostal implementa medidas técnicas y organizativas adecuadas para garantizar la seguridad de sus datos, incluyendo cifrado TLS/SSL en todas las comunicaciones, almacenamiento cifrado en base de datos y controles de acceso basados en roles.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">9. Cookies</h2>
+          <p class="text-sm">Esta plataforma utiliza únicamente cookies técnicas necesarias para el funcionamiento del servicio (autenticación de sesión). No utilizamos cookies de terceros con fines publicitarios ni de análisis.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-[#263238] text-gray-400 py-12">
+    <div class="max-w-7xl mx-auto px-5">
+      <div class="flex flex-col md:flex-row justify-between pb-8 mb-8 border-b border-gray-700">
+        <div class="mb-6 md:mb-0">
+          <h4 class="text-white text-lg font-bold mb-4">NexoPostal</h4>
+          <p class="max-w-sm">Operador logístico nacional líder en tecnología y rapidez.</p>
+        </div>
+        <div>
+          <h4 class="text-white text-lg font-bold mb-4">Enlaces Legales</h4>
+          <a (click)="navigateTo('/politica-privacidad')" class="block mb-2 text-[#FFC107] font-semibold cursor-pointer">Política de Privacidad</a>
+          <a (click)="navigateTo('/terminos-uso')" class="block hover:text-[#FFC107] transition-colors cursor-pointer">Términos de Uso</a>
+        </div>
+      </div>
+      <div class="text-center text-sm">
+        <p>&copy; 2026 NexoPostal S.A. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+</div>

@@ -1,0 +1,121 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1' # Lunes a las 06:00 UTC
+
+jobs:
+  # ═══════════════════════════════════════
+  #  TRIVY - Escaneo de vulnerabilidades
+  # ═══════════════════════════════════════
+  trivy-scan:
+    name: Trivy Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan filesystem
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ═══════════════════════════════════════
+  #  DOTNET - Auditoría de dependencias
+  # ═══════════════════════════════════════
+  dotnet-audit:
+    name: .NET Dependency Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: microservicios/Nexopostal
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore & audit Auth
+        run: |
+          dotnet restore Nexopostal.Auth/Nexopostal.Auth.csproj
+          dotnet list Nexopostal.Auth/Nexopostal.Auth.csproj package --vulnerable --include-transitive
+        continue-on-error: true
+
+      - name: Restore & audit Ciudadano
+        run: |
+          dotnet restore Nexopostal.Ciudadano/Nexopostal.Ciudadano.csproj
+          dotnet list Nexopostal.Ciudadano/Nexopostal.Ciudadano.csproj package --vulnerable --include-transitive
+        continue-on-error: true
+
+      - name: Restore & audit Intranet
+        run: |
+          dotnet restore Nexopostal.Intranet/Nexopostal.Intranet.csproj
+          dotnet list Nexopostal.Intranet/Nexopostal.Intranet.csproj package --vulnerable --include-transitive
+        continue-on-error: true
+
+      - name: Restore & audit Reparto
+        run: |
+          dotnet restore Nexopostal.Reparto/Nexopostal.Reparto.csproj
+          dotnet list Nexopostal.Reparto/Nexopostal.Reparto.csproj package --vulnerable --include-transitive
+        continue-on-error: true
+
+  # ═══════════════════════════════════════
+  #  NPM - Auditoría de dependencias frontend
+  # ═══════════════════════════════════════
+  npm-audit:
+    name: NPM Audit (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [clientes-app, intranet-app, driver-app]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Audit dependencies
+        working-directory: ${{ matrix.app }}
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  # ═══════════════════════════════════════
+  #  DOCKER - Escaneo de imágenes
+  # ═══════════════════════════════════════
+  docker-scan:
+    name: Docker Image Scan
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Auth image for scanning
+        run: docker build -t nexopostal-auth:scan microservicios/Nexopostal/Nexopostal.Auth
+
+      - name: Scan Auth image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'nexopostal-auth:scan'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'

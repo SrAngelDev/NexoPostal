@@ -1,0 +1,182 @@
+<div class="page">
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <button class="nav-back" (click)="volverDashboard()">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <span class="material-symbols-outlined nav-icon">qr_code_scanner</span>
+      <h1 class="nav-title">Escaneo de entregas</h1>
+    </div>
+    <div class="nav-actions">
+      @if (historial().length > 0) {
+        <span class="nav-counter">
+          <span class="material-symbols-outlined">check_circle</span>
+          {{ contarEntregas() }}
+        </span>
+      }
+      <span class="nav-user">{{ userName }}</span>
+      <span class="nav-role">{{ userRole }}</span>
+      <button (click)="logout()" class="nav-logout">
+        <span class="material-symbols-outlined">logout</span>
+        Salir
+      </button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <!-- ===== ESCÁNER ===== -->
+    <section class="scanner-section animate-in">
+      <app-barcode-scanner
+        [alturaScanner]="240"
+        [continuoMode]="false"
+        (codigoDetectado)="onCodigoDetectado($event)">
+      </app-barcode-scanner>
+    </section>
+
+    <!-- ===== INDICADORES ===== -->
+    @if (buscando()) {
+      <div class="status-bar status-loading animate-in">
+        <span class="spinner"></span>
+        Buscando paquete...
+      </div>
+    }
+
+    @if (mensaje()) {
+      <div class="status-bar status-success animate-in">
+        <span class="material-symbols-outlined">check_circle</span>
+        {{ mensaje() }}
+      </div>
+    }
+
+    @if (error()) {
+      <div class="status-bar status-error animate-in">
+        <span class="material-symbols-outlined">error</span>
+        {{ error() }}
+      </div>
+    }
+
+    <!-- ===== PAQUETE ESCANEADO ===== -->
+    @if (paquete(); as paq) {
+      <section class="package-card animate-in">
+        <div class="pkg-header">
+          <div class="pkg-title-group">
+            <h3 class="pkg-expedicion">{{ paq.numeroExpedicion }}</h3>
+            <span class="pkg-seguimiento">{{ paq.numeroSeguimiento }}</span>
+          </div>
+          <button class="btn-close-pkg" (click)="limpiarPaquete()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <!-- Estado actual -->
+        <div class="pkg-estado" [ngClass]="getEstadoClase(paq.estadoInterno)">
+          <span class="material-symbols-outlined">info</span>
+          {{ paq.descripcionEstadoInterno || paq.estadoInterno }}
+        </div>
+
+        <!-- Info del paquete -->
+        <div class="pkg-info-grid">
+          <div class="pkg-info-item">
+            <span class="material-symbols-outlined">person</span>
+            <div>
+              <span class="info-label">Destinatario</span>
+              <span class="info-value">{{ paq.nombreDestinatario }} {{ paq.apellidosDestinatario }}</span>
+            </div>
+          </div>
+          <div class="pkg-info-item">
+            <span class="material-symbols-outlined">location_on</span>
+            <div>
+              <span class="info-label">Destino</span>
+              <span class="info-value">{{ paq.destino }} ({{ paq.codigoPostalDestino }})</span>
+            </div>
+          </div>
+          <div class="pkg-info-item">
+            <span class="material-symbols-outlined">scale</span>
+            <div>
+              <span class="info-label">Peso</span>
+              <span class="info-value">{{ paq.pesoKg }} kg — {{ paq.dimensiones }}</span>
+            </div>
+          </div>
+          @if (paq.telefonoDestinatario) {
+            <div class="pkg-info-item">
+              <span class="material-symbols-outlined">phone</span>
+              <div>
+                <span class="info-label">Teléfono</span>
+                <span class="info-value">{{ paq.telefonoDestinatario }}</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- ===== ACCIONES ===== -->
+        <div class="actions-section">
+          <h4 class="actions-title">
+            <span class="material-symbols-outlined">touch_app</span>
+            Registrar acción
+          </h4>
+
+          <!-- Acciones rápidas de entrega -->
+          <div class="quick-actions">
+            @for (estado of estadosRepartidor; track estado.valor) {
+              <button class="action-btn"
+                      [class.action-selected]="accionSeleccionada === estado.valor"
+                      [class.action-entrega]="esEntregaFinal(estado.valor)"
+                      [class.action-incidencia]="esIncidencia(estado.valor)"
+                      (click)="accionSeleccionada = estado.valor">
+                <span class="material-symbols-outlined">{{ estado.icono }}</span>
+                <span class="action-label">{{ estado.etiqueta }}</span>
+              </button>
+            }
+          </div>
+
+          <!-- Observaciones -->
+          @if (accionSeleccionada) {
+            <div class="obs-section animate-in">
+              <textarea [(ngModel)]="observaciones"
+                        placeholder="Observaciones (opcional)..."
+                        class="obs-input"
+                        rows="2"></textarea>
+
+              <button class="btn-confirmar"
+                      [disabled]="actualizando()"
+                      (click)="confirmarAccion()">
+                @if (actualizando()) {
+                  <span class="spinner-sm"></span>
+                  Procesando...
+                } @else {
+                  <span class="material-symbols-outlined">send</span>
+                  Confirmar {{ esEntregaFinal(accionSeleccionada) ? 'entrega' : esIncidencia(accionSeleccionada) ? 'incidencia' : 'acción' }}
+                }
+              </button>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ===== HISTORIAL ===== -->
+    @if (historial().length > 0) {
+      <section class="history-section animate-in">
+        <h4 class="history-title">
+          <span class="material-symbols-outlined">history</span>
+          Historial de sesión ({{ historial().length }})
+        </h4>
+        <div class="history-list">
+          @for (item of historial(); track $index) {
+            <div class="history-item" [class.hi-ok]="item.exito" [class.hi-fail]="!item.exito">
+              <span class="material-symbols-outlined hi-icon">
+                {{ item.exito ? 'check_circle' : 'cancel' }}
+              </span>
+              <div class="hi-body">
+                <span class="hi-exp">{{ item.expedicion }}</span>
+                <span class="hi-msg">{{ item.mensaje }}</span>
+              </div>
+              <span class="hi-time">{{ formatHora(item.hora) }}</span>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  </main>
+</div>

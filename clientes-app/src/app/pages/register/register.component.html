@@ -1,0 +1,145 @@
+<!-- Modal Backdrop -->
+<div class="modal-backdrop" (click)="onClose()">
+  <!-- Modal Content -->
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold">Crear Cuenta</h2>
+        <button 
+          (click)="onClose()"
+          class="close-button"
+          type="button"
+        >
+          <span class="material-symbols-outlined text-3xl">close</span>
+        </button>
+      </div>
+      <p class="text-sm opacity-90 mt-2">Únete a NexoPostal hoy</p>
+    </div>
+
+    <!-- Form -->
+    <form (ngSubmit)="onSubmit()" class="modal-body">
+      <!-- Success Message -->
+      @if (successMessage()) {
+        <div class="success-message">
+          <span class="material-symbols-outlined text-green-500">check_circle</span>
+          <span class="text-sm">{{ successMessage() }}</span>
+        </div>
+      }
+
+      <!-- Error Message -->
+      @if (errorMessage()) {
+        <div class="error-message">
+          <span class="material-symbols-outlined text-red-500">error</span>
+          <span class="text-sm">{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <!-- Nombre Completo -->
+      <div class="form-group">
+        <label for="nombreCompleto" class="form-label">
+          Nombre Completo
+        </label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">person</span>
+          <input 
+            type="text" 
+            id="nombreCompleto"
+            [(ngModel)]="nombreCompleto"
+            name="nombreCompleto"
+            placeholder="Juan Pérez"
+            class="form-input"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label for="email" class="form-label">
+          Correo Electrónico
+        </label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">mail</span>
+          <input 
+            type="email" 
+            id="email"
+            [(ngModel)]="email"
+            name="email"
+            placeholder="tu@email.com"
+            class="form-input"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label for="password" class="form-label">
+          Contraseña
+        </label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">lock</span>
+          <input 
+            type="password" 
+            id="password"
+            [(ngModel)]="password"
+            name="password"
+            placeholder="••••••••"
+            class="form-input"
+            required
+          />
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="form-group">
+        <label for="confirmPassword" class="form-label">
+          Confirmar Contraseña
+        </label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">lock</span>
+          <input 
+            type="password" 
+            id="confirmPassword"
+            [(ngModel)]="confirmPassword"
+            name="confirmPassword"
+            placeholder="••••••••"
+            class="form-input"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button 
+        type="submit"
+        [disabled]="isLoading() || successMessage()"
+        class="submit-button submit-button-register"
+      >
+        @if (isLoading()) {
+          <span class="inline-block w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+          <span>Creando cuenta...</span>
+        } @else {
+          <span>Crear Cuenta</span>
+          <span class="material-symbols-outlined">arrow_forward</span>
+        }
+      </button>
+
+      <!-- Login Link -->
+      <div class="switch-auth">
+        <p class="text-gray-600">
+          ¿Ya tienes cuenta? 
+          <button 
+            type="button"
+            (click)="onSwitchToLogin()"
+            class="switch-link"
+          >
+            Inicia sesión aquí
+          </button>
+        </p>
+      </div>
+    </form>
+  </div>
+</div>

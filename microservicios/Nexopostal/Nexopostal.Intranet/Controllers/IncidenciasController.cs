@@ -1,0 +1,128 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Nexopostal.Intranet.DTOs;
+using Nexopostal.Intranet.Models;
+using Nexopostal.Intranet.Services;
+using System.Security.Claims;
+
+namespace Nexopostal.Intranet.Controllers;
+
+/// <summary>
+/// Controlador para la gestión de incidencias en CTAs.
+/// 
+/// Solo el OperarioJefe puede:
+///   - Reportar nuevas incidencias (paquetes dañados, extraviados, etc.)
+///   - Actualizar su estado (Abierta → EnRevision → Resuelta → Cerrada)
+///   - Registrar la resolución aplicada
+/// 
+/// Ciclo de vida: Abierta → EnRevision → Resuelta → Cerrada
+/// </summary>
+[ApiController]
+[Route("api/[controller]")]
+[Authorize(Roles = "Admin,OperarioJefe")]
+public class IncidenciasController : ControllerBase
+{
+    private readonly IIncidenciaService _incidenciaService;
+    private readonly IOperarioService _operarioService;
+
+    public IncidenciasController(IIncidenciaService incidenciaService, IOperarioService operarioService)
+    {
+        _incidenciaService = incidenciaService;
+        _operarioService = operarioService;
+    }
+
+    /// <summary>
+    /// Reporta una nueva incidencia en el CTA del OperarioJefe autenticado.
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(IncidenciaDetalleDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IncidenciaDetalleDto>> Crear([FromBody] CrearIncidenciaDto dto)
+    {
+        var operario = await ObtenerOperarioActual();
+        if (operario == null) return Forbid();
+
+        if (operario.Rol != RolOperario.OperarioJefe && !User.IsInRole("Admin"))
+            return Forbid();
+
+        try
+        {
+            var incidencia = await _incidenciaService.CrearIncidencia(dto, operario.Id, operario.CentroTratamientoId);
+            return CreatedAtAction(nameof(ObtenerDetalle), new { id = incidencia.Id }, incidencia);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene las incidencias de un CTA, opcionalmente filtradas por estado.
+    /// </summary>
+    [HttpGet("cta/{ctaId:int}")]
+    [ProducesResponseType(typeof(List<IncidenciaResumenDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<IncidenciaResumenDto>>> ObtenerPorCta(
+        int ctaId, [FromQuery] string? estado = null)
+    {
+        EstadoIncidencia? filtro = null;
+        if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoIncidencia>(estado, true, out var e))
+            filtro = e;
+
+        var incidencias = await _incidenciaService.ObtenerIncidenciasCta(ctaId, filtro);
+        return Ok(incidencias);
+    }
+
+    /// <summary>
+    /// Obtiene el detalle completo de una incidencia.
+    /// </summary>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(IncidenciaDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IncidenciaDetalleDto>> ObtenerDetalle(int id)
+    {
+        var detalle = await _incidenciaService.ObtenerDetalle(id);
+        if (detalle == null) return NotFound(new { message = "Incidencia no encontrada" });
+        return Ok(detalle);
+    }
+
+    /// <summary>
+    /// Obtiene las incidencias de un paquete por su número de expedición.
+    /// </summary>
+    [HttpGet("paquete/{numeroExpedicion}")]
+    [ProducesResponseType(typeof(List<IncidenciaResumenDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<IncidenciaResumenDto>>> ObtenerPorPaquete(string numeroExpedicion)
+    {
+        var incidencias = await _incidenciaService.ObtenerIncidenciasPaquete(numeroExpedicion);
+        return Ok(incidencias);
+    }
+
+    /// <summary>
+    /// Actualiza el estado de una incidencia.
+    /// Si se marca como Resuelta, es obligatorio incluir la resolución.
+    /// </summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(IncidenciaDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IncidenciaDetalleDto>> Actualizar(int id, [FromBody] ActualizarIncidenciaDto dto)
+    {
+        try
+        {
+            var resultado = await _incidenciaService.ActualizarIncidencia(id, dto);
+            if (resultado == null) return NotFound(new { message = "Incidencia no encontrada" });
+            return Ok(resultado);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // === Helper privado ===
+
+    private async Task<OperarioCta?> ObtenerOperarioActual()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return null;
+        return await _operarioService.ObtenerPorIdentityUserId(userId);
+    }
+}

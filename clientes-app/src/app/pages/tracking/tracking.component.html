@@ -1,0 +1,216 @@
+<!-- ════════════════════════════════════════════════════════════════
+     TRACKING DE ENVÍOS - NexoPostal
+     Barra de progreso visual + eventos en tiempo real (SignalR)
+     ════════════════════════════════════════════════════════════════ -->
+<div class="min-h-screen bg-gray-50 py-8 px-4">
+  <div class="max-w-4xl mx-auto">
+
+    <!-- ──── Título ──── -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Seguimiento de envío</h1>
+      <p class="text-gray-500 mt-2">Introduce tu número de seguimiento para ver el estado de tu paquete en tiempo real</p>
+    </div>
+
+    <!-- ──── Buscador ──── -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+      <div class="flex gap-3">
+        <input
+          type="text"
+          [(ngModel)]="numeroSeguimiento"
+          placeholder="Ej: NP-2025-XXXXXX"
+          class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+          (keyup.enter)="buscar()"
+        />
+        <button
+          (click)="buscar()"
+          [disabled]="buscando || !numeroSeguimiento.trim()"
+          class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          @if (buscando) {
+            <span class="inline-flex items-center gap-2">
+              <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              Buscando...
+            </span>
+          } @else {
+            Buscar
+          }
+        </button>
+      </div>
+    </div>
+
+    <!-- ──── Error ──── -->
+    @if (error) {
+      <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-8 text-red-700">
+        <p class="font-medium">{{ error }}</p>
+      </div>
+    }
+
+    <!-- ──── Resultado ──── -->
+    @if (trazabilidad) {
+      <!-- Estado de conexión SignalR -->
+      <div class="flex items-center gap-2 mb-4 text-sm">
+        @switch (estadoConexion) {
+          @case ('conectado') {
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <span class="text-green-700">Conectado — Recibirás actualizaciones en tiempo real</span>
+          }
+          @case ('conectando') {
+            <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+            <span class="text-yellow-700">Conectando...</span>
+          }
+          @case ('error') {
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            <span class="text-red-700">Sin conexión en tiempo real</span>
+          }
+          @default {
+            <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+            <span class="text-gray-500">Desconectado</span>
+          }
+        }
+      </div>
+
+      <!-- ──── Barra de progreso visual ──── -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-semibold text-gray-900">Progreso del envío</h2>
+          <span class="text-sm text-gray-500">{{ progresoPercent }}%</span>
+        </div>
+
+        <!-- Barra -->
+        <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
+          <div
+            class="bg-blue-600 h-2 rounded-full transition-all duration-700 ease-out"
+            [style.width.%]="progresoPercent"
+          ></div>
+        </div>
+
+        <!-- Pasos -->
+        <div class="flex justify-between">
+          @for (paso of pasos; track paso.etiqueta) {
+            <div class="flex flex-col items-center text-center" [class.w-20]="true">
+              <div
+                class="w-10 h-10 rounded-full flex items-center justify-center text-lg mb-1 transition-colors"
+                [class.bg-blue-600]="paso.activo"
+                [class.text-white]="paso.activo"
+                [class.bg-green-500]="paso.completado"
+                [class.text-white]="paso.completado"
+                [class.bg-gray-200]="!paso.activo && !paso.completado"
+                [class.text-gray-400]="!paso.activo && !paso.completado"
+              >
+                @if (paso.completado) {
+                  ✓
+                } @else {
+                  {{ paso.icono }}
+                }
+              </div>
+              <span
+                class="text-xs font-medium leading-tight"
+                [class.text-blue-700]="paso.activo"
+                [class.text-green-700]="paso.completado"
+                [class.text-gray-400]="!paso.activo && !paso.completado"
+              >
+                {{ paso.etiqueta }}
+              </span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- ──── Info del envío ──── -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Información del envío</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <p class="text-sm text-gray-500">Nº Seguimiento</p>
+            <p class="font-mono font-semibold text-gray-900">{{ trazabilidad.numeroSeguimiento }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Estado actual</p>
+            <p class="font-semibold text-blue-700">{{ traducirEstado(trazabilidad.estadoActual) }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Fecha de envío</p>
+            <p class="font-semibold text-gray-900">{{ trazabilidad.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Fecha de entrega</p>
+            <p class="font-semibold text-gray-900">
+              {{ trazabilidad.fechaEntrega ? (trazabilidad.fechaEntrega | date:'dd/MM/yyyy HH:mm') : 'Pendiente' }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ──── Eventos en tiempo real ──── -->
+      @if (eventosRealtime.length > 0) {
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+          <h2 class="text-lg font-semibold text-blue-900 mb-4">
+            Actualizaciones en tiempo real
+            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {{ eventosRealtime.length }} nueva{{ eventosRealtime.length !== 1 ? 's' : '' }}
+            </span>
+          </h2>
+          <div class="space-y-3">
+            @for (evento of eventosRealtime; track evento.fecha) {
+              <div class="flex items-start gap-3 bg-white rounded-lg p-3 border border-blue-100">
+                <div class="w-2 h-2 mt-2 rounded-full bg-blue-500 animate-pulse flex-shrink-0"></div>
+                <div class="flex-1">
+                  <p class="font-semibold text-gray-900">{{ traducirEstado(evento.estado) }}</p>
+                  @if (evento.descripcion) {
+                    <p class="text-sm text-gray-600">{{ evento.descripcion }}</p>
+                  }
+                  @if (evento.ubicacion) {
+                    <p class="text-sm text-gray-500">📍 {{ evento.ubicacion }}</p>
+                  }
+                </div>
+                <span class="text-xs text-gray-400 flex-shrink-0">
+                  {{ evento.fecha | date:'HH:mm:ss' }}
+                </span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ──── Historial de eventos ──── -->
+      @if (trazabilidad.eventos && trazabilidad.eventos.length > 0) {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Historial de eventos</h2>
+          <div class="relative">
+            <!-- Línea vertical -->
+            <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+            <div class="space-y-4">
+              @for (evento of trazabilidad.eventos; track evento.id; let first = $first) {
+                <div class="relative flex items-start gap-4 pl-10">
+                  <!-- Punto -->
+                  <div
+                    class="absolute left-2.5 w-3 h-3 rounded-full border-2 border-white"
+                    [class.bg-blue-600]="first"
+                    [class.bg-gray-300]="!first"
+                  ></div>
+                  <!-- Contenido -->
+                  <div class="flex-1 pb-4">
+                    <div class="flex items-center justify-between">
+                      <p class="font-semibold text-gray-900">{{ traducirEstado(evento.estado) }}</p>
+                      <span class="text-xs text-gray-400">{{ evento.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+                    </div>
+                    @if (evento.ubicacion) {
+                      <p class="text-sm text-gray-500">📍 {{ evento.ubicacion }}</p>
+                    }
+                    @if (evento.observaciones) {
+                      <p class="text-sm text-gray-600">{{ evento.observaciones }}</p>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

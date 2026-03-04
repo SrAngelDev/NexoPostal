@@ -1,0 +1,75 @@
+{
+  "/api/auth": {
+    "target": "http://localhost:5269",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/nexopostal": {
+    "target": "http://localhost:5269",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/operarios": {
+    "target": "http://localhost:5163",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/admision": {
+    "target": "http://localhost:5163",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/asignaciones": {
+    "target": "http://localhost:5163",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/ctas": {
+    "target": "http://localhost:5163",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/movimientos": {
+    "target": "http://localhost:5163",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/incidencias": {
+    "target": "http://localhost:5163",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/scan": {
+    "target": "http://localhost:5163",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/historial": {
+    "target": "http://localhost:5163",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/oficinaspostales": {
+    "target": "http://localhost:5163",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/hubs/intranet": {
+    "target": "http://localhost:5163",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true,
+    "logLevel": "debug"
+  }
+}

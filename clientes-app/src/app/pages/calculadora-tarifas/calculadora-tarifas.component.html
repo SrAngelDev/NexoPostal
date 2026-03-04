@@ -1,0 +1,304 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Navbar -->
+  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
+      <!-- Logo -->
+      <div class="flex items-center gap-2 text-2xl font-bold cursor-pointer" (click)="volverInicio()">
+        <span class="material-symbols-outlined text-3xl">local_shipping</span>
+        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
+      </div>
+
+      <!-- Volver -->
+      <button 
+        (click)="volverInicio()"
+        class="text-white hover:text-[#FFC107] transition-colors flex items-center gap-2"
+      >
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver al Inicio
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="max-w-6xl mx-auto px-5 py-10">
+    
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 rounded-full mb-4">
+        <span class="material-symbols-outlined text-[#1A237E] text-5xl">calculate</span>
+      </div>
+      <h1 class="text-4xl font-bold text-[#1A237E] mb-3">Calculadora de Tarifas</h1>
+      <p class="text-xl text-gray-600">Consulta precios según peso, dimensiones y destino (Península/Islas)</p>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-8">
+      
+      <!-- Formulario -->
+      <div class="bg-white p-8 rounded-xl shadow-lg">
+        <h2 class="text-2xl font-bold text-[#1A237E] mb-6">Datos del Paquete</h2>
+
+        <!-- Códigos Postales -->
+        <div class="grid md:grid-cols-2 gap-5 mb-5">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-semibold text-gray-700">Código Postal Origen</label>
+            <input 
+              type="text" 
+              [(ngModel)]="cpOrigen"
+              placeholder="Ej: 28001" 
+              maxlength="5" pattern="\d{5}"
+              (keypress)="$event.charCode >= 48 && $event.charCode <= 57 || $event.preventDefault()"
+              class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-semibold text-gray-700">Código Postal Destino</label>
+            <input 
+              type="text" 
+              [(ngModel)]="cpDestino"
+              placeholder="Ej: 08001" 
+              maxlength="5" pattern="\d{5}"
+              (keypress)="$event.charCode >= 48 && $event.charCode <= 57 || $event.preventDefault()"
+              class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
+            />
+          </div>
+        </div>
+
+        <div class="h-px bg-gray-200 my-6"></div>
+
+        <!-- Dimensiones -->
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Dimensiones y Peso</h3>
+        <div class="grid grid-cols-2 gap-4 mb-5">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-semibold text-gray-700">Peso (kg)</label>
+            <input 
+              type="number" 
+              [(ngModel)]="peso"
+              step="0.1" 
+              min="0.1"
+              max="30"
+              placeholder="1.5" 
+              class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
+            />
+            <span class="text-xs text-gray-500">Máximo: 30 kg</span>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-semibold text-gray-700">Largo (cm)</label>
+            <input 
+              type="number" 
+              [(ngModel)]="largo"
+              min="10"
+              max="120"
+              placeholder="30" 
+              class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
+            />
+            <span class="text-xs text-gray-500">Máximo: 120 cm</span>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-semibold text-gray-700">Ancho (cm)</label>
+            <input 
+              type="number" 
+              [(ngModel)]="ancho"
+              min="10"
+              placeholder="20" 
+              class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
+            />
+            <span class="text-xs text-gray-500">Mínimo: 10 cm</span>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-sm font-semibold text-gray-700">Alto (cm)</label>
+            <input 
+              type="number" 
+              [(ngModel)]="alto"
+              min="10"
+              placeholder="10" 
+              class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
+            />
+            <span class="text-xs text-gray-500">Mínimo: 10 cm</span>
+          </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <p class="text-[10px] md:text-xs text-gray-700">
+            <strong class="text-[#1A237E]">Restricciones:</strong> Dimensiones mínimas 10x15 cm. Largo máximo 120 cm. 
+            Suma total máximo 210 cm.
+          </p>
+        </div>
+
+        <!-- Aviso importante sobre embalaje -->
+        <div class="mt-3 p-3 md:p-4 bg-orange-50 rounded-lg border-l-4 border-orange-500">
+          <div class="flex gap-2 items-start">
+            <span class="material-symbols-outlined text-orange-600 text-lg md:text-xl flex-shrink-0 mt-0.5">warning</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs md:text-sm font-bold text-orange-800 mb-1">Responsabilidad del Embalaje</p>
+              <p class="text-[10px] md:text-xs text-gray-700 leading-relaxed">
+                El cliente es responsable del embalaje adecuado. NexoPostal no se hace responsable 
+                de daños por embalaje inadecuado y puede rechazar paquetes mal embalados.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex gap-3 mt-8">
+          <button 
+            (click)="calcularTarifa()"
+            [disabled]="isCalculating()"
+            class="flex-1 px-6 py-4 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            @if (isCalculating()) {
+              <span class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-black"></span>
+              <span>Calculando...</span>
+            } @else {
+              <span class="material-symbols-outlined">calculate</span>
+              <span>Calcular Tarifa</span>
+            }
+          </button>
+          <button 
+            (click)="limpiar()"
+            class="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
+          >
+            Limpiar
+          </button>
+        </div>
+      </div>
+
+      <!-- Resultados -->
+      <div>
+        @if (!tarifaCalculada()) {
+          <!-- Placeholder -->
+          <div class="bg-gradient-to-br from-[#1A237E] to-[#283593] p-8 rounded-xl shadow-lg text-white h-full flex flex-col items-center justify-center text-center">
+            <span class="material-symbols-outlined text-6xl mb-4 opacity-50">package_2</span>
+            <h3 class="text-2xl font-bold mb-3">¿Cuánto cuesta tu envío?</h3>
+            <p class="text-lg opacity-90 mb-6">Introduce los datos del paquete para calcular el precio exacto de tu envío</p>
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 w-full max-w-sm">
+              <p class="text-sm mb-2">Incluimos:</p>
+              <ul class="text-sm space-y-1 text-left">
+                <li>✓ Seguro básico incluido</li>
+                <li>✓ Seguimiento en tiempo real</li>
+                <li>✓ Sin costes ocultos</li>
+                <li>✓ Recogida a domicilio disponible</li>
+              </ul>
+            </div>
+          </div>
+        } @else {
+          <!-- Resultados de la tarifa -->
+          <div class="space-y-6">
+            <!-- Info del paquete -->
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+              <h3 class="text-xl font-bold text-[#1A237E] mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined">info</span>
+                Detalles del Paquete
+              </h3>
+              <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span class="text-gray-600">Origen:</span>
+                  <p class="font-semibold text-gray-800">CP {{ tarifaCalculada()!.cpOrigen }}</p>
+                </div>
+                <div>
+                  <span class="text-gray-600">Destino:</span>
+                  <p class="font-semibold text-gray-800">CP {{ tarifaCalculada()!.cpDestino }}</p>
+                </div>
+                <div>
+                  <span class="text-gray-600">Zona:</span>
+                  <p class="font-semibold text-[#1A237E]">{{ tarifaCalculada()!.zona }}</p>
+                </div>
+                <div>
+                  <span class="text-gray-600">Peso:</span>
+                  <p class="font-semibold text-gray-800">{{ tarifaCalculada()!.peso }} kg</p>
+                </div>
+                <div class="col-span-2">
+                  <span class="text-gray-600">Dimensiones:</span>
+                  <p class="font-semibold text-gray-800">
+                    {{ tarifaCalculada()!.largo }} x {{ tarifaCalculada()!.ancho }} x {{ tarifaCalculada()!.alto }} cm
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tarifas -->
+            <div class="space-y-4">
+              <!-- Tarifa Estándar -->
+              <div class="bg-white border-2 border-gray-200 p-6 rounded-xl shadow-md hover:border-[#FFC107] transition-all cursor-pointer">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="text-lg font-bold text-[#1A237E]">Envío Estándar</h4>
+                  <span class="text-3xl font-bold text-[#1A237E]">{{ tarifaCalculada()!.tarifaEstandar }} €</span>
+                </div>
+                <p class="text-gray-600 text-sm mb-3">Entrega en 48-72 horas laborables</p>
+                <ul class="text-sm text-gray-600 space-y-1">
+                  <li>✓ Seguimiento online</li>
+                  <li>✓ Seguro básico incluido</li>
+                  <li>✓ Envío sostenible</li>
+                </ul>
+              </div>
+
+              <!-- Tarifa Urgente -->
+              <div class="bg-gradient-to-br from-[#FFC107] to-[#FFB300] p-6 rounded-xl shadow-lg text-black">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined">electric_bolt</span>
+                    <h4 class="text-lg font-bold">Envío Urgente</h4>
+                  </div>
+                  <span class="text-3xl font-bold">{{ tarifaCalculada()!.tarifaUrgente }} €</span>
+                </div>
+                <p class="text-sm mb-3 font-medium">Entrega en 24 horas laborables</p>
+                <ul class="text-sm space-y-1">
+                  <li>✓ Prioridad máxima</li>
+                  <li>✓ Seguimiento en tiempo real</li>
+                  <li>✓ Seguro premium incluido</li>
+                  <li>✓ Atención preferente</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Botón contratar -->
+            <button 
+              (click)="contratarEnvio()"
+              class="w-full px-8 py-4 bg-[#1A237E] text-white rounded-lg font-semibold hover:bg-[#283593] transition-all flex items-center justify-center gap-2"
+            >
+              <span class="material-symbols-outlined">send</span>
+              Contratar Envío
+            </button>
+          </div>
+        }
+      </div>
+
+    </div>
+
+    <!-- Información adicional -->
+    <div class="mt-12 bg-blue-50 border border-blue-200 rounded-xl p-6">
+      <h3 class="text-lg font-bold text-[#1A237E] mb-3 flex items-center gap-2">
+        <span class="material-symbols-outlined">help</span>
+        Información Importante
+      </h3>
+      <ul class="text-sm text-gray-700 space-y-2">
+        <li>• Los precios mostrados son estimados y pueden variar según servicios adicionales</li>
+        <li>• El peso volumétrico se calcula como: (Largo x Ancho x Alto) / 5000</li>
+        <li>• Se factura por el mayor valor entre peso real y peso volumétrico</li>
+        <li>• Los envíos a Canarias, Baleares, Ceuta y Melilla tienen tarifas especiales</li>
+        <li>• Todos los precios incluyen IVA</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-[#263238] text-gray-400 py-12 mt-16">
+    <div class="max-w-7xl mx-auto px-5">
+      <div class="flex flex-col md:flex-row justify-between pb-8 mb-8 border-b border-gray-700">
+        <div class="mb-6 md:mb-0">
+          <h4 class="text-white text-lg font-bold mb-4">NexoPostal</h4>
+          <p class="max-w-sm">Operador logístico nacional líder en tecnología y rapidez.</p>
+        </div>
+        <div>
+          <h4 class="text-white text-lg font-bold mb-4">Enlaces Legales</h4>
+          <a href="#" class="block mb-2 hover:text-[#FFC107] transition-colors">Política de Privacidad</a>
+          <a href="#" class="block hover:text-[#FFC107] transition-colors">Términos de Uso</a>
+        </div>
+      </div>
+      <div class="text-center text-sm">
+        <p>&copy; 2026 NexoPostal S.A. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+</div>

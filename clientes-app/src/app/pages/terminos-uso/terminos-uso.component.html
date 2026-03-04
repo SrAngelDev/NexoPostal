@@ -1,0 +1,180 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Navbar -->
+  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
+      <a (click)="navigateTo('/')" class="flex items-center gap-2 text-2xl font-bold cursor-pointer">
+        <span class="material-symbols-outlined text-3xl">local_shipping</span>
+        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
+      </a>
+      <ul class="hidden md:flex gap-8">
+        <li><a (click)="navigateTo('/particulares')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Particulares</a></li>
+        <li><a (click)="navigateTo('/empresas')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Empresas</a></li>
+        <li><a (click)="navigateTo('/ayuda')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Ayuda</a></li>
+      </ul>
+      <button (click)="navigateTo('/')" class="px-6 py-2 rounded-lg bg-[#FFC107] text-black hover:bg-[#FFB300] transition-all font-semibold text-sm">
+        Ir al inicio
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="bg-gradient-to-br from-[#1A237E] to-[#283593] text-white py-12 text-center">
+    <div class="max-w-4xl mx-auto px-5">
+      <span class="material-symbols-outlined text-5xl mb-3 text-[#FFC107]">gavel</span>
+      <h1 class="text-3xl font-bold mb-2">Términos de Uso</h1>
+      <p class="text-sm opacity-75">Última actualización: 1 de enero de 2026</p>
+    </div>
+  </header>
+
+  <!-- Contenido -->
+  <section class="py-12">
+    <div class="max-w-4xl mx-auto px-5">
+      <div class="bg-white rounded-xl shadow-md p-8 md:p-12 space-y-8 text-gray-700 leading-relaxed">
+
+        <!-- Aviso destacado -->
+        <div class="bg-amber-50 border-l-4 border-[#FFC107] p-4 rounded-r-lg">
+          <p class="text-sm"><strong class="text-[#1A237E]">Aviso importante:</strong> El uso de la plataforma NexoPostal implica la aceptación íntegra de los presentes Términos de Uso. El registro en la plataforma supone la conformidad expresa con todas las condiciones aquí recogidas.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">1. Identificación del Prestador</h2>
+          <p class="text-sm">NexoPostal S.A., con CIF A-12345678, inscrita en el Registro Mercantil de Madrid, Tomo 12345, Folio 67, Hoja M-890123, y con domicilio en Calle de la Innovación, 42, 28001 Madrid, es el titular de la plataforma web <span class="font-medium text-[#1A237E]">nexopostal.es</span>.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">2. Objeto y Ámbito de Aplicación</h2>
+          <p class="text-sm">Los presentes Términos de Uso regulan el acceso, registro y utilización de la plataforma NexoPostal, un servicio de paquetería y logística nacional que permite a particulares y empresas enviar paquetes dentro del territorio español, incluyendo Islas Baleares, Islas Canarias, Ceuta y Melilla.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">3. Registro de Usuarios</h2>
+          <p class="text-sm mb-3">Para utilizar los servicios de NexoPostal, el usuario deberá:</p>
+          <ul class="text-sm space-y-2 text-gray-600">
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[#1A237E] text-base mt-0.5">arrow_right</span> Ser mayor de 18 años o contar con autorización legal.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[#1A237E] text-base mt-0.5">arrow_right</span> Proporcionar datos veraces, actualizados y completos durante el registro.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[#1A237E] text-base mt-0.5">arrow_right</span> Custodiar sus credenciales de acceso (email y contraseña) de forma segura.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[#1A237E] text-base mt-0.5">arrow_right</span> Notificar cualquier uso no autorizado de su cuenta a la mayor brevedad.</li>
+          </ul>
+          <p class="text-sm mt-3">El usuario será responsable de toda actividad realizada desde su cuenta.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">4. Descripción del Servicio</h2>
+          <p class="text-sm mb-3">NexoPostal ofrece los siguientes servicios:</p>
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="bg-indigo-50 p-4 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl mb-2">inventory_2</span>
+              <h4 class="font-semibold text-[#1A237E] text-sm">Envío Estándar</h4>
+              <p class="text-xs text-gray-600 mt-1">3-5 días laborables</p>
+            </div>
+            <div class="bg-indigo-50 p-4 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl mb-2">local_shipping</span>
+              <h4 class="font-semibold text-[#1A237E] text-sm">Envío Urgente</h4>
+              <p class="text-xs text-gray-600 mt-1">24-48 horas laborables</p>
+            </div>
+            <div class="bg-indigo-50 p-4 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl mb-2">travel_explore</span>
+              <h4 class="font-semibold text-[#1A237E] text-sm">Envío a Islas</h4>
+              <p class="text-xs text-gray-600 mt-1">5-7 días laborables</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">5. Obligaciones del Usuario</h2>
+          <p class="text-sm mb-3">El usuario se compromete a:</p>
+          <ul class="text-sm space-y-2 text-gray-600">
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">check_circle</span> No enviar mercancías prohibidas, peligrosas o ilegales.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">check_circle</span> Declarar correctamente el contenido, peso y dimensiones del paquete.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">check_circle</span> Embalar adecuadamente la mercancía para su transporte.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">check_circle</span> Respetar los límites de peso (máximo 30 kg por paquete).</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-green-500 text-base mt-0.5">check_circle</span> Proporcionar direcciones de origen y destino correctas y completas.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">6. Artículos Prohibidos</h2>
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-sm mb-2 font-semibold text-red-700">Queda estrictamente prohibido el envío de:</p>
+            <div class="grid md:grid-cols-2 gap-2 text-xs text-red-600">
+              <div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">close</span> Sustancias inflamables o explosivas</div>
+              <div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">close</span> Drogas o sustancias ilegales</div>
+              <div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">close</span> Armas de fuego o munición</div>
+              <div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">close</span> Productos perecederos sin preparación</div>
+              <div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">close</span> Dinero en efectivo o valores</div>
+              <div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">close</span> Animales vivos</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">7. Precios y Forma de Pago</h2>
+          <p class="text-sm">Todos los precios mostrados en la plataforma incluyen IVA (21%). El cálculo de la tarifa se realiza en función del peso, dimensiones y destino del paquete. El pago se realizará en el momento de la contratación del envío a través de los medios de pago disponibles en la plataforma (tarjeta bancaria mediante pasarela segura Stripe).</p>
+          <p class="text-sm mt-2">NexoPostal se reserva el derecho a modificar las tarifas, comunicando los cambios con un preaviso mínimo de 30 días naturales.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">8. Responsabilidad y Limitaciones</h2>
+          <p class="text-sm mb-3">NexoPostal responderá por:</p>
+          <ul class="text-sm space-y-2 text-gray-600 mb-3">
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[#1A237E] text-base mt-0.5">arrow_right</span> <strong>Pérdida del paquete:</strong> Indemnización de hasta 50 € por kg con un máximo de 600 € por envío estándar.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[#1A237E] text-base mt-0.5">arrow_right</span> <strong>Daños en el paquete:</strong> Indemnización proporcional al valor declarado, con los mismos límites.</li>
+            <li class="flex items-start gap-2"><span class="material-symbols-outlined text-[#1A237E] text-base mt-0.5">arrow_right</span> <strong>Retraso en la entrega:</strong> Reembolso del sobrecoste del servicio urgente si no se cumple el plazo.</li>
+          </ul>
+          <p class="text-sm">NexoPostal no será responsable de daños derivados de embalaje inadecuado, declaración incorrecta del contenido, caso fortuito o fuerza mayor.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">9. Propiedad Intelectual</h2>
+          <p class="text-sm">Todos los contenidos de la plataforma (textos, gráficos, logos, código fuente, diseño, estructura de navegación) son propiedad de NexoPostal o de sus licenciantes, y están protegidos por la legislación vigente en materia de propiedad intelectual e industrial. Queda prohibida su reproducción, distribución o transformación sin autorización expresa.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">10. Reclamaciones</h2>
+          <p class="text-sm mb-3">Para presentar una reclamación, el usuario dispone de los siguientes canales:</p>
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="bg-gray-50 p-4 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl">email</span>
+              <p class="text-xs font-semibold text-gray-700 mt-2">reclamaciones&#64;nexopostal.es</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl">call</span>
+              <p class="text-xs font-semibold text-gray-700 mt-2">900 123 456</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl">location_on</span>
+              <p class="text-xs font-semibold text-gray-700 mt-2">Cualquier oficina</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-3">El plazo para presentar reclamaciones por pérdida o daños es de 7 días naturales desde la fecha de entrega (o la fecha prevista en caso de pérdida).</p>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold text-[#1A237E] mb-3">11. Legislación Aplicable y Jurisdicción</h2>
+          <p class="text-sm">Los presentes Términos de Uso se rigen por la legislación española. Para cualquier controversia derivada del uso de la plataforma, las partes se someten a los Juzgados y Tribunales del domicilio del consumidor, conforme a lo dispuesto en el Real Decreto Legislativo 1/2007 (TRLGDCU), sin perjuicio de la posibilidad de acudir a la plataforma europea de resolución de litigios en línea (ODR) en <span class="text-[#1A237E] font-medium">ec.europa.eu/consumers/odr</span>.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-[#263238] text-gray-400 py-12">
+    <div class="max-w-7xl mx-auto px-5">
+      <div class="flex flex-col md:flex-row justify-between pb-8 mb-8 border-b border-gray-700">
+        <div class="mb-6 md:mb-0">
+          <h4 class="text-white text-lg font-bold mb-4">NexoPostal</h4>
+          <p class="max-w-sm">Operador logístico nacional líder en tecnología y rapidez.</p>
+        </div>
+        <div>
+          <h4 class="text-white text-lg font-bold mb-4">Enlaces Legales</h4>
+          <a (click)="navigateTo('/politica-privacidad')" class="block mb-2 hover:text-[#FFC107] transition-colors cursor-pointer">Política de Privacidad</a>
+          <a (click)="navigateTo('/terminos-uso')" class="block text-[#FFC107] font-semibold cursor-pointer">Términos de Uso</a>
+        </div>
+      </div>
+      <div class="text-center text-sm">
+        <p>&copy; 2026 NexoPostal S.A. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+</div>

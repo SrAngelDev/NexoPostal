@@ -1,0 +1,54 @@
+using Microsoft.AspNetCore.Identity;
+using NexoPostal.Auth.Models;
+
+namespace NexoPostal.Auth.Repositories;
+
+/// <summary>
+/// Implementación del repositorio de usuarios.
+/// Encapsula UserManager de Identity para mayor cohesión y menor acoplamiento.
+/// </summary>
+public class UserRepository : IUserRepository
+{
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public UserRepository(UserManager<ApplicationUser> userManager)
+    {
+        _userManager = userManager;
+    }
+
+    /// <inheritdoc />
+    public async Task<ApplicationUser?> GetByEmailAsync(string email)
+    {
+        return await _userManager.FindByEmailAsync(email);
+    }
+
+    /// <inheritdoc />
+    public async Task<ApplicationUser?> GetByIdAsync(string userId)
+    {
+        return await _userManager.FindByIdAsync(userId);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> CheckPasswordAsync(ApplicationUser user, string password)
+    {
+        return await _userManager.CheckPasswordAsync(user, password);
+    }
+
+    /// <inheritdoc />
+    public async Task<IdentityResult> CreateAsync(ApplicationUser user, string password)
+    {
+        return await _userManager.CreateAsync(user, password);
+    }
+
+    /// <inheritdoc />
+    public async Task<IdentityResult> UpdateAsync(ApplicationUser user)
+    {
+        return await _userManager.UpdateAsync(user);
+    }
+
+    /// <inheritdoc />
+    public async Task<IdentityResult> ChangePasswordAsync(ApplicationUser user, string currentPassword, string newPassword)
+    {
+        return await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+    }
+}

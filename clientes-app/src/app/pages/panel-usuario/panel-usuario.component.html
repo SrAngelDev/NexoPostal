@@ -1,0 +1,661 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Navbar -->
+  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
+      <!-- Logo -->
+      <div class="flex items-center gap-2 text-2xl font-bold cursor-pointer" (click)="navigateHome()">
+        <span class="material-symbols-outlined text-3xl">local_shipping</span>
+        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
+      </div>
+
+      <!-- Navigation Links -->
+      <ul class="hidden md:flex gap-8">
+        <li><a href="#" class="text-sm opacity-90 hover:opacity-100 transition-opacity">Particulares</a></li>
+        <li><a href="#" class="text-sm opacity-90 hover:opacity-100 transition-opacity">Empresas</a></li>
+        <li><a href="#" class="text-sm opacity-90 hover:opacity-100 transition-opacity">Ayuda</a></li>
+      </ul>
+
+      <!-- User Menu -->
+      <div class="hidden md:flex gap-4">
+        @if (currentUser()) {
+          <div class="user-menu-container relative flex items-center gap-3">
+            <span class="text-sm">Hola, <span class="font-semibold">{{ currentUser().user }}</span></span>
+            <button 
+              (click)="toggleUserMenu()"
+              class="w-10 h-10 rounded-full bg-[#FFC107] text-[#1A237E] flex items-center justify-center hover:bg-[#FFB300] transition-all font-bold text-lg focus:outline-none focus:ring-2 focus:ring-white/50"
+            >
+              <span class="material-symbols-outlined text-2xl">person</span>
+            </button>
+            
+            @if (showUserMenu()) {
+              <div class="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50 animate-fade-in">
+                <div class="px-4 py-3 border-b border-gray-100">
+                  <p class="text-sm font-semibold text-gray-900">{{ currentUser().user }}</p>
+                  <p class="text-xs text-gray-500">Cliente</p>
+                </div>
+                <button 
+                  (click)="navigateHome()"
+                  class="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-[#1A237E] transition-colors"
+                >
+                  <span class="material-symbols-outlined text-xl">home</span>
+                  Inicio
+                </button>
+                <div class="border-t border-gray-100 my-1"></div>
+                <button 
+                  (click)="logout()"
+                  class="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <span class="material-symbols-outlined text-xl">logout</span>
+                  Cerrar sesión
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header del panel -->
+  <div class="bg-gradient-to-r from-[#1A237E] to-[#283593] text-white py-10">
+    <div class="max-w-5xl mx-auto px-5">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-full bg-[#FFC107] flex items-center justify-center">
+          <span class="material-symbols-outlined text-[#1A237E] text-4xl">person</span>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">Mi Panel</h1>
+          <p class="opacity-80">Gestiona tu perfil, direcciones y envíos</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="bg-white border-b sticky top-[70px] z-40">
+    <div class="max-w-5xl mx-auto px-5">
+      <div class="flex gap-0">
+        <button 
+          (click)="cambiarTab('perfil')"
+          class="px-6 py-4 text-sm font-semibold border-b-3 transition-all"
+          [class]="activeTab() === 'perfil' ? 'border-[#1A237E] text-[#1A237E]' : 'border-transparent text-gray-500 hover:text-gray-700'"
+        >
+          <span class="material-symbols-outlined text-lg align-middle mr-1">badge</span>
+          Mi Perfil
+        </button>
+        <button 
+          (click)="cambiarTab('direcciones')"
+          class="px-6 py-4 text-sm font-semibold border-b-3 transition-all"
+          [class]="activeTab() === 'direcciones' ? 'border-[#1A237E] text-[#1A237E]' : 'border-transparent text-gray-500 hover:text-gray-700'"
+        >
+          <span class="material-symbols-outlined text-lg align-middle mr-1">contact_mail</span>
+          Agenda de Direcciones
+        </button>
+        <button 
+          (click)="cambiarTab('envios')"
+          class="px-6 py-4 text-sm font-semibold border-b-3 transition-all"
+          [class]="activeTab() === 'envios' ? 'border-[#1A237E] text-[#1A237E]' : 'border-transparent text-gray-500 hover:text-gray-700'"
+        >
+          <span class="material-symbols-outlined text-lg align-middle mr-1">inventory_2</span>
+          Mis Envíos
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido -->
+  <div class="max-w-5xl mx-auto px-5 py-8">
+
+    @if (cargando()) {
+      <div class="flex justify-center py-20">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-[#1A237E] border-t-transparent"></div>
+      </div>
+    } @else {
+
+      <!-- ==================== TAB PERFIL ==================== -->
+      @if (activeTab() === 'perfil') {
+        <div class="bg-white rounded-xl shadow-md p-8">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-[#1A237E]">Datos Personales</h2>
+            @if (!editandoPerfil()) {
+              <button 
+                (click)="iniciarEdicionPerfil()"
+                class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#1A237E] border-2 border-[#1A237E] rounded-lg hover:bg-[#1A237E] hover:text-white transition-all"
+              >
+                <span class="material-symbols-outlined text-lg">edit</span>
+                Editar
+              </button>
+            }
+          </div>
+
+          @if (editandoPerfil()) {
+            <!-- ======= FORMULARIO DE EDICIÓN ======= -->
+
+            <!-- Sección: Datos de Cuenta -->
+            <div class="mb-8">
+              <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#1A237E]">account_circle</span>
+                Datos de Cuenta
+              </h3>
+              <div class="grid md:grid-cols-2 gap-5">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+                  <input 
+                    type="text" 
+                    [ngModel]="usuarioForm().nombreCompleto"
+                    (ngModelChange)="updateUsuarioField('nombreCompleto', $event)"
+                    name="nombreCompleto"
+                    placeholder="Juan García López"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+                  <input 
+                    type="email" 
+                    [ngModel]="usuarioForm().email"
+                    (ngModelChange)="updateUsuarioField('email', $event)"
+                    name="email"
+                    placeholder="usuario@email.com"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono de contacto</label>
+                  <input 
+                    type="tel" 
+                    [ngModel]="usuarioForm().phoneNumber"
+                    (ngModelChange)="updateUsuarioField('phoneNumber', $event)"
+                    name="phoneNumber"
+                    placeholder="+34 600 000 000"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">DNI / NIF</label>
+                  <input 
+                    type="text" 
+                    [ngModel]="perfilForm().dni"
+                    (ngModelChange)="updatePerfilField('dni', $event)"
+                    name="dni"
+                    placeholder="12345678A"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Sección: Dirección Predeterminada -->
+            <div class="mb-8">
+              <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#1A237E]">location_on</span>
+                Dirección Predeterminada
+              </h3>
+              <div>
+                @if (direcciones().length > 0) {
+                  <select
+                    [ngModel]="perfilForm().direccionPredeterminada"
+                    (ngModelChange)="updatePerfilField('direccionPredeterminada', $event)"
+                    name="direccionPredeterminada"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors bg-white cursor-pointer"
+                  >
+                    <option value="">— Sin dirección predeterminada —</option>
+                    @for (dir of direcciones(); track dir.id) {
+                      <option [value]="dir.id">{{ dir.alias }} — {{ dir.direccion }}, {{ dir.codigoPostal }} {{ dir.ciudad }}</option>
+                    }
+                  </select>
+                  @if (direccionSeleccionada()) {
+                    <div class="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100 flex items-start gap-3">
+                      <span class="material-symbols-outlined text-[#1A237E] mt-0.5">location_on</span>
+                      <div>
+                        <p class="text-sm font-semibold text-[#1A237E]">{{ direccionSeleccionada()!.alias }}</p>
+                        <p class="text-sm text-gray-700">{{ direccionSeleccionada()!.nombreDestinatario }}</p>
+                        <p class="text-sm text-gray-600">{{ direccionSeleccionada()!.direccion }}</p>
+                        <p class="text-sm text-gray-600">{{ direccionSeleccionada()!.codigoPostal }} {{ direccionSeleccionada()!.ciudad }}, {{ direccionSeleccionada()!.provincia }}</p>
+                        @if (direccionSeleccionada()!.telefono) {
+                          <p class="text-sm text-gray-500 mt-1">
+                            <span class="material-symbols-outlined text-sm align-middle mr-1">phone</span>
+                            {{ direccionSeleccionada()!.telefono }}
+                          </p>
+                        }
+                      </div>
+                    </div>
+                  }
+                } @else {
+                  <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+                    <span class="material-symbols-outlined text-amber-500 mt-0.5">info</span>
+                    <div>
+                      <p class="text-sm text-amber-700 font-medium">No tienes direcciones guardadas</p>
+                      <p class="text-xs text-amber-600 mt-1">Añade direcciones en tu agenda para seleccionar una como predeterminada.</p>
+                      <button (click)="cambiarTab('direcciones')" class="mt-2 text-sm font-semibold text-[#1A237E] hover:underline flex items-center gap-1">
+                        <span class="material-symbols-outlined text-base">arrow_forward</span>
+                        Ir a Agenda de Direcciones
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Sección: Cambiar Contraseña -->
+            <div class="mb-6">
+              <button 
+                (click)="toggleCambioPassword()"
+                class="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#1A237E] transition-colors"
+              >
+                <span class="material-symbols-outlined text-lg">{{ mostrarCambioPassword() ? 'expand_less' : 'lock' }}</span>
+                {{ mostrarCambioPassword() ? 'Ocultar cambio de contraseña' : 'Cambiar contraseña' }}
+              </button>
+
+              @if (mostrarCambioPassword()) {
+                <div class="mt-4 p-5 bg-gray-50 rounded-xl border border-gray-200">
+                  <div class="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña actual</label>
+                      <input 
+                        type="password" 
+                        [ngModel]="passwordForm().passwordActual"
+                        (ngModelChange)="updatePasswordField('passwordActual', $event)"
+                        name="passwordActual"
+                        placeholder="••••••••"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
+                      <input 
+                        type="password" 
+                        [ngModel]="passwordForm().nuevaPassword"
+                        (ngModelChange)="updatePasswordField('nuevaPassword', $event)"
+                        name="nuevaPassword"
+                        placeholder="••••••••"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña</label>
+                      <input 
+                        type="password" 
+                        [ngModel]="passwordForm().confirmar"
+                        (ngModelChange)="updatePasswordField('confirmar', $event)"
+                        name="confirmarPassword"
+                        placeholder="••••••••"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+                  <button 
+                    (click)="guardarPassword()"
+                    [disabled]="guardandoPassword()"
+                    class="mt-4 px-5 py-2.5 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition-all disabled:opacity-50 text-sm flex items-center gap-2"
+                  >
+                    @if (guardandoPassword()) {
+                      <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      Cambiando...
+                    } @else {
+                      <span class="material-symbols-outlined text-lg">lock_reset</span>
+                      Cambiar contraseña
+                    }
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Botones guardar/cancelar -->
+            <div class="flex gap-3 pt-4 border-t border-gray-100">
+              <button 
+                (click)="guardarPerfil()"
+                [disabled]="guardandoPerfil()"
+                class="px-6 py-3 bg-[#1A237E] text-white rounded-lg font-semibold hover:bg-[#283593] transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                @if (guardandoPerfil()) {
+                  <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Guardando...
+                } @else {
+                  <span class="material-symbols-outlined text-lg">save</span>
+                  Guardar cambios
+                }
+              </button>
+              @if (perfil()) {
+                <button 
+                  (click)="cancelarEdicionPerfil()"
+                  class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
+                >
+                  Cancelar
+                </button>
+              }
+            </div>
+          } @else {
+            <!-- ======= VISTA DE LECTURA ======= -->
+            @if (perfil() || usuarioInfo()) {
+              <!-- Datos de Cuenta -->
+              <div class="mb-6">
+                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base">account_circle</span>
+                  Datos de Cuenta
+                </h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                  <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Nombre completo</p>
+                    <p class="text-gray-900 font-medium">{{ usuarioInfo()?.nombreCompleto || 'No indicado' }}</p>
+                  </div>
+                  <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Correo electrónico</p>
+                    <p class="text-gray-900 font-medium">{{ usuarioInfo()?.email || 'No indicado' }}</p>
+                  </div>
+                  <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Teléfono</p>
+                    <p class="text-gray-900 font-medium">{{ usuarioInfo()?.phoneNumber || perfil()?.telefono || 'No indicado' }}</p>
+                  </div>
+                  <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">DNI / NIF</p>
+                    <p class="text-gray-900 font-medium">{{ perfil()?.dni || 'No indicado' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dirección Predeterminada -->
+              <div class="mb-6">
+                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base">location_on</span>
+                  Dirección Predeterminada
+                </h3>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  @if (direccionPredeterminadaInfo()) {
+                    <div class="flex items-start gap-3">
+                      <span class="material-symbols-outlined text-[#1A237E]">location_on</span>
+                      <div>
+                        <p class="font-semibold text-[#1A237E]">{{ direccionPredeterminadaInfo()!.alias }}</p>
+                        <p class="text-sm text-gray-700">{{ direccionPredeterminadaInfo()!.nombreDestinatario }}</p>
+                        <p class="text-sm text-gray-600">{{ direccionPredeterminadaInfo()!.direccion }}</p>
+                        <p class="text-sm text-gray-600">{{ direccionPredeterminadaInfo()!.codigoPostal }} {{ direccionPredeterminadaInfo()!.ciudad }}, {{ direccionPredeterminadaInfo()!.provincia }}</p>
+                        @if (direccionPredeterminadaInfo()!.telefono) {
+                          <p class="text-sm text-gray-500 mt-1">
+                            <span class="material-symbols-outlined text-sm align-middle mr-1">phone</span>
+                            {{ direccionPredeterminadaInfo()!.telefono }}
+                          </p>
+                        }
+                      </div>
+                    </div>
+                  } @else {
+                    <p class="text-gray-400">No indicada</p>
+                  }
+                </div>
+              </div>
+
+              <!-- Miembro desde -->
+              <div>
+                <div class="p-4 bg-gray-50 rounded-lg inline-block">
+                  <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Miembro desde</p>
+                  <p class="text-gray-900 font-medium">{{ usuarioInfo()?.fechaRegistro || perfil()?.fechaCreacion | date:'longDate' }}</p>
+                </div>
+              </div>
+            } @else {
+              <div class="text-center py-8">
+                <span class="material-symbols-outlined text-6xl text-gray-300 mb-4">person_add</span>
+                <p class="text-gray-500 mb-4">Aún no has completado tu perfil. Pulsa "Editar" para añadir tus datos.</p>
+              </div>
+            }
+          }
+        </div>
+      }
+
+      <!-- ==================== TAB DIRECCIONES ==================== -->
+      @if (activeTab() === 'direcciones') {
+        <div class="bg-white rounded-xl shadow-md p-8">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-[#1A237E]">Agenda de Direcciones</h2>
+            <button 
+              (click)="abrirFormDireccion()"
+              class="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-[#1A237E] text-white rounded-lg hover:bg-[#283593] transition-all"
+            >
+              <span class="material-symbols-outlined text-lg">add</span>
+              Nueva dirección
+            </button>
+          </div>
+
+          <!-- Formulario nueva dirección -->
+          @if (mostrarFormDireccion()) {
+            <div class="mb-6 p-6 bg-indigo-50 rounded-xl border border-indigo-100">
+              <h3 class="text-lg font-semibold text-[#1A237E] mb-4">{{ editandoDireccionId() ? 'Editar dirección' : 'Añadir dirección' }}</h3>
+
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Alias *</label>
+                  <input type="text" [ngModel]="nuevaDireccion().alias" (ngModelChange)="updateDireccionField('alias', $event)" name="alias"
+                    placeholder="Ej: Casa, Trabajo, Mamá..."
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors text-sm" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Nombre destinatario *</label>
+                  <input type="text" [ngModel]="nuevaDireccion().nombreDestinatario" (ngModelChange)="updateDireccionField('nombreDestinatario', $event)" name="nombreDestinatario"
+                    placeholder="Nombre completo"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors text-sm" />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Dirección *</label>
+                  <input type="text" [ngModel]="nuevaDireccion().direccion" (ngModelChange)="updateDireccionField('direccion', $event)" name="direccion"
+                    placeholder="Calle, número, piso, puerta"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors text-sm" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Código Postal *</label>
+                  <input type="text" [ngModel]="nuevaDireccion().codigoPostal" (ngModelChange)="updateDireccionField('codigoPostal', $event)" name="codigoPostal"
+                    placeholder="28001" pattern="\d{5}" maxlength="5"
+                    (keypress)="$event.charCode >= 48 && $event.charCode <= 57 || $event.preventDefault()"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors text-sm" />
+                  @if (nuevaDireccion().codigoPostal && !/^\d{5}$/.test(nuevaDireccion().codigoPostal)) {
+                    <p class="text-xs text-red-500 mt-1">Debe tener exactamente 5 dígitos</p>
+                  }
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Ciudad *</label>
+                  <input type="text" [ngModel]="nuevaDireccion().ciudad" (ngModelChange)="updateDireccionField('ciudad', $event)" name="ciudad"
+                    placeholder="Madrid"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors text-sm" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Provincia *</label>
+                  <input type="text" [ngModel]="nuevaDireccion().provincia" (ngModelChange)="updateDireccionField('provincia', $event)" name="provincia"
+                    placeholder="Madrid"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors text-sm" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                  <input type="tel" [ngModel]="nuevaDireccion().telefono" (ngModelChange)="updateDireccionField('telefono', $event)" name="telefonoDireccion"
+                    placeholder="+34 600 000 000"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:border-[#1A237E] outline-none transition-colors text-sm" />
+                </div>
+              </div>
+              <div class="flex gap-3 mt-5">
+                <button 
+                  (click)="guardarDireccion()"
+                  [disabled]="guardandoDireccion()"
+                  class="px-5 py-2.5 bg-[#1A237E] text-white rounded-lg font-semibold hover:bg-[#283593] transition-all disabled:opacity-50 text-sm flex items-center gap-2"
+                >
+                  @if (guardandoDireccion()) {
+                    <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Guardando...
+                  } @else {
+                    <span class="material-symbols-outlined text-lg">save</span>
+                    Guardar
+                  }
+                </button>
+                <button 
+                  (click)="cerrarFormDireccion()"
+                  class="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all text-sm"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          }
+
+          <!-- Lista de direcciones -->
+          @if (direcciones().length === 0) {
+            <div class="text-center py-12">
+              <span class="material-symbols-outlined text-6xl text-gray-300 mb-4">contact_mail</span>
+              <p class="text-gray-500 mb-2">No tienes direcciones guardadas</p>
+              <p class="text-gray-400 text-sm">Añade direcciones frecuentes para agilizar tus envíos</p>
+            </div>
+          } @else {
+            <div class="grid md:grid-cols-2 gap-4">
+              @for (dir of direcciones(); track dir.id) {
+                <div class="p-5 border-2 rounded-xl transition-all group"
+                  [class]="esPredeterminada(dir.id) ? 'border-[#FFC107] bg-amber-50/30' : 'border-gray-100 hover:border-indigo-200'">
+                  <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="material-symbols-outlined text-[#1A237E]">location_on</span>
+                      <span class="font-semibold text-[#1A237E]">{{ dir.alias }}</span>
+                      @if (esPredeterminada(dir.id)) {
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-[#FFC107] text-[#1A237E] text-xs font-bold rounded-full">
+                          <span class="material-symbols-outlined text-sm">star</span>
+                          Predeterminada
+                        </span>
+                      }
+                    </div>
+                    <div class="flex items-center gap-1">
+                      @if (!esPredeterminada(dir.id) && direcciones().length >= 2) {
+                        <button 
+                          (click)="establecerComoPredeterminada(dir.id)"
+                          class="opacity-0 group-hover:opacity-100 p-1 text-amber-500 hover:text-amber-600 transition-all"
+                          title="Establecer como predeterminada"
+                        >
+                          <span class="material-symbols-outlined text-xl">star_outline</span>
+                        </button>
+                      }
+                      <button 
+                        (click)="editarDireccion(dir)"
+                        class="opacity-0 group-hover:opacity-100 p-1 text-indigo-400 hover:text-indigo-600 transition-all"
+                        title="Editar dirección"
+                      >
+                        <span class="material-symbols-outlined text-xl">edit</span>
+                      </button>
+                      <button 
+                        (click)="eliminarDireccion(dir.id)"
+                        class="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 transition-all"
+                        title="Eliminar dirección"
+                      >
+                        <span class="material-symbols-outlined text-xl">delete</span>
+                      </button>
+                    </div>
+                  </div>
+                  <p class="text-sm font-medium text-gray-900">{{ dir.nombreDestinatario }}</p>
+                  <p class="text-sm text-gray-600">{{ dir.direccion }}</p>
+                  <p class="text-sm text-gray-600">{{ dir.codigoPostal }} {{ dir.ciudad }}, {{ dir.provincia }}</p>
+                  @if (dir.telefono) {
+                    <p class="text-sm text-gray-500 mt-1">
+                      <span class="material-symbols-outlined text-sm align-middle mr-1">phone</span>
+                      {{ dir.telefono }}
+                    </p>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ==================== TAB ENVÍOS ==================== -->
+      @if (activeTab() === 'envios') {
+        <div class="bg-white rounded-xl shadow-md p-8">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-[#1A237E]">Mis Envíos</h2>
+            <button 
+              (click)="cargarEnvios()"
+              class="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-[#1A237E] transition-colors"
+            >
+              <span class="material-symbols-outlined text-lg">refresh</span>
+              Actualizar
+            </button>
+          </div>
+
+          @if (cargandoEnvios()) {
+            <div class="flex justify-center py-12">
+              <div class="animate-spin rounded-full h-10 w-10 border-4 border-[#1A237E] border-t-transparent"></div>
+            </div>
+          } @else if (envios().length === 0) {
+            <div class="text-center py-12">
+              <span class="material-symbols-outlined text-6xl text-gray-300 mb-4">inventory_2</span>
+              <p class="text-gray-500 mb-2">No tienes envíos registrados</p>
+              <p class="text-gray-400 text-sm">Cuando realices un envío, aparecerá aquí</p>
+            </div>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b-2 border-gray-100">
+                    <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nº Seguimiento</th>
+                    <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Destino</th>
+                    <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                    <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tarifa</th>
+                    <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Coste</th>
+                    <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
+                    <th class="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (envio of envios(); track envio.numeroSeguimiento) {
+                    <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                      <td class="py-4 px-4">
+                        <span class="font-mono text-sm font-semibold text-[#1A237E]">{{ envio.numeroSeguimiento }}</span>
+                      </td>
+                      <td class="py-4 px-4 text-sm text-gray-700">{{ envio.destino || '—' }}</td>
+                      <td class="py-4 px-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold" [ngClass]="getEstadoClase(envio.estado)">
+                          {{ getEstadoTexto(envio.estado) }}
+                        </span>
+                      </td>
+                      <td class="py-4 px-4 text-sm text-gray-600">{{ envio.tipoTarifa || '—' }}</td>
+                      <td class="py-4 px-4 text-sm font-medium text-gray-900">{{ envio.precio | number:'1.2-2' }} €</td>
+                      <td class="py-4 px-4 text-sm text-gray-500">{{ envio.fechaCreacion | date:'dd/MM/yyyy' }}</td>
+                      <td class="py-4 px-4 text-right">
+                        <div class="flex items-center justify-end gap-1">
+                          <button 
+                            (click)="descargarFactura(envio.numeroSeguimiento)"
+                            class="p-2 text-gray-400 hover:text-[#1A237E] transition-colors" 
+                            title="Descargar factura"
+                          >
+                            <span class="material-symbols-outlined text-xl">receipt_long</span>
+                          </button>
+                          <button 
+                            (click)="descargarEtiqueta(envio.numeroSeguimiento)"
+                            class="p-2 text-gray-400 hover:text-[#1A237E] transition-colors" 
+                            title="Descargar etiqueta"
+                          >
+                            <span class="material-symbols-outlined text-xl">download</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+
+    }
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-[#263238] text-gray-400 py-12 mt-auto">
+    <div class="max-w-7xl mx-auto px-5">
+      <div class="flex flex-col md:flex-row justify-between pb-8 mb-8 border-b border-gray-700">
+        <div class="mb-6 md:mb-0">
+          <h4 class="text-white text-lg font-bold mb-4">NexoPostal</h4>
+          <p class="max-w-sm">Operador logístico nacional líder en tecnología y rapidez.</p>
+        </div>
+        <div>
+          <h4 class="text-white text-lg font-bold mb-4">Enlaces Legales</h4>
+          <a href="#" class="block mb-2 hover:text-[#FFC107] transition-colors">Política de Privacidad</a>
+          <a href="#" class="block hover:text-[#FFC107] transition-colors">Términos de Uso</a>
+        </div>
+      </div>
+      <div class="text-center text-sm">
+        <p>&copy; 2026 NexoPostal S.A. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+</div>

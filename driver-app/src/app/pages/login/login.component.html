@@ -1,0 +1,132 @@
+<div class="login-page">
+  <!-- Panel izquierdo - Branding -->
+  <div class="branding-panel">
+    <div class="branding-content">
+      <div class="logo-section">
+        <div class="logo-icon">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </div>
+        <h1 class="logo-text">NexoPostal</h1>
+        <div class="logo-divider"></div>
+        <p class="logo-subtitle">App de Repartidores</p>
+      </div>
+
+      <div class="features-list">
+        <div class="feature-item">
+          <span class="material-symbols-outlined">route</span>
+          <span>Rutas optimizadas de reparto</span>
+        </div>
+        <div class="feature-item">
+          <span class="material-symbols-outlined">qr_code_scanner</span>
+          <span>Escaneo de paquetes</span>
+        </div>
+        <div class="feature-item">
+          <span class="material-symbols-outlined">notifications_active</span>
+          <span>Notificaciones en tiempo real</span>
+        </div>
+        <div class="feature-item">
+          <span class="material-symbols-outlined">verified</span>
+          <span>Confirmación de entregas</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="branding-footer">
+      <p>&copy; 2026 NexoPostal — Plataforma de reparto</p>
+    </div>
+  </div>
+
+  <!-- Panel derecho - Login -->
+  <div class="login-panel">
+    <div class="login-container">
+      <!-- Logo móvil -->
+      <div class="mobile-logo">
+        <div class="logo-icon-sm">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </div>
+        <h1>NexoPostal</h1>
+        <p>Repartidores</p>
+      </div>
+
+      <div class="login-header">
+        <h2>Iniciar Sesión</h2>
+        <p>Accede a tu panel de reparto</p>
+      </div>
+
+      <form (ngSubmit)="onSubmit()" class="login-form">
+        <!-- Error Message -->
+        @if (errorMessage()) {
+          <div class="error-message">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <!-- Email -->
+        <div class="form-group">
+          <label for="email" class="form-label">Correo corporativo</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">mail</span>
+            <input 
+              type="email" 
+              id="email"
+              [(ngModel)]="email"
+              name="email"
+              placeholder="usuario@nexopostal.es"
+              class="form-input"
+              required
+              autocomplete="email"
+            />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label for="password" class="form-label">Contraseña</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">lock</span>
+            <input 
+              [type]="showPassword() ? 'text' : 'password'"
+              id="password"
+              [(ngModel)]="password"
+              name="password"
+              placeholder="••••••••"
+              class="form-input has-toggle"
+              required
+              autocomplete="current-password"
+            />
+            <button 
+              type="button" 
+              class="password-toggle"
+              (click)="togglePassword()"
+              tabindex="-1"
+            >
+              <span class="material-symbols-outlined">
+                {{ showPassword() ? 'visibility_off' : 'visibility' }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit"
+          [disabled]="isLoading()"
+          class="submit-button"
+        >
+          @if (isLoading()) {
+            <span class="spinner"></span>
+            <span>Verificando...</span>
+          } @else {
+            <span class="material-symbols-outlined">login</span>
+            <span>Acceder</span>
+          }
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <p>¿Problemas para acceder? Contacta con tu responsable de zona</p>
+      </div>
+    </div>
+  </div>
+</div>

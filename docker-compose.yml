@@ -1,0 +1,218 @@
+services:
+  # --- PROXY INVERSO PRINCIPAL (Punto de entrada HTTPS) ---
+  reverse-proxy:
+    image: nginx:latest
+    container_name: nexopostal-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/certs:/etc/nginx/certs
+    depends_on:
+      - clientes-app
+      - intranet-app
+      - driver-app
+      - api-gateway
+    networks:
+      - nexopostal-net
+
+  # --- API GATEWAY (Orquestador de Microservicios) ---
+  api-gateway:
+    build:
+      context: ./microservicios/Nexopostal
+      dockerfile: Nexopostal.Gateway/Dockerfile
+    container_name: api-gateway
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - Microservices__Auth=http://modulo-seguridad:80
+      - Microservices__Ciudadano=http://modulo-ciudadano:80
+      - Microservices__Logistica=http://modulo-logistica:80
+      - Microservices__Reparto=http://modulo-reparto:80
+    expose:
+      - "80"
+    networks:
+      - nexopostal-net
+    depends_on:
+      - modulo-seguridad
+      - modulo-ciudadano
+      - modulo-logistica
+      - modulo-reparto
+
+  # --- FRONTENDS (Angular) ---
+  clientes-app:
+    build: ./clientes-app
+    container_name: clientes-app
+    networks:
+      - nexopostal-net
+
+  intranet-app:
+    build: ./intranet-app
+    container_name: intranet-app
+    networks:
+      - nexopostal-net
+
+  driver-app:
+    build: ./driver-app
+    container_name: driver-app
+    networks:
+      - nexopostal-net
+
+  # --- MICROSERVICIOS (Backend) ---
+  # Descomenta cuando crees cada módulo
+  
+  modulo-seguridad:
+    build:
+      context: ./microservicios/Nexopostal
+      dockerfile: Nexopostal.Auth/Dockerfile
+    container_name: modulo-seguridad
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres-auth;Port=5432;Database=nexopostal_auth;Username=postgres;Password=postgres
+    expose:
+      - "80"
+    networks:
+      - nexopostal-net
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+
+  modulo-ciudadano:
+    build:
+      context: ./microservicios/Nexopostal
+      dockerfile: Nexopostal.Ciudadano/Dockerfile
+    container_name: modulo-ciudadano
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres-ciudadano;Port=5432;Database=nexopostal_ciudadano;Username=postgres;Password=postgres
+    expose:
+      - "80"
+    networks:
+      - nexopostal-net
+    depends_on:
+      postgres-ciudadano:
+        condition: service_healthy
+
+  modulo-logistica:
+    build:
+      context: ./microservicios/Nexopostal
+      dockerfile: Nexopostal.Intranet/Dockerfile
+    container_name: modulo-logistica
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres-intranet;Port=5432;Database=nexopostal_intranet;Username=postgres;Password=postgres
+    expose:
+      - "80"
+    networks:
+      - nexopostal-net
+    depends_on:
+      postgres-intranet:
+        condition: service_healthy
+
+  modulo-reparto:
+    build:
+      context: ./microservicios/Nexopostal
+      dockerfile: Nexopostal.Reparto/Dockerfile
+    container_name: modulo-reparto
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres-reparto;Port=5432;Database=nexopostal_reparto;Username=postgres;Password=postgres
+    expose:
+      - "80"
+    networks:
+      - nexopostal-net
+    depends_on:
+      postgres-reparto:
+        condition: service_healthy
+
+  # --- BASES DE DATOS (Una por microservicio) ---
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: postgres-auth
+    environment:
+      POSTGRES_DB: nexopostal_auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    networks:
+      - nexopostal-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nexopostal_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-ciudadano:
+    image: postgres:16-alpine
+    container_name: postgres-ciudadano
+    environment:
+      POSTGRES_DB: nexopostal_ciudadano
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "15433:5432"
+    volumes:
+      - postgres-ciudadano-data:/var/lib/postgresql/data
+    networks:
+      - nexopostal-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nexopostal_ciudadano"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-intranet:
+    image: postgres:16-alpine
+    container_name: postgres-intranet
+    environment:
+      POSTGRES_DB: nexopostal_intranet
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "15434:5432"
+    volumes:
+      - postgres-intranet-data:/var/lib/postgresql/data
+    networks:
+      - nexopostal-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nexopostal_intranet"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-reparto:
+    image: postgres:16-alpine
+    container_name: postgres-reparto
+    environment:
+      POSTGRES_DB: nexopostal_reparto
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "15435:5432"
+    volumes:
+      - postgres-reparto-data:/var/lib/postgresql/data
+    networks:
+      - nexopostal-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nexopostal_reparto"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  nexopostal-net:
+    driver: bridge
+
+volumes:
+  postgres-auth-data:
+  postgres-ciudadano-data:
+  postgres-intranet-data:
+  postgres-reparto-data:

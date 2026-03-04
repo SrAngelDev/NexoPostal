@@ -1,0 +1,178 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Navbar -->
+  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
+      <a (click)="navigateTo('/')" class="flex items-center gap-2 text-2xl font-bold cursor-pointer">
+        <span class="material-symbols-outlined text-3xl">local_shipping</span>
+        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
+      </a>
+      <ul class="hidden md:flex gap-8">
+        <li><a (click)="navigateTo('/particulares')" class="text-sm font-semibold opacity-100 cursor-pointer border-b-2 border-[#FFC107] pb-1">Particulares</a></li>
+        <li><a (click)="navigateTo('/empresas')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Empresas</a></li>
+        <li><a (click)="navigateTo('/ayuda')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Ayuda</a></li>
+      </ul>
+      <button (click)="navigateTo('/')" class="px-6 py-2 rounded-lg bg-[#FFC107] text-black hover:bg-[#FFB300] transition-all font-semibold text-sm">
+        Ir al inicio
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="bg-gradient-to-br from-[#1A237E] to-[#283593] text-white py-16 text-center">
+    <div class="max-w-4xl mx-auto px-5">
+      <span class="material-symbols-outlined text-6xl mb-4 text-[#FFC107]">person</span>
+      <h1 class="text-4xl font-bold mb-4">Soluciones para Particulares</h1>
+      <p class="text-lg opacity-90">Envía tus paquetes de forma rápida, segura y al mejor precio desde cualquier lugar de España.</p>
+    </div>
+  </header>
+
+  <!-- Servicios principales -->
+  <section class="py-16">
+    <div class="max-w-6xl mx-auto px-5">
+      <h2 class="text-3xl font-bold text-center text-[#1A237E] mb-12">Nuestros servicios para ti</h2>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-[#FFC107]">
+          <div class="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mb-5">
+            <span class="material-symbols-outlined text-[#1A237E] text-3xl">inventory_2</span>
+          </div>
+          <h3 class="text-xl font-bold text-[#1A237E] mb-3">Envío Estándar</h3>
+          <p class="text-gray-600 mb-3">Entrega en 3-5 días laborables en toda la Península y Baleares.</p>
+          <ul class="text-sm text-gray-500 space-y-2">
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Seguimiento en tiempo real</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Seguro incluido hasta 50€</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Recogida en oficina o domicilio</li>
+          </ul>
+        </div>
+        <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-[#FFC107]">
+          <div class="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mb-5">
+            <span class="material-symbols-outlined text-[#1A237E] text-3xl">bolt</span>
+          </div>
+          <h3 class="text-xl font-bold text-[#1A237E] mb-3">Envío Urgente</h3>
+          <p class="text-gray-600 mb-3">Entrega en 24-48 horas para envíos que no pueden esperar.</p>
+          <ul class="text-sm text-gray-500 space-y-2">
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Prioridad en la red logística</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Notificaciones SMS y email</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Intento de entrega garantizado</li>
+          </ul>
+        </div>
+        <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-[#FFC107]">
+          <div class="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mb-5">
+            <span class="material-symbols-outlined text-[#1A237E] text-3xl">flight</span>
+          </div>
+          <h3 class="text-xl font-bold text-[#1A237E] mb-3">Envío a Islas</h3>
+          <p class="text-gray-600 mb-3">Cobertura completa en Canarias, Baleares, Ceuta y Melilla.</p>
+          <ul class="text-sm text-gray-500 space-y-2">
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Tarifas competitivas insulares</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Gestión aduanera incluida</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Entrega en 5-7 días laborables</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cómo funciona -->
+  <section class="py-16 bg-white">
+    <div class="max-w-6xl mx-auto px-5">
+      <h2 class="text-3xl font-bold text-center text-[#1A237E] mb-12">¿Cómo funciona?</h2>
+      <div class="grid md:grid-cols-4 gap-6">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#1A237E] text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">1</div>
+          <h4 class="font-bold text-gray-800 mb-2">Regístrate</h4>
+          <p class="text-sm text-gray-500">Crea tu cuenta gratuita en menos de 2 minutos.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#1A237E] text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">2</div>
+          <h4 class="font-bold text-gray-800 mb-2">Configura tu envío</h4>
+          <p class="text-sm text-gray-500">Indica peso, dimensiones y direcciones de origen y destino.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#1A237E] text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">3</div>
+          <h4 class="font-bold text-gray-800 mb-2">Paga online</h4>
+          <p class="text-sm text-gray-500">Paga de forma segura con tarjeta a través de Stripe.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#FFC107] text-[#1A237E] rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">4</div>
+          <h4 class="font-bold text-gray-800 mb-2">¡Listo!</h4>
+          <p class="text-sm text-gray-500">Recibe tu etiqueta por email y haz seguimiento en tiempo real.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ventajas -->
+  <section class="py-16">
+    <div class="max-w-6xl mx-auto px-5">
+      <h2 class="text-3xl font-bold text-center text-[#1A237E] mb-12">Ventajas de NexoPostal</h2>
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-green-600 text-2xl">savings</span>
+          </div>
+          <div>
+            <h4 class="font-bold text-gray-800 mb-1">Precios transparentes</h4>
+            <p class="text-sm text-gray-500">Sin costes ocultos. Calcula el precio exacto antes de enviar con nuestra calculadora de tarifas.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-blue-600 text-2xl">location_on</span>
+          </div>
+          <div>
+            <h4 class="font-bold text-gray-800 mb-1">Red de oficinas nacional</h4>
+            <p class="text-sm text-gray-500">Más de 200 puntos de entrega y recogida en toda España. Busca la más cercana.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-purple-600 text-2xl">verified_user</span>
+          </div>
+          <div>
+            <h4 class="font-bold text-gray-800 mb-1">Envíos asegurados</h4>
+            <p class="text-sm text-gray-500">Todos los envíos incluyen seguro básico. Posibilidad de ampliar cobertura hasta 1.000€.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-amber-600 text-2xl">support_agent</span>
+          </div>
+          <div>
+            <h4 class="font-bold text-gray-800 mb-1">Atención al cliente</h4>
+            <p class="text-sm text-gray-500">Equipo de soporte disponible de lunes a viernes de 8:00 a 20:00.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16 bg-gradient-to-r from-[#1A237E] to-[#283593] text-white text-center">
+    <div class="max-w-3xl mx-auto px-5">
+      <h2 class="text-3xl font-bold mb-4">¿Listo para enviar tu primer paquete?</h2>
+      <p class="text-lg opacity-90 mb-8">Regístrate gratis y realiza tu primer envío en minutos.</p>
+      <button (click)="navigateTo('/nuevo-envio')" class="px-8 py-4 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform text-lg">
+        Empezar ahora
+      </button>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-[#263238] text-gray-400 py-12">
+    <div class="max-w-7xl mx-auto px-5">
+      <div class="flex flex-col md:flex-row justify-between pb-8 mb-8 border-b border-gray-700">
+        <div class="mb-6 md:mb-0">
+          <h4 class="text-white text-lg font-bold mb-4">NexoPostal</h4>
+          <p class="max-w-sm">Operador logístico nacional líder en tecnología y rapidez.</p>
+        </div>
+        <div>
+          <h4 class="text-white text-lg font-bold mb-4">Enlaces Legales</h4>
+          <a (click)="navigateTo('/politica-privacidad')" class="block mb-2 hover:text-[#FFC107] transition-colors cursor-pointer">Política de Privacidad</a>
+          <a (click)="navigateTo('/terminos-uso')" class="block hover:text-[#FFC107] transition-colors cursor-pointer">Términos de Uso</a>
+        </div>
+      </div>
+      <div class="text-center text-sm">
+        <p>&copy; 2026 NexoPostal S.A. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+</div>

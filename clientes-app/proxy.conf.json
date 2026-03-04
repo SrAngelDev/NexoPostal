@@ -1,0 +1,42 @@
+{
+  "/api/auth": {
+    "target": "http://localhost:5269",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/nexopostal": {
+    "target": "http://localhost:5269",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api/nexopostal": "/api"
+    },
+    "logLevel": "debug"
+  },
+  "/hubs/tracking": {
+    "target": "http://localhost:5269",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true,
+    "logLevel": "debug"
+  },
+  "/api/nominatim": {
+    "target": "https://nominatim.openstreetmap.org",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api/nominatim": ""
+    },
+    "logLevel": "debug"
+  },
+  "/api/correos": {
+    "target": "https://api1.correos.es",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api/correos": ""
+    },
+    "logLevel": "debug"
+  }
+}

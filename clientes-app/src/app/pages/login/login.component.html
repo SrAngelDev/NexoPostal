@@ -1,0 +1,105 @@
+<!-- Modal Backdrop -->
+<div class="modal-backdrop" (click)="onClose()">
+  <!-- Modal Content -->
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold">Iniciar Sesión</h2>
+        <button 
+          (click)="onClose()"
+          class="close-button"
+          type="button"
+        >
+          <span class="material-symbols-outlined text-3xl">close</span>
+        </button>
+      </div>
+      <p class="text-sm opacity-90 mt-2">Accede a tu cuenta de NexoPostal</p>
+    </div>
+
+    <!-- Form -->
+    <form (ngSubmit)="onSubmit()" class="modal-body">
+      <!-- Error Message -->
+      @if (errorMessage()) {
+        <div class="error-message">
+          <span class="material-symbols-outlined text-red-500">error</span>
+          <span class="text-sm">{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <!-- Email -->
+      <div class="form-group">
+        <label for="email" class="form-label">
+          Correo Electrónico
+        </label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">mail</span>
+          <input 
+            type="email" 
+            id="email"
+            [(ngModel)]="email"
+            name="email"
+            placeholder="tu@email.com"
+            class="form-input"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label for="password" class="form-label">
+          Contraseña
+        </label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">lock</span>
+          <input 
+            type="password" 
+            id="password"
+            [(ngModel)]="password"
+            name="password"
+            placeholder="••••••••"
+            class="form-input"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Forgot Password -->
+      <div class="text-right">
+        <a href="#" class="text-sm text-[#1A237E] hover:underline">
+          ¿Olvidaste tu contraseña?
+        </a>
+      </div>
+
+      <!-- Submit Button -->
+      <button 
+        type="submit"
+        [disabled]="isLoading()"
+        class="submit-button"
+      >
+        @if (isLoading()) {
+          <span class="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          <span>Iniciando sesión...</span>
+        } @else {
+          <span>Iniciar Sesión</span>
+          <span class="material-symbols-outlined">arrow_forward</span>
+        }
+      </button>
+
+      <!-- Register Link -->
+      <div class="switch-auth">
+        <p class="text-gray-600">
+          ¿No tienes cuenta? 
+          <button 
+            type="button"
+            (click)="onSwitchToRegister()"
+            class="switch-link"
+          >
+            Regístrate aquí
+          </button>
+        </p>
+      </div>
+    </form>
+  </div>
+</div>

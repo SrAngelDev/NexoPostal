@@ -1,0 +1,33 @@
+<div class="dashboard-page">
+  <nav class="dashboard-nav">
+    <div class="nav-brand">
+      <span class="material-symbols-outlined nav-icon">local_shipping</span>
+      <h1 class="nav-title">NexoPostal — Repartidores</h1>
+    </div>
+    <div class="nav-actions">
+      <span class="nav-user">{{ userName }}</span>
+      <span class="nav-role">{{ userRole }}</span>
+      <button (click)="logout()" class="nav-logout">
+        <span class="material-symbols-outlined">logout</span>
+        Salir
+      </button>
+    </div>
+  </nav>
+  <main class="dashboard-main">
+    <h2 class="dashboard-title">Panel de Reparto</h2>
+    <p class="dashboard-subtitle">Bienvenido al sistema de gestión de repartos de NexoPostal.</p>
+
+    <div class="dashboard-cards">
+      <button class="dashboard-card" (click)="navigateTo('/escaneo')">
+        <div class="card-icon-wrapper card-icon-scan">
+          <span class="material-symbols-outlined">qr_code_scanner</span>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">Escanear paquetes</h3>
+          <p class="card-desc">Escanea códigos de barras para consultar y registrar entregas, incidencias o cambios de estado.</p>
+        </div>
+        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
+      </button>
+    </div>
+  </main>
+</div>

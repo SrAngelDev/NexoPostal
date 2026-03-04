@@ -1,0 +1,20 @@
+{
+  "/api/auth": {
+    "target": "http://localhost:5269",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/nexopostal": {
+    "target": "http://localhost:5269",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/reparto": {
+    "target": "http://localhost:5004",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}

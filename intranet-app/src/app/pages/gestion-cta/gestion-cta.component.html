@@ -1,0 +1,251 @@
+<div class="page">
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <button class="nav-back" (click)="volverDashboard()">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <span class="material-symbols-outlined nav-icon">domain</span>
+      <h1 class="nav-title">Mi CTA</h1>
+    </div>
+    <div class="nav-actions">
+      <!-- Campana de notificaciones -->
+      <div class="notif-wrapper">
+        <button class="nav-bell" (click)="toggleNotificaciones()">
+          <span class="material-symbols-outlined">notifications</span>
+          @if (signalr.notificacionesNoLeidas() > 0) {
+            <span class="notif-badge">{{ signalr.notificacionesNoLeidas() }}</span>
+          }
+        </button>
+
+        <!-- Panel de notificaciones -->
+        @if (showNotificaciones()) {
+          <div class="notif-panel" (click)="$event.stopPropagation()">
+            <div class="notif-panel-header">
+              <h3>Notificaciones</h3>
+              @if (signalr.notificaciones().length > 0) {
+                <button class="notif-clear" (click)="signalr.limpiarNotificaciones()">Limpiar</button>
+              }
+            </div>
+            <div class="notif-panel-body">
+              @if (signalr.notificaciones().length === 0) {
+                <div class="notif-empty">
+                  <span class="material-symbols-outlined">notifications_off</span>
+                  <p>Sin notificaciones</p>
+                </div>
+              }
+              @for (n of signalr.notificaciones(); track n.fechaHora) {
+                <div class="notif-item" [class.notif-urgente]="n.esUrgente">
+                  <div class="notif-item-header">
+                    <span class="notif-tipo-badge" [attr.data-tipo]="n.tipo">
+                      {{ n.tipo === 'PaqueteRecibidoEnCta' ? 'Nuevo paquete' :
+                         n.tipo === 'TareaAsignada' ? 'Tarea asignada' :
+                         n.tipo === 'TareaCompletada' ? 'Tarea completada' :
+                         n.tipo === 'MovimientoDespachado' ? 'Movimiento' :
+                         n.tipo === 'IncidenciaCreada' ? 'Incidencia' : n.tipo }}
+                    </span>
+                    <span class="notif-hora">{{ formatearFecha(n.fechaHora) }}</span>
+                  </div>
+                  <p class="notif-titulo">{{ n.titulo }}</p>
+                  <p class="notif-mensaje">{{ n.mensaje }}</p>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="nav-signalr-status" [class.status-connected]="signalr.conectado()">
+        <span class="status-dot"></span>
+        {{ signalr.conectado() ? 'En línea' : 'Desconectado' }}
+      </div>
+      <span class="nav-user">{{ userName }}</span>
+      <span class="nav-role">{{ userRole }}</span>
+      <button (click)="logout()" class="nav-logout">
+        <span class="material-symbols-outlined">logout</span>
+        Salir
+      </button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="spinner-lg"></span>
+        <p>Cargando información del CTA...</p>
+      </div>
+    } @else if (error()) {
+      <div class="error-state">
+        <span class="material-symbols-outlined error-icon">error</span>
+        <p>{{ error() }}</p>
+        <button class="btn-primary" (click)="cargarDatos()">Reintentar</button>
+      </div>
+    } @else {
+      <!-- ===== CABECERA CTA ===== -->
+      @if (misCtasInfo(); as info) {
+        <div class="cta-header animate-in">
+          <div class="cta-info">
+            <div class="cta-badge-big">
+              <span class="material-symbols-outlined">domain</span>
+              <div>
+                @if (ctaSeleccionado(); as cta) {
+                  <span class="cta-code">{{ cta.ctaCodigo }}</span>
+                  <span class="cta-name">{{ cta.ctaNombre }}</span>
+                }
+              </div>
+            </div>
+            <div class="cta-meta">
+              @if (ctaSeleccionado(); as cta) {
+                <span class="meta-item">
+                  <span class="material-symbols-outlined">pin_drop</span>
+                  {{ cta.area }}
+                </span>
+              }
+              <span class="meta-item">
+                <span class="material-symbols-outlined">badge</span>
+                {{ info.codigoEmpleado }}
+              </span>
+              <span class="meta-item">
+                <span class="material-symbols-outlined">person</span>
+                {{ info.nombreCompleto }}
+              </span>
+            </div>
+            @if (info.ctas.length > 1) {
+              <div class="cta-selector">
+                <label for="ctaSelect">
+                  <span class="material-symbols-outlined">swap_horiz</span>
+                  Cambiar CTA:
+                </label>
+                <select id="ctaSelect"
+                        [ngModel]="ctaSeleccionado()?.ctaId"
+                        (ngModelChange)="onCtaChange($event)">
+                  @for (c of info.ctas; track c.ctaId) {
+                    <option [ngValue]="c.ctaId">{{ c.ctaCodigo }} — {{ c.ctaNombre }}</option>
+                  }
+                </select>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ===== GRID DE ESTADÍSTICAS ===== -->
+      @if (dashboard(); as dash) {
+        <div class="stats-grid animate-in">
+          <!-- Tareas pendientes -->
+          <div class="stat-card stat-warning" (click)="irAsignaciones()">
+            <div class="stat-icon-wrap">
+              <span class="material-symbols-outlined">pending_actions</span>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number">{{ dash.tareasPendientes }}</span>
+              <span class="stat-label">Tareas pendientes</span>
+            </div>
+          </div>
+
+          <!-- Urgentes -->
+          <div class="stat-card stat-danger" (click)="irAsignaciones()">
+            <div class="stat-icon-wrap">
+              <span class="material-symbols-outlined">priority_high</span>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number">{{ dash.tareasUrgentes }}</span>
+              <span class="stat-label">Urgentes</span>
+            </div>
+          </div>
+
+          <!-- En progreso -->
+          <div class="stat-card stat-info">
+            <div class="stat-icon-wrap">
+              <span class="material-symbols-outlined">play_circle</span>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number">{{ dash.tareasEnProgreso }}</span>
+              <span class="stat-label">En progreso</span>
+            </div>
+          </div>
+
+          <!-- Completadas hoy -->
+          <div class="stat-card stat-success">
+            <div class="stat-icon-wrap">
+              <span class="material-symbols-outlined">task_alt</span>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number">{{ dash.tareasCompletadasHoy }}</span>
+              <span class="stat-label">Completadas hoy</span>
+            </div>
+          </div>
+
+          <!-- Operarios activos -->
+          <div class="stat-card stat-neutral">
+            <div class="stat-icon-wrap">
+              <span class="material-symbols-outlined">groups</span>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number">{{ dash.operariosActivos }}</span>
+              <span class="stat-label">Operarios activos</span>
+            </div>
+          </div>
+
+          <!-- Movimientos en tránsito -->
+          <div class="stat-card stat-transit">
+            <div class="stat-icon-wrap">
+              <span class="material-symbols-outlined">local_shipping</span>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number">{{ dash.movimientosEnTransito }}</span>
+              <span class="stat-label">En tránsito</span>
+            </div>
+          </div>
+
+          <!-- Incidencias abiertas -->
+          <div class="stat-card stat-incident">
+            <div class="stat-icon-wrap">
+              <span class="material-symbols-outlined">report_problem</span>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number">{{ dash.incidenciasAbiertas }}</span>
+              <span class="stat-label">Incidencias abiertas</span>
+            </div>
+          </div>
+
+          <!-- Recibidos hoy -->
+          <div class="stat-card stat-received">
+            <div class="stat-icon-wrap">
+              <span class="material-symbols-outlined">inventory_2</span>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number">{{ dash.movimientosRecibidosHoy }}</span>
+              <span class="stat-label">Recibidos hoy</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== ACCIONES RÁPIDAS ===== -->
+        <div class="actions-section animate-in">
+          <h2 class="section-heading">
+            <span class="material-symbols-outlined">bolt</span>
+            Acciones rápidas
+          </h2>
+          <div class="actions-grid">
+            <button class="action-card" (click)="irAsignaciones()">
+              <span class="material-symbols-outlined action-icon">assignment</span>
+              <span class="action-title">Gestionar asignaciones</span>
+              <span class="action-desc">Asignar paquetes a operarios, ver tareas</span>
+            </button>
+            <button class="action-card" routerLink="/seguimiento-interno">
+              <span class="material-symbols-outlined action-icon">search</span>
+              <span class="action-title">Seguimiento interno</span>
+              <span class="action-desc">Buscar envíos por expedición o seguimiento</span>
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </main>
+</div>
+
+<!-- Overlay para cerrar notificaciones -->
+@if (showNotificaciones()) {
+  <div class="notif-overlay" (click)="cerrarNotificaciones()"></div>
+}

@@ -1,0 +1,329 @@
+<div class="admin-page">
+  <!-- Nav bar -->
+  <nav class="admin-nav">
+    <div class="nav-brand">
+      <span class="material-symbols-outlined nav-icon">admin_panel_settings</span>
+      <h1 class="nav-title">NexoPostal — Administración</h1>
+    </div>
+    <div class="nav-actions">
+      <span class="nav-signalr" [class.signalr-connected]="conectado()">
+        <span class="signalr-dot"></span>
+      </span>
+      <button class="nav-bell" (click)="toggleNotificaciones()">
+        <span class="material-symbols-outlined">notifications</span>
+        @if (noLeidas() > 0) {
+          <span class="bell-badge">{{ noLeidas() > 9 ? '9+' : noLeidas() }}</span>
+        }
+      </button>
+      <span class="nav-user">{{ userName }}</span>
+      <span class="nav-role">Administrador</span>
+      <button (click)="logout()" class="nav-logout">
+        <span class="material-symbols-outlined">logout</span>
+        Salir
+      </button>
+    </div>
+  </nav>
+
+  <!-- Notification panel -->
+  @if (showNotificaciones()) {
+    <div class="notif-panel animate-in">
+      <div class="notif-header">
+        <h3>Notificaciones</h3>
+        <button class="notif-close" (click)="toggleNotificaciones()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="notif-list">
+        @for (n of notificaciones(); track $index) {
+          <div class="notif-item" [class.notif-urgente]="n.esUrgente">
+            <span class="material-symbols-outlined notif-icon">{{ n.esUrgente ? 'priority_high' : 'info' }}</span>
+            <div class="notif-body">
+              <p class="notif-msg">{{ n.mensaje }}</p>
+              <span class="notif-time">{{ n.fechaHora }}</span>
+            </div>
+          </div>
+        } @empty {
+          <p class="notif-empty">Sin notificaciones</p>
+        }
+      </div>
+    </div>
+  }
+
+  <main class="admin-main">
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="admin-loading">
+        <div class="spinner"></div>
+        <p>Cargando estadísticas...</p>
+      </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+      <div class="admin-error">
+        <span class="material-symbols-outlined">error</span>
+        <p>{{ error() }}</p>
+        <button (click)="cargarDashboard()" class="btn-retry">Reintentar</button>
+      </div>
+    }
+
+    <!-- Dashboard content -->
+    @if (dashboard(); as d) {
+      <div class="admin-content animate-in">
+        <div class="admin-header">
+          <div>
+            <h2 class="admin-title">Panel de Administración</h2>
+            <p class="admin-subtitle">Estadísticas globales de la plataforma NexoPostal</p>
+          </div>
+          <button (click)="cargarDashboard()" class="btn-refresh" title="Actualizar datos">
+            <span class="material-symbols-outlined">refresh</span>
+          </button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+          <!-- CTAs activos -->
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-icon">
+              <span class="material-symbols-outlined">domain</span>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-value">{{ d.ctasActivos }}</span>
+              <span class="kpi-label">CTAs Activos</span>
+              <span class="kpi-sub">de {{ d.totalCtas }} totales</span>
+            </div>
+          </div>
+
+          <!-- Operarios -->
+          <div class="kpi-card kpi-green">
+            <div class="kpi-icon">
+              <span class="material-symbols-outlined">groups</span>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-value">{{ d.operariosActivos }}</span>
+              <span class="kpi-label">Operarios Activos</span>
+              <span class="kpi-sub">{{ porcentajeOperariosActivos() }}% de {{ d.totalOperarios }}</span>
+            </div>
+          </div>
+
+          <!-- Tareas hoy -->
+          <div class="kpi-card kpi-purple">
+            <div class="kpi-icon">
+              <span class="material-symbols-outlined">task_alt</span>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-value">{{ d.tareasCompletadasHoyGlobal }}</span>
+              <span class="kpi-label">Completadas Hoy</span>
+              <span class="kpi-sub">{{ totalTareasActivas() }} activas</span>
+            </div>
+          </div>
+
+          <!-- Urgentes -->
+          <div class="kpi-card" [class.kpi-red]="d.tareasUrgentesGlobal > 0" [class.kpi-gray]="d.tareasUrgentesGlobal === 0">
+            <div class="kpi-icon">
+              <span class="material-symbols-outlined">priority_high</span>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-value">{{ d.tareasUrgentesGlobal }}</span>
+              <span class="kpi-label">Tareas Urgentes</span>
+              <span class="kpi-sub">requieren atención</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats sections -->
+        <div class="stats-grid">
+          <!-- Movimientos -->
+          <div class="stats-card">
+            <h3 class="stats-title">
+              <span class="material-symbols-outlined">local_shipping</span>
+              Movimientos de Paquetes
+            </h3>
+            <div class="stats-rows">
+              <div class="stats-row">
+                <span class="stats-label">Programados</span>
+                <span class="stats-value stats-scheduled">{{ d.movimientosProgramadosGlobal }}</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">En Tránsito</span>
+                <span class="stats-value stats-transit">{{ d.movimientosEnTransitoGlobal }}</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">Recibidos Hoy</span>
+                <span class="stats-value stats-received">{{ d.movimientosRecibidosHoyGlobal }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Asignaciones -->
+          <div class="stats-card">
+            <h3 class="stats-title">
+              <span class="material-symbols-outlined">assignment</span>
+              Asignaciones
+            </h3>
+            <div class="stats-rows">
+              <div class="stats-row">
+                <span class="stats-label">Pendientes</span>
+                <span class="stats-value stats-pending">{{ d.tareasPendientesGlobal }}</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">En Progreso</span>
+                <span class="stats-value stats-progress">{{ d.tareasEnProgresoGlobal }}</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">Completadas Hoy</span>
+                <span class="stats-value stats-completed">{{ d.tareasCompletadasHoyGlobal }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Incidencias -->
+          <div class="stats-card">
+            <h3 class="stats-title">
+              <span class="material-symbols-outlined">report_problem</span>
+              Incidencias
+            </h3>
+            <div class="stats-rows">
+              <div class="stats-row">
+                <span class="stats-label">Abiertas</span>
+                <span class="stats-value" [class.stats-alert]="d.incidenciasAbiertasGlobal > 0">{{ d.incidenciasAbiertasGlobal }}</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">En Revisión</span>
+                <span class="stats-value stats-review">{{ d.incidenciasEnRevisionGlobal }}</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">Total Activas</span>
+                <span class="stats-value">{{ totalIncidencias() }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalle por CTA -->
+        <div class="cta-section">
+          <h3 class="section-title">
+            <span class="material-symbols-outlined">hub</span>
+            Red de CTAs — Detalle por Centro
+          </h3>
+          <div class="cta-grid">
+            @for (cta of d.detallePorCta; track cta.ctaId) {
+              <button class="cta-card" (click)="seleccionarCta(cta)"
+                [class.cta-selected]="selectedCta()?.ctaId === cta.ctaId">
+                <div class="cta-header">
+                  <span class="cta-code">{{ cta.ctaCodigo }}</span>
+                  <span class="cta-area">{{ cta.area }}</span>
+                </div>
+                <p class="cta-name">{{ cta.ctaNombre }}</p>
+                <div class="cta-stats">
+                  <span class="cta-stat" title="Operarios activos">
+                    <span class="material-symbols-outlined">person</span>
+                    {{ cta.operariosActivos }}/{{ cta.totalOperarios }}
+                  </span>
+                  <span class="cta-stat" title="Tareas pendientes">
+                    <span class="material-symbols-outlined">pending_actions</span>
+                    {{ cta.tareasPendientes }}
+                  </span>
+                  @if (cta.tareasUrgentes > 0) {
+                    <span class="cta-stat cta-urgent" title="Urgentes">
+                      <span class="material-symbols-outlined">warning</span>
+                      {{ cta.tareasUrgentes }}
+                    </span>
+                  }
+                  @if (cta.incidenciasAbiertas > 0) {
+                    <span class="cta-stat cta-incident" title="Incidencias">
+                      <span class="material-symbols-outlined">report</span>
+                      {{ cta.incidenciasAbiertas }}
+                    </span>
+                  }
+                </div>
+              </button>
+            } @empty {
+              <p class="no-ctas">No hay CTAs registrados en el sistema.</p>
+            }
+          </div>
+        </div>
+
+        <!-- CTA Detail Panel -->
+        @if (selectedCta(); as cta) {
+          <div class="cta-detail animate-in">
+            <div class="cta-detail-header">
+              <h3>{{ cta.ctaCodigo }} — {{ cta.ctaNombre }}</h3>
+              <button (click)="seleccionarCta(cta)" class="btn-close-detail">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div class="cta-detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Operarios</span>
+                <span class="detail-value">{{ cta.operariosActivos }} activos / {{ cta.totalOperarios }} total</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Tareas Pendientes</span>
+                <span class="detail-value">{{ cta.tareasPendientes }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Tareas en Progreso</span>
+                <span class="detail-value">{{ cta.tareasEnProgreso }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Completadas Hoy</span>
+                <span class="detail-value">{{ cta.tareasCompletadasHoy }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Urgentes</span>
+                <span class="detail-value" [class.text-red]="cta.tareasUrgentes > 0">{{ cta.tareasUrgentes }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Mov. Programados</span>
+                <span class="detail-value">{{ cta.movimientosProgramados }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Mov. En Tránsito</span>
+                <span class="detail-value">{{ cta.movimientosEnTransito }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Recibidos Hoy</span>
+                <span class="detail-value">{{ cta.movimientosRecibidosHoy }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Incidencias Abiertas</span>
+                <span class="detail-value" [class.text-red]="cta.incidenciasAbiertas > 0">{{ cta.incidenciasAbiertas }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Inc. en Revisión</span>
+                <span class="detail-value">{{ cta.incidenciasEnRevision }}</span>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Quick actions -->
+        <div class="admin-actions">
+          <h3 class="section-title">
+            <span class="material-symbols-outlined">bolt</span>
+            Acciones Rápidas
+          </h3>
+          <div class="actions-grid">
+            <button class="action-card" (click)="navigateTo('/gestion-cta')">
+              <span class="material-symbols-outlined">domain</span>
+              <span>Gestión de CTAs</span>
+            </button>
+            <button class="action-card" (click)="navigateTo('/seguimiento-interno')">
+              <span class="material-symbols-outlined">local_shipping</span>
+              <span>Seguimiento</span>
+            </button>
+            <button class="action-card" (click)="navigateTo('/asignaciones')">
+              <span class="material-symbols-outlined">assignment</span>
+              <span>Asignaciones</span>
+            </button>
+            <button class="action-card" (click)="navigateTo('/escaneo')">
+              <span class="material-symbols-outlined">qr_code_scanner</span>
+              <span>Escaneo</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </main>
+</div>

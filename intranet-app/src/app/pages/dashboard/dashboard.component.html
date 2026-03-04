@@ -1,0 +1,141 @@
+<div class="dashboard-page">
+  <nav class="dashboard-nav">
+    <div class="nav-brand">
+      <span class="material-symbols-outlined nav-icon">local_post_office</span>
+      <h1 class="nav-title">NexoPostal — Intranet</h1>
+    </div>
+    <div class="nav-actions">
+      <!-- SignalR status -->
+      <span class="nav-signalr" [class.signalr-connected]="conectado()">
+        <span class="signalr-dot"></span>
+      </span>
+
+      <!-- Notification bell -->
+      <button class="nav-bell" (click)="toggleNotificaciones()">
+        <span class="material-symbols-outlined">notifications</span>
+        @if (noLeidas() > 0) {
+          <span class="bell-badge">{{ noLeidas() > 9 ? '9+' : noLeidas() }}</span>
+        }
+      </button>
+
+      <span class="nav-user">{{ userName }}</span>
+      <span class="nav-role">{{ userRoleLabel }}</span>
+      <button (click)="logout()" class="nav-logout">
+        <span class="material-symbols-outlined">logout</span>
+        Salir
+      </button>
+    </div>
+  </nav>
+
+  <!-- Notification panel -->
+  @if (showNotificaciones()) {
+    <div class="notif-panel animate-in">
+      <div class="notif-header">
+        <h3>Notificaciones</h3>
+        <button class="notif-close" (click)="toggleNotificaciones()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="notif-list">
+        @for (n of notificaciones(); track $index) {
+          <div class="notif-item" [class.notif-urgente]="n.esUrgente">
+            <span class="material-symbols-outlined notif-icon">{{ n.esUrgente ? 'priority_high' : 'info' }}</span>
+            <div class="notif-body">
+              <p class="notif-msg">{{ n.mensaje }}</p>
+              <span class="notif-time">{{ n.fechaHora }}</span>
+            </div>
+          </div>
+        } @empty {
+          <p class="notif-empty">Sin notificaciones</p>
+        }
+      </div>
+    </div>
+  }
+
+  <main class="dashboard-main">
+    <h2 class="dashboard-title">Panel de Gestión</h2>
+    <p class="dashboard-subtitle">
+      @if (isOperarioJefe) {
+        Supervisa y gestiona todas las operaciones del centro.
+      } @else if (isOperarioOficina) {
+        Gestión de atención al público y recepción/entrega de paquetes.
+      } @else if (isOperarioLogistico) {
+        Gestión de clasificación, despacho y logística de paquetes.
+      } @else {
+        Bienvenido al sistema de gestión interna de NexoPostal.
+      }
+    </p>
+
+    <div class="dashboard-cards">
+      <!-- Mi CTA — visible para todos los operarios -->
+      <button class="dashboard-card" (click)="navigateTo('/gestion-cta')">
+        <div class="card-icon-wrapper card-icon-cta">
+          <span class="material-symbols-outlined">domain</span>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">Mi CTA</h3>
+          <p class="card-desc">Panel logístico de tu Centro de Tratamiento Automatizado: paquetes, operarios y estadísticas.</p>
+        </div>
+        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
+      </button>
+
+      <!-- Asignaciones — solo OperarioLogistico y OperarioJefe -->
+      @if (isOperarioLogistico || isOperarioJefe) {
+        <button class="dashboard-card" (click)="navigateTo('/asignaciones')">
+          <div class="card-icon-wrapper card-icon-asignaciones">
+            <span class="material-symbols-outlined">assignment</span>
+          </div>
+          <div class="card-body">
+            <h3 class="card-title">Asignaciones</h3>
+            <p class="card-desc">Gestiona las tareas asignadas: clasificación, despacho, transporte entre CTAs y más.</p>
+          </div>
+          <span class="material-symbols-outlined card-arrow">arrow_forward</span>
+        </button>
+      }
+
+      <!-- Escaneo de paquetes — OperarioOficina, OperarioLogistico y OperarioJefe -->
+      <button class="dashboard-card" (click)="navigateTo('/escaneo')">
+        <div class="card-icon-wrapper card-icon-scan">
+          <span class="material-symbols-outlined">qr_code_scanner</span>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">Escaneo</h3>
+          <p class="card-desc">
+            @if (isOperarioOficina) {
+              Escanea códigos de barras para registrar recogidas y entregas en tu oficina.
+            } @else {
+              Escanea códigos para procesar paquetes automáticamente en tu CTA.
+            }
+          </p>
+        </div>
+        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
+      </button>
+
+      <!-- Seguimiento interno — todos los operarios -->
+      <button class="dashboard-card" (click)="navigateTo('/seguimiento-interno')">
+        <div class="card-icon-wrapper card-icon-tracking">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">Seguimiento Interno</h3>
+          <p class="card-desc">Consulta el estado detallado de los envíos por número de expedición o seguimiento.</p>
+        </div>
+        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
+      </button>
+
+      <!-- Gestión de operarios — solo OperarioJefe -->
+      @if (isOperarioJefe) {
+        <button class="dashboard-card" (click)="navigateTo('/gestion-cta')">
+          <div class="card-icon-wrapper" style="background: linear-gradient(135deg, #6a1b9a, #8e24aa);">
+            <span class="material-symbols-outlined">supervisor_account</span>
+          </div>
+          <div class="card-body">
+            <h3 class="card-title">Gestión de Equipo</h3>
+            <p class="card-desc">Supervisa operarios, revisa rendimiento e incidencias de tu CTA.</p>
+          </div>
+          <span class="material-symbols-outlined card-arrow">arrow_forward</span>
+        </button>
+      }
+    </div>
+  </main>
+</div>

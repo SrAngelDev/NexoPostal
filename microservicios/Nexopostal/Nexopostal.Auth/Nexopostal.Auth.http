@@ -1,0 +1,30 @@
+@NexoPostal_Auth_HostAddress = http://localhost:5216
+
+### Registro de nuevo usuario
+POST {{NexoPostal_Auth_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "juan.perez@example.com",
+  "password": "password123",
+  "nombreCompleto": "Juan Pérez"
+}
+
+### Login de usuario
+POST {{NexoPostal_Auth_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "juan.perez@example.com",
+  "password": "password123"
+}
+
+### Refresh Token
+POST {{NexoPostal_Auth_HostAddress}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+
+###

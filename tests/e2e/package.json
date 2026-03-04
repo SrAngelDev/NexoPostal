@@ -1,0 +1,14 @@
+{
+  "name": "nexopostal-e2e",
+  "version": "1.0.0",
+  "description": "Tests E2E para NexoPostal con Playwright",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:headed": "npx playwright test --headed",
+    "test:report": "npx playwright show-report",
+    "install:browsers": "npx playwright install"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0"
+  }
+}

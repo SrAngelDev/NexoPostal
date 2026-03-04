@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.*" />
+    <PackageReference Include="FluentAssertions" Version="8.*" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
+    <PackageReference Include="Moq" Version="4.*" />
+    <PackageReference Include="xunit" Version="2.*" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nexopostal.Ciudadano\Nexopostal.Ciudadano.csproj" />
+    <ProjectReference Include="..\Nexopostal.Intranet\Nexopostal.Intranet.csproj" />
+    <ProjectReference Include="..\Nexopostal.Reparto\Nexopostal.Reparto.csproj" />
+    <ProjectReference Include="..\Nexopostal.Auth\Nexopostal.Auth.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'nexopostal-auth'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['modulo-seguridad:80']
+        labels:
+          servicio: 'auth'
+
+  - job_name: 'nexopostal-ciudadano'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['modulo-ciudadano:80']
+        labels:
+          servicio: 'ciudadano'
+
+  - job_name: 'nexopostal-intranet'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['modulo-intranet:80']
+        labels:
+          servicio: 'intranet'
+
+  - job_name: 'nexopostal-reparto'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['modulo-reparto:80']
+        labels:
+          servicio: 'reparto'
+
+  - job_name: 'nexopostal-gateway'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['gateway:80']
+        labels:
+          servicio: 'gateway'
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

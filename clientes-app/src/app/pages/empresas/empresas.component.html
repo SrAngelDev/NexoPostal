@@ -1,0 +1,173 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Navbar -->
+  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
+      <a (click)="navigateTo('/')" class="flex items-center gap-2 text-2xl font-bold cursor-pointer">
+        <span class="material-symbols-outlined text-3xl">local_shipping</span>
+        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
+      </a>
+      <ul class="hidden md:flex gap-8">
+        <li><a (click)="navigateTo('/particulares')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Particulares</a></li>
+        <li><a (click)="navigateTo('/empresas')" class="text-sm font-semibold opacity-100 cursor-pointer border-b-2 border-[#FFC107] pb-1">Empresas</a></li>
+        <li><a (click)="navigateTo('/ayuda')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Ayuda</a></li>
+      </ul>
+      <button (click)="navigateTo('/')" class="px-6 py-2 rounded-lg bg-[#FFC107] text-black hover:bg-[#FFB300] transition-all font-semibold text-sm">
+        Ir al inicio
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="bg-gradient-to-br from-[#1A237E] to-[#283593] text-white py-16 text-center">
+    <div class="max-w-4xl mx-auto px-5">
+      <span class="material-symbols-outlined text-6xl mb-4 text-[#FFC107]">business</span>
+      <h1 class="text-4xl font-bold mb-4">Soluciones Logísticas para Empresas</h1>
+      <p class="text-lg opacity-90">Optimiza tus envíos corporativos con tarifas preferentes, gestión centralizada y soporte dedicado.</p>
+    </div>
+  </header>
+
+  <!-- Planes empresariales -->
+  <section class="py-16">
+    <div class="max-w-6xl mx-auto px-5">
+      <h2 class="text-3xl font-bold text-center text-[#1A237E] mb-12">Planes adaptados a tu negocio</h2>
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Plan PYME -->
+        <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-gray-300 hover:shadow-lg transition-all">
+          <h3 class="text-xl font-bold text-[#1A237E] mb-1">Plan PYME</h3>
+          <p class="text-sm text-gray-500 mb-5">Hasta 50 envíos/mes</p>
+          <div class="text-3xl font-bold text-[#1A237E] mb-1">5% <span class="text-base font-normal text-gray-500">de descuento</span></div>
+          <p class="text-xs text-gray-400 mb-6">Sobre tarifas estándar</p>
+          <ul class="text-sm text-gray-600 space-y-3 mb-8">
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Panel de gestión de envíos</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Facturación mensual</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Etiquetas en lote</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Soporte por email</li>
+          </ul>
+          <button class="w-full py-3 border-2 border-[#1A237E] text-[#1A237E] rounded-lg font-semibold hover:bg-indigo-50 transition-colors">
+            Solicitar información
+          </button>
+        </div>
+
+        <!-- Plan Empresa (destacado) -->
+        <div class="bg-white p-8 rounded-xl shadow-xl border-t-4 border-[#FFC107] relative transform md:-translate-y-2">
+          <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FFC107] text-black text-xs font-bold px-4 py-1 rounded-full">MÁS POPULAR</div>
+          <h3 class="text-xl font-bold text-[#1A237E] mb-1">Plan Empresa</h3>
+          <p class="text-sm text-gray-500 mb-5">50-500 envíos/mes</p>
+          <div class="text-3xl font-bold text-[#1A237E] mb-1">15% <span class="text-base font-normal text-gray-500">de descuento</span></div>
+          <p class="text-xs text-gray-400 mb-6">Sobre tarifas estándar</p>
+          <ul class="text-sm text-gray-600 space-y-3 mb-8">
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Todo del Plan PYME</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Recogida en domicilio programada</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Integración API disponible</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Gestor de cuenta dedicado</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Soporte telefónico prioritario</li>
+          </ul>
+          <button class="w-full py-3 bg-[#1A237E] text-white rounded-lg font-semibold hover:bg-[#283593] transition-colors">
+            Solicitar información
+          </button>
+        </div>
+
+        <!-- Plan Corporativo -->
+        <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-gray-300 hover:shadow-lg transition-all">
+          <h3 class="text-xl font-bold text-[#1A237E] mb-1">Plan Corporativo</h3>
+          <p class="text-sm text-gray-500 mb-5">+500 envíos/mes</p>
+          <div class="text-3xl font-bold text-[#1A237E] mb-1">A medida</div>
+          <p class="text-xs text-gray-400 mb-6">Tarifa personalizada</p>
+          <ul class="text-sm text-gray-600 space-y-3 mb-8">
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Todo del Plan Empresa</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Descuentos por volumen</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> SLA garantizado</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Informes y analítica avanzada</li>
+            <li class="flex items-center gap-2"><span class="material-symbols-outlined text-green-500 text-base">check_circle</span> Soporte 24/7</li>
+          </ul>
+          <button class="w-full py-3 border-2 border-[#1A237E] text-[#1A237E] rounded-lg font-semibold hover:bg-indigo-50 transition-colors">
+            Contactar ventas
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ventajas corporativas -->
+  <section class="py-16 bg-white">
+    <div class="max-w-6xl mx-auto px-5">
+      <h2 class="text-3xl font-bold text-center text-[#1A237E] mb-12">¿Por qué elegir NexoPostal?</h2>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center p-6">
+          <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <span class="material-symbols-outlined text-[#1A237E] text-3xl">speed</span>
+          </div>
+          <h4 class="font-bold text-gray-800 mb-2">Rapidez garantizada</h4>
+          <p class="text-sm text-gray-500">Cumplimiento del 98% en plazos de entrega comprometidos.</p>
+        </div>
+        <div class="text-center p-6">
+          <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <span class="material-symbols-outlined text-[#1A237E] text-3xl">hub</span>
+          </div>
+          <h4 class="font-bold text-gray-800 mb-2">Integración tecnológica</h4>
+          <p class="text-sm text-gray-500">API REST documentada para conectar tu e-commerce o ERP directamente con NexoPostal.</p>
+        </div>
+        <div class="text-center p-6">
+          <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <span class="material-symbols-outlined text-[#1A237E] text-3xl">eco</span>
+          </div>
+          <h4 class="font-bold text-gray-800 mb-2">Compromiso sostenible</h4>
+          <p class="text-sm text-gray-500">Flota híbrida para última milla y embalajes reciclables disponibles.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Clientes -->
+  <section class="py-16">
+    <div class="max-w-4xl mx-auto px-5 text-center">
+      <h2 class="text-3xl font-bold text-[#1A237E] mb-4">Confían en nosotros</h2>
+      <p class="text-gray-500 mb-10">Más de 500 empresas ya utilizan NexoPostal para sus envíos diarios.</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div class="bg-white border border-gray-200 rounded-xl p-6 flex items-center justify-center">
+          <span class="text-gray-400 font-bold text-lg">TiendaOnline</span>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-6 flex items-center justify-center">
+          <span class="text-gray-400 font-bold text-lg">FreshBox</span>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-6 flex items-center justify-center">
+          <span class="text-gray-400 font-bold text-lg">ModaExpress</span>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-6 flex items-center justify-center">
+          <span class="text-gray-400 font-bold text-lg">TechShop</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16 bg-gradient-to-r from-[#1A237E] to-[#283593] text-white text-center">
+    <div class="max-w-3xl mx-auto px-5">
+      <h2 class="text-3xl font-bold mb-4">¿Quieres una propuesta personalizada?</h2>
+      <p class="text-lg opacity-90 mb-8">Nuestro equipo comercial te contactará en menos de 24 horas.</p>
+      <button class="px-8 py-4 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform text-lg">
+        Solicitar propuesta
+      </button>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-[#263238] text-gray-400 py-12">
+    <div class="max-w-7xl mx-auto px-5">
+      <div class="flex flex-col md:flex-row justify-between pb-8 mb-8 border-b border-gray-700">
+        <div class="mb-6 md:mb-0">
+          <h4 class="text-white text-lg font-bold mb-4">NexoPostal</h4>
+          <p class="max-w-sm">Operador logístico nacional líder en tecnología y rapidez.</p>
+        </div>
+        <div>
+          <h4 class="text-white text-lg font-bold mb-4">Enlaces Legales</h4>
+          <a (click)="navigateTo('/politica-privacidad')" class="block mb-2 hover:text-[#FFC107] transition-colors cursor-pointer">Política de Privacidad</a>
+          <a (click)="navigateTo('/terminos-uso')" class="block hover:text-[#FFC107] transition-colors cursor-pointer">Términos de Uso</a>
+        </div>
+      </div>
+      <div class="text-center text-sm">
+        <p>&copy; 2026 NexoPostal S.A. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+</div>
