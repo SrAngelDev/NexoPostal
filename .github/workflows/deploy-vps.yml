@@ -147,7 +147,7 @@ jobs:
         with:
           private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
 
-- name: Add known hosts
+      - name: Add known hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
