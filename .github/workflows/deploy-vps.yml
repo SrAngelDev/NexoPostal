@@ -81,7 +81,7 @@ jobs:
     name: Build Docker Images
     needs: [build-backend, build-frontend]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev'
 
     steps:
       - uses: actions/checkout@v4
@@ -135,7 +135,7 @@ jobs:
     name: Deploy to VPS DigitalOcean
     needs: docker-build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     environment: production
 
     steps:
