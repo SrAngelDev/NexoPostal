@@ -90,19 +90,19 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Auth
-        run: docker build -t nexopostal-modulo-seguridad:latest -f microservicios/Nexopostal/Nexopostal.Auth/Dockerfile .
+        run: docker build -t nexopostal-modulo-seguridad:latest -f microservicios/Nexopostal/Nexopostal.Auth/Dockerfile microservicios/Nexopostal
 
       - name: Build Ciudadano
-        run: docker build -t nexopostal-modulo-ciudadano:latest -f microservicios/Nexopostal/Nexopostal.Ciudadano/Dockerfile .
+        run: docker build -t nexopostal-modulo-ciudadano:latest -f microservicios/Nexopostal/Nexopostal.Ciudadano/Dockerfile microservicios/Nexopostal
 
       - name: Build Intranet
-        run: docker build -t nexopostal-modulo-logistica:latest -f microservicios/Nexopostal/Nexopostal.Intranet/Dockerfile .
+        run: docker build -t nexopostal-modulo-logistica:latest -f microservicios/Nexopostal/Nexopostal.Intranet/Dockerfile microservicios/Nexopostal
 
       - name: Build Reparto
-        run: docker build -t nexopostal-modulo-reparto:latest -f microservicios/Nexopostal/Nexopostal.Reparto/Dockerfile .
+        run: docker build -t nexopostal-modulo-reparto:latest -f microservicios/Nexopostal/Nexopostal.Reparto/Dockerfile microservicios/Nexopostal
 
       - name: Build Gateway
-        run: docker build -t nexopostal-api-gateway:latest -f microservicios/Nexopostal/Nexopostal.Gateway/Dockerfile .
+        run: docker build -t nexopostal-api-gateway:latest -f microservicios/Nexopostal/Nexopostal.Gateway/Dockerfile microservicios/Nexopostal
 
       - name: Build Clientes App
         uses: docker/build-push-action@v6
