@@ -131,7 +131,7 @@ public static class ApiOrchestrationConfig
         var url = section["Logistica"] ?? "http://modulo-logistica:80";
 
         orchestrator.AddApi("ctas", url + "/")
-            .AddRoute("listar", GatewayVerb.GET, new RouteInfo { Path = "api/ctas" })
+            .AddRoute("listar-ctas", GatewayVerb.GET, new RouteInfo { Path = "api/ctas" })
             .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/ctas/" })
             .AddRoute("dashboard", GatewayVerb.GET, new RouteInfo { Path = "api/ctas/" })
             .AddRoute("dashboard-global", GatewayVerb.GET, new RouteInfo { Path = "api/ctas/dashboard-global" });
