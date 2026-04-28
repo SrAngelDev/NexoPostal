@@ -1,0 +1,50 @@
+# ============================================
+# .gitignore - NexoPostal
+# ============================================
+
+# --- Variables de entorno ---
+.env
+.env.local
+.env.*.local
+
+# --- Docker ---
+*.log
+docker-compose.override.yml
+
+# --- Node/Angular ---
+node_modules/
+dist/
+.angular/
+
+# --- .NET ---
+bin/
+obj/
+*.user
+*.suo
+.idea/
+*.vs/
+
+# --- IDE ---
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Certificados SSL (generados automáticamente) ---
+nginx/certs/
+!nginx/certs/README.md
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Backups ---
+*.bak
+*.backup
+
+# --- Credentials ---
+*.pfx
+*.p12

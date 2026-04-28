@@ -1,0 +1,164 @@
+name: CI/CD NexoPostal - Deploy to VPS
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  NODE_VERSION: '22'
+
+jobs:
+  # ═══════════════════════════════════════
+  # BUILD - Backend (.NET)
+  # ═══════════════════════════════════════
+  build-backend:
+    name: Build Backend .NET
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: microservicios/Nexopostal
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build all microservices
+        run: |
+          dotnet build Nexopostal.Auth/Nexopostal.Auth.csproj --no-restore
+          dotnet build Nexopostal.Ciudadano/Nexopostal.Ciudadano.csproj --no-restore
+          dotnet build Nexopostal.Intranet/Nexopostal.Intranet.csproj --no-restore
+          dotnet build Nexopostal.Reparto/Nexopostal.Reparto.csproj --no-restore
+          dotnet build Nexopostal.Gateway/Nexopostal.Gateway.csproj --no-restore
+
+  # ═══════════════════════════════════════
+  # BUILD - Frontend (Angular)
+  # ═══════════════════════════════════════
+  build-frontend:
+    name: Build Frontend Angular
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [clientes-app, intranet-app, driver-app]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.app }}
+        run: npm ci
+
+      - name: Build
+        working-directory: ${{ matrix.app }}
+        run: npm run build -- --configuration production
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-dist
+          path: ${{ matrix.app }}/dist/
+
+  # ═══════════════════════════════════════
+  # DOCKER BUILD
+  # ═══════════════════════════════════════
+  docker-build:
+    name: Build Docker Images
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Auth
+        run: docker build -t nexopostal-modulo-seguridad:latest -f microservicios/Nexopostal/Nexopostal.Auth/Dockerfile .
+
+      - name: Build Ciudadano
+        run: docker build -t nexopostal-modulo-ciudadano:latest -f microservicios/Nexopostal/Nexopostal.Ciudadano/Dockerfile .
+
+      - name: Build Intranet
+        run: docker build -t nexopostal-modulo-logistica:latest -f microservicios/Nexopostal/Nexopostal.Intranet/Dockerfile .
+
+      - name: Build Reparto
+        run: docker build -t nexopostal-modulo-reparto:latest -f microservicios/Nexopostal/Nexopostal.Reparto/Dockerfile .
+
+      - name: Build Gateway
+        run: docker build -t nexopostal-api-gateway:latest -f microservicios/Nexopostal/Nexopostal.Gateway/Dockerfile .
+
+      - name: Build Clientes App
+        uses: docker/build-push-action@v6
+        with:
+          context: ./clientes-app
+          tags: nexopostal-clientes-app:latest
+
+      - name: Build Intranet App
+        uses: docker/build-push-action@v6
+        with:
+          context: ./intranet-app
+          tags: nexopostal-intranet-app:latest
+
+      - name: Build Driver App
+        uses: docker/build-push-action@v6
+        with:
+          context: ./driver-app
+          tags: nexopostal-driver-app:latest
+
+      - name: Save Docker images to artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: /var/run/docker.sock
+
+  # ═══════════════════════════════════════
+  # DEPLOY TO VPS
+  # ═══════════════════════════════════════
+  deploy-vps:
+    name: Deploy to VPS DigitalOcean
+    needs: docker-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        uses: webfactory/shell-access-action@master
+        with:
+          private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+
+- name: Add known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          ssh deploy@${{ secrets.VPS_HOST }} "docker ps"
+
+      - name: Health check
+        run: |
+          curl -f https://nexopostal.es/ || exit 0
+          curl -f https://intranet.nexopostal.es/ || exit 0
+          curl -f https://driver.nexopostal.es/ || exit 0
