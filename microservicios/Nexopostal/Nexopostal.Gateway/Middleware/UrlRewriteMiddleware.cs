@@ -27,7 +27,8 @@ public class UrlRewriteMiddleware
     private static readonly string[] DirectProxyPaths =
     [
         "/api/nexopostal/envios/etiqueta/",
-        "/api/nexopostal/envios/factura/"
+        "/api/nexopostal/envios/factura/",
+        "/api/nexopostal/oficinas/"
     ];
 
     public async Task InvokeAsync(HttpContext context)
