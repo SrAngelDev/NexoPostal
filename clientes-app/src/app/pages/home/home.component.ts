@@ -27,6 +27,7 @@ export class HomeComponent {
   showLoginModal = signal(false);
   showRegisterModal = signal(false);
   showUserMenu = signal(false);
+  showMobileMenu = signal(false);
   currentUser = signal<any>(null);
   perfilIncompleto = signal(false);
   camposFaltantes = signal<string[]>([]);
@@ -56,8 +57,16 @@ export class HomeComponent {
   // Cerrar el menú al hacer clic fuera
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (this.showUserMenu() && !this.elementRef.nativeElement.querySelector('.relative')?.contains(event.target)) {
+    const target = event.target as Node;
+    const userMenu = this.elementRef.nativeElement.querySelector('.user-menu-container');
+    const mobileMenu = this.elementRef.nativeElement.querySelector('.mobile-menu-container');
+
+    if (this.showUserMenu() && userMenu && !userMenu.contains(target)) {
       this.closeUserMenu();
+    }
+
+    if (this.showMobileMenu() && mobileMenu && !mobileMenu.contains(target)) {
+      this.closeMobileMenu();
     }
   }
 
@@ -157,12 +166,26 @@ export class HomeComponent {
     this.showUserMenu.set(false);
   }
 
+  // Menú móvil
+  toggleMobileMenu(): void {
+    this.showMobileMenu.set(!this.showMobileMenu());
+    if (this.showMobileMenu()) {
+      this.showUserMenu.set(false);
+    }
+  }
+
+  closeMobileMenu(): void {
+    this.showMobileMenu.set(false);
+  }
+
   navigateToPanel(): void {
     this.closeUserMenu();
+    this.closeMobileMenu();
     this.router.navigate(['/panel']);
   }
 
   navigateTo(path: string): void {
+    this.closeMobileMenu();
     this.router.navigate([path]);
   }
 
@@ -195,6 +218,7 @@ export class HomeComponent {
 
   // Métodos de autenticación
   openLoginModal(): void {
+    this.closeMobileMenu();
     this.showLoginModal.set(true);
   }
 
@@ -203,6 +227,7 @@ export class HomeComponent {
   }
 
   openRegisterModal(): void {
+    this.closeMobileMenu();
     this.showRegisterModal.set(true);
   }
 
@@ -212,16 +237,19 @@ export class HomeComponent {
 
   switchToRegister(): void {
     this.closeLoginModal();
+    this.closeMobileMenu();
     this.openRegisterModal();
   }
 
   switchToLogin(): void {
     this.closeRegisterModal();
+    this.closeMobileMenu();
     this.openLoginModal();
   }
 
   async logout(): Promise<void> {
     this.closeUserMenu();
+    this.closeMobileMenu();
     const ok = await this.confirmacionService.confirmar({
       titulo: 'Cerrar sesión',
       mensaje: '¿Estás seguro de que deseas cerrar sesión?',

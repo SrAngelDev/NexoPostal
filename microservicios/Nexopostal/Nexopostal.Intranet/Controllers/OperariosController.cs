@@ -20,10 +20,12 @@ namespace Nexopostal.Intranet.Controllers;
 public class OperariosController : ControllerBase
 {
     private readonly IOperarioService _operarioService;
+    private readonly IClasificacionService _clasificacionService;
 
-    public OperariosController(IOperarioService operarioService)
+    public OperariosController(IOperarioService operarioService, IClasificacionService clasificacionService)
     {
         _operarioService = operarioService;
+        _clasificacionService = clasificacionService;
     }
 
     /// <summary>
@@ -39,6 +41,26 @@ public class OperariosController : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "Usuario no autenticado" });
+
+        if (User.IsInRole("Admin"))
+        {
+            var ctas = await _clasificacionService.ObtenerTodosCtas();
+            var primero = ctas.FirstOrDefault();
+            if (primero == null)
+                return NotFound(new { message = "No hay CTAs disponibles" });
+
+            return Ok(new MiCtaInfoDto
+            {
+                OperarioId = 0,
+                NombreCompleto = GetNombreUsuario() ?? "Administrador",
+                CodigoEmpleado = "ADMIN",
+                Rol = "Admin",
+                CtaId = primero.Id,
+                CtaCodigo = primero.Codigo,
+                CtaNombre = primero.Nombre,
+                Area = primero.Area
+            });
+        }
 
         var info = await _operarioService.ObtenerMiCtaInfo(userId);
         if (info == null)
@@ -60,11 +82,39 @@ public class OperariosController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "Usuario no autenticado" });
 
+        if (User.IsInRole("Admin"))
+        {
+            var ctas = await _clasificacionService.ObtenerTodosCtas();
+            var infoAdmin = new MisCtasInfoDto
+            {
+                NombreCompleto = GetNombreUsuario() ?? "Administrador",
+                CodigoEmpleado = "ADMIN",
+                Rol = "Admin",
+                Ctas = ctas.Select(c => new CtaAsignacionDto
+                {
+                    OperarioCtaId = 0,
+                    CtaId = c.Id,
+                    CtaCodigo = c.Codigo,
+                    CtaNombre = c.Nombre,
+                    Area = c.Area
+                }).ToList()
+            };
+
+            return Ok(infoAdmin);
+        }
+
         var info = await _operarioService.ObtenerMisCtasInfo(userId);
         if (info == null)
             return NotFound(new { message = "No estás asignado a ningún CTA" });
 
         return Ok(info);
+    }
+
+    private string? GetNombreUsuario()
+    {
+        return User.FindFirstValue("Nombre")
+               ?? User.FindFirstValue(ClaimTypes.Name)
+               ?? User.FindFirstValue("name");
     }
 
     /// <summary>
