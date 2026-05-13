@@ -16,11 +16,11 @@ var app = builder.Build();
 app.UseGatewayErrorHandling();
 app.UseCors("NexoPostalPolicy");
 app.UseUrlRewrite();
-app.UseApiGateway(orchestrator => ApiOrchestrationConfig.ConfigureRoutes(orchestrator, app.Configuration));
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseApiGateway(orchestrator => ApiOrchestrationConfig.ConfigureRoutes(orchestrator, app.Configuration));
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
