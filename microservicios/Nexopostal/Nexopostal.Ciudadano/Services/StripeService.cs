@@ -1,6 +1,7 @@
 using Stripe;
 using Stripe.Checkout;
 using Nexopostal.Ciudadano.Models;
+using System.Text.RegularExpressions;
 
 namespace Nexopostal.Ciudadano.Services;
 
@@ -32,7 +33,21 @@ public class StripeService : IStripeService
         _logger = logger;
 
         // Configurar la API key de Stripe
-        StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
+        var secretKey = ResolveConfigValue(_configuration["Stripe:SecretKey"]);
+        if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Contains("${", StringComparison.Ordinal))
+        {
+            _logger.LogError("Stripe SecretKey no configurada correctamente.");
+            throw new InvalidOperationException("Stripe SecretKey no configurada correctamente.");
+        }
+
+        StripeConfiguration.ApiKey = secretKey;
+    }
+
+    private static string ResolveConfigValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        return Regex.Replace(value, @"\$\{([^}]+)\}", match =>
+            Environment.GetEnvironmentVariable(match.Groups[1].Value) ?? match.Value);
     }
 
     public async Task<(string SessionUrl, string SessionId)> CrearSesionCheckout(
