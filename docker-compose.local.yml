@@ -1,17 +1,17 @@
 # ============================================
-# NEXOPOSTAL - Desarrollo Local (compose default)
+# NEXOPOSTAL - Desarrollo Local
 # ============================================
-# Este es el compose por defecto. Uso:
-#   docker compose up -d --build
-# Lee automáticamente el archivo `.env` adyacente.
+# Uso: docker compose -f docker-compose.local.yml --env-file .env up -d --build
 #
-# Es equivalente al archivo docker-compose.local.yml pero pensado para
-# `docker compose up` sin flags. Si quieres variantes específicas usa:
-#   - docker-compose.local.yml         (idéntico a este)
-#   - docker-compose.production.yml    (SSL, sin puertos de BD expuestos)
+# CLAVES:
+# - `env_file: ./.env` carga TODAS las vars del .env DENTRO del contenedor
+#   (esto es lo que permite que Program.cs lea Environment.GetEnvironmentVariable).
+# - `environment:` se usa para overrides fijos del entorno (ASPNETCORE_URLS, etc.).
+# - `${VAR}` en este YAML se sustituye con valores del .env (interpolación de compose).
+# - Frontends (Angular SPA) usan paths relativos /api/* → no necesitan ARG en build.
 
 services:
-  # --- PROXY INVERSO ---
+  # --- NGINX PROXY (SIN SSL) ---
   reverse-proxy:
     image: nginx:alpine
     container_name: nexopostal-proxy
@@ -20,7 +20,7 @@ services:
       - "4202:4202"
       - "4201:4201"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - clientes-app
       - intranet-app
@@ -29,11 +29,6 @@ services:
     networks:
       - nexopostal-net
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   # --- API GATEWAY ---
   api-gateway:
@@ -49,8 +44,6 @@ services:
       - Microservices__Ciudadano=${URL_MODULO_CIUDADANO}
       - Microservices__Logistica=${URL_MODULO_LOGISTICA}
       - Microservices__Reparto=${URL_MODULO_REPARTO}
-    expose:
-      - "80"
     networks:
       - nexopostal-net
     depends_on:
@@ -58,25 +51,29 @@ services:
       - modulo-ciudadano
       - modulo-logistica
       - modulo-reparto
+    restart: unless-stopped
 
-  # --- FRONTENDS (Angular SPA) ---
+  # --- FRONTENDS (SPA: build-time => no envs aquí) ---
   clientes-app:
     build: ./clientes-app
     container_name: clientes-app
     networks:
       - nexopostal-net
+    restart: unless-stopped
 
   intranet-app:
     build: ./intranet-app
     container_name: intranet-app
     networks:
       - nexopostal-net
+    restart: unless-stopped
 
   driver-app:
     build: ./driver-app
     container_name: driver-app
     networks:
       - nexopostal-net
+    restart: unless-stopped
 
   # --- MICROSERVICIOS ---
   modulo-seguridad:
@@ -88,13 +85,12 @@ services:
       - ./.env
     environment:
       - ASPNETCORE_URLS=http://+:80
-    expose:
-      - "80"
     networks:
       - nexopostal-net
     depends_on:
       postgres-auth:
         condition: service_healthy
+    restart: unless-stopped
 
   modulo-ciudadano:
     build:
@@ -105,13 +101,12 @@ services:
       - ./.env
     environment:
       - ASPNETCORE_URLS=http://+:80
-    expose:
-      - "80"
     networks:
       - nexopostal-net
     depends_on:
       postgres-ciudadano:
         condition: service_healthy
+    restart: unless-stopped
 
   modulo-logistica:
     build:
@@ -122,13 +117,12 @@ services:
       - ./.env
     environment:
       - ASPNETCORE_URLS=http://+:80
-    expose:
-      - "80"
     networks:
       - nexopostal-net
     depends_on:
       postgres-intranet:
         condition: service_healthy
+    restart: unless-stopped
 
   modulo-reparto:
     build:
@@ -139,13 +133,12 @@ services:
       - ./.env
     environment:
       - ASPNETCORE_URLS=http://+:80
-    expose:
-      - "80"
     networks:
       - nexopostal-net
     depends_on:
       postgres-reparto:
         condition: service_healthy
+    restart: unless-stopped
 
   # --- BASES DE DATOS ---
   postgres-auth:
@@ -163,9 +156,9 @@ services:
       - nexopostal-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AUTH_USER} -d ${POSTGRES_AUTH_DB}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
 
   postgres-ciudadano:
     image: postgres:16-alpine
@@ -182,9 +175,9 @@ services:
       - nexopostal-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_CIUDADANO_USER} -d ${POSTGRES_CIUDADANO_DB}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
 
   postgres-intranet:
     image: postgres:16-alpine
@@ -201,9 +194,9 @@ services:
       - nexopostal-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INTRANET_USER} -d ${POSTGRES_INTRANET_DB}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
 
   postgres-reparto:
     image: postgres:16-alpine
@@ -220,9 +213,9 @@ services:
       - nexopostal-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_REPARTO_USER} -d ${POSTGRES_REPARTO_DB}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
 
 networks:
   nexopostal-net:

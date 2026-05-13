@@ -1,21 +1,29 @@
 # ============================================
-# docker-compose.production.yml
-# NexoPostal - Producción
+# NEXOPOSTAL - PRODUCCIÓN
 # ============================================
-# Uso: cp .env .env.production && nano .env.production && docker-compose -f docker-compose.production.yml up -d
+# Uso: docker compose --env-file ./.env -f docker-compose.production.yml up -d --build
+#
+# Características:
+# - Con SSL (nginx con certificados)
+# - Solo puertos 80/443 expuestos
+# - Sin puertos de BD expuestos (red interna)
+# - Variables sensibles vienen 100% del .env (inyectado por GitHub Actions)
+#
+# IMPORTANTE:
+# - `env_file: ./.env` carga TODAS las vars al contenedor (lo que .NET necesita).
+# - Las claves JWT/Stripe/SMTP DEBEN llegar a TODOS los .NET, no solo a Auth,
+#   porque appsettings.json usa ${VAR} y ResolveConfigValue resuelve por env.
 
 services:
-  # ============================================
-  # PROXY INVERSO (Nginx)
-  # ============================================
+  # --- NGINX PROXY (CON SSL) ---
   reverse-proxy:
     image: nginx:alpine
     container_name: nexopostal-proxy
     ports:
-      - "${NGINX_HTTP_PORT}:80"
-      - "${NGINX_HTTPS_PORT}:443"
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/nginx.production.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - clientes-app
@@ -31,181 +39,156 @@ services:
       timeout: 10s
       retries: 3
 
-  # ============================================
-  # API GATEWAY
-  # ============================================
+  # --- API GATEWAY ---
   api-gateway:
     build:
       context: ./microservicios/Nexopostal
       dockerfile: Nexopostal.Gateway/Dockerfile
-    container_name: nexopostal-api-gateway
+    env_file:
+      - ./.env
     environment:
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
       - Microservices__Auth=${URL_MODULO_SEGURIDAD}
       - Microservices__Ciudadano=${URL_MODULO_CIUDADANO}
       - Microservices__Logistica=${URL_MODULO_LOGISTICA}
       - Microservices__Reparto=${URL_MODULO_REPARTO}
-    expose:
-      - "80"
     networks:
       - nexopostal-net
     depends_on:
-      modulo-seguridad:
-        condition: service_started
-      modulo-ciudadano:
-        condition: service_started
-      modulo-logistica:
-        condition: service_started
-      modulo-reparto:
-        condition: service_started
+      - modulo-seguridad
+      - modulo-ciudadano
+      - modulo-logistica
+      - modulo-reparto
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
-  # ============================================
-  # FRONTENDS (Angular)
-  # ============================================
+  # --- FRONTENDS (SPA Angular: usan paths relativos, nada que inyectar) ---
   clientes-app:
-    build:
-      context: ./clientes-app
-      dockerfile: Dockerfile
-    container_name: nexopostal-clientes-app
-    environment:
-      - NODE_ENV=production
+    build: ./clientes-app
     networks:
       - nexopostal-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
 
   intranet-app:
-    build:
-      context: ./intranet-app
-      dockerfile: Dockerfile
-    container_name: nexopostal-intranet-app
-    environment:
-      - NODE_ENV=production
+    build: ./intranet-app
     networks:
       - nexopostal-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
 
   driver-app:
-    build:
-      context: ./driver-app
-      dockerfile: Dockerfile
-    container_name: nexopostal-driver-app
-    environment:
-      - NODE_ENV=production
+    build: ./driver-app
     networks:
       - nexopostal-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
 
-  # ============================================
-  # MICROSERVICIOS (.NET)
-  # ============================================
+  # --- MICROSERVICIOS ---
   modulo-seguridad:
     build:
       context: ./microservicios/Nexopostal
       dockerfile: Nexopostal.Auth/Dockerfile
-    container_name: nexopostal-modulo-seguridad
+    env_file:
+      - ./.env
     environment:
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Host=${POSTGRES_AUTH_HOST};Port=${POSTGRES_AUTH_PORT};Database=${POSTGRES_AUTH_DB};Username=${POSTGRES_AUTH_USER};Password=${POSTGRES_AUTH_PASSWORD}
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
-      - JwtSettings__Issuer=${JWT_ISSUER}
-      - JwtSettings__Audience=${JWT_AUDIENCE}
-      - JwtSettings__ExpiryMinutes=${JWT_EXPIRY_MINUTES}
-    expose:
-      - "80"
     networks:
       - nexopostal-net
     depends_on:
       postgres-auth:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
   modulo-ciudadano:
     build:
       context: ./microservicios/Nexopostal
       dockerfile: Nexopostal.Ciudadano/Dockerfile
-    container_name: nexopostal-modulo-ciudadano
+    env_file:
+      - ./.env
     environment:
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Host=${POSTGRES_CIUDADANO_HOST};Port=${POSTGRES_CIUDADANO_PORT};Database=${POSTGRES_CIUDADANO_DB};Username=${POSTGRES_CIUDADANO_USER};Password=${POSTGRES_CIUDADANO_PASSWORD}
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
-      - JwtSettings__Issuer=${JWT_ISSUER}
-      - JwtSettings__Audience=${JWT_AUDIENCE}
-      - JwtSettings__ExpiryMinutes=${JWT_EXPIRY_MINUTES}
-      - Stripe__SecretKey=${STRIPE_SECRET_KEY}
-      - Stripe__WebhookSecret=${STRIPE_WEBHOOK_SECRET}
-      - SmtpSettings__Host=${SMTP_HOST}
-      - SmtpSettings__Port=${SMTP_PORT}
-      - SmtpSettings__UseSsl=${SMTP_USESSL}
-      - SmtpSettings__Username=${SMTP_USERNAME}
-      - SmtpSettings__Password=${SMTP_PASSWORD}
-      - SmtpSettings__FromName=${SMTP_FROM_NAME}
-      - SmtpSettings__FromEmail=${SMTP_FROM_EMAIL}
-      - IntranetSettings__BaseUrl=${INTRANET_BASE_URL}
-      - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
-    expose:
-      - "80"
     networks:
       - nexopostal-net
     depends_on:
       postgres-ciudadano:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   modulo-logistica:
     build:
       context: ./microservicios/Nexopostal
       dockerfile: Nexopostal.Intranet/Dockerfile
-    container_name: nexopostal-modulo-logistica
+    env_file:
+      - ./.env
     environment:
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Host=${POSTGRES_INTRANET_HOST};Port=${POSTGRES_INTRANET_PORT};Database=${POSTGRES_INTRANET_DB};Username=${POSTGRES_INTRANET_USER};Password=${POSTGRES_INTRANET_PASSWORD}
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
-      - JwtSettings__Issuer=${JWT_ISSUER}
-      - JwtSettings__Audience=${JWT_AUDIENCE}
-      - JwtSettings__ExpiryMinutes=${JWT_EXPIRY_MINUTES}
-      - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
-    expose:
-      - "80"
     networks:
       - nexopostal-net
     depends_on:
       postgres-intranet:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   modulo-reparto:
     build:
       context: ./microservicios/Nexopostal
       dockerfile: Nexopostal.Reparto/Dockerfile
-    container_name: nexopostal-modulo-reparto
+    env_file:
+      - ./.env
     environment:
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Host=${POSTGRES_REPARTO_HOST};Port=${POSTGRES_REPARTO_PORT};Database=${POSTGRES_REPARTO_DB};Username=${POSTGRES_REPARTO_USER};Password=${POSTGRES_REPARTO_PASSWORD}
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
-      - JwtSettings__Issuer=${JWT_ISSUER}
-      - JwtSettings__Audience=${JWT_AUDIENCE}
-      - JwtSettings__ExpiryMinutes=${JWT_EXPIRY_MINUTES}
-    expose:
-      - "80"
     networks:
       - nexopostal-net
     depends_on:
       postgres-reparto:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
-  # ============================================
-  # BASES DE DATOS (PostgreSQL)
-  # ============================================
+  # --- BASES DE DATOS (solo red interna) ---
   postgres-auth:
     image: postgres:16-alpine
-    container_name: nexopostal-postgres-auth
     environment:
       POSTGRES_DB: ${POSTGRES_AUTH_DB}
       POSTGRES_USER: ${POSTGRES_AUTH_USER}
@@ -220,10 +203,14 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
   postgres-ciudadano:
     image: postgres:16-alpine
-    container_name: nexopostal-postgres-ciudadano
     environment:
       POSTGRES_DB: ${POSTGRES_CIUDADANO_DB}
       POSTGRES_USER: ${POSTGRES_CIUDADANO_USER}
@@ -238,10 +225,14 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
   postgres-intranet:
     image: postgres:16-alpine
-    container_name: nexopostal-postgres-intranet
     environment:
       POSTGRES_DB: ${POSTGRES_INTRANET_DB}
       POSTGRES_USER: ${POSTGRES_INTRANET_USER}
@@ -256,10 +247,14 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
   postgres-reparto:
     image: postgres:16-alpine
-    container_name: nexopostal-postgres-reparto
     environment:
       POSTGRES_DB: ${POSTGRES_REPARTO_DB}
       POSTGRES_USER: ${POSTGRES_REPARTO_USER}
@@ -274,24 +269,17 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
-# ============================================
-# NETWORKS
-# ============================================
 networks:
   nexopostal-net:
-    driver: bridge
-    name: nexopostal-net
 
-# ============================================
-# VOLUMES
-# ============================================
 volumes:
   postgres-auth-data:
-    name: nexopostal-postgres-auth-data
   postgres-ciudadano-data:
-    name: nexopostal-postgres-ciudadano-data
   postgres-intranet-data:
-    name: nexopostal-postgres-intranet-data
   postgres-reparto-data:
-    name: nexopostal-postgres-reparto-data

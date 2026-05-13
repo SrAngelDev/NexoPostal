@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using Nexopostal.Ciudadano.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -11,17 +13,33 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+static string ResolveConfigValue(string? value)
+{
+    if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+    return Regex.Replace(value, @"\$\{([^}]+)\}", match =>
+        Environment.GetEnvironmentVariable(match.Groups[1].Value) ?? match.Value);
+}
+
+static byte[] GetJwtKeyBytes(string secret)
+{
+    var keyBytes = Encoding.UTF8.GetBytes(secret);
+    return keyBytes.Length >= 32 ? keyBytes : SHA256.HashData(keyBytes);
+}
+
 // ===== CONFIGURACIÓN DE SERVICIOS =====
 
 // 1. Configurar DbContext con PostgreSQL
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = ResolveConfigValue(builder.Configuration.GetConnectionString("DefaultConnection"));
 builder.Services.AddDbContext<CiudadanoDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 // 2. Configurar JWT Authentication
-// La misma clave que en Auth y Gateway para verificar tokens
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"]!;
+var secretKey = ResolveConfigValue(jwtSettings["SecretKey"]);
+if (string.IsNullOrWhiteSpace(secretKey)) throw new InvalidOperationException("JWT SecretKey no configurada");
+
+var issuer = ResolveConfigValue(jwtSettings["Issuer"]);
+var audience = ResolveConfigValue(jwtSettings["Audience"]);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -29,11 +47,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            IssuerSigningKey = new SymmetricSecurityKey(GetJwtKeyBytes(secretKey)),
             ValidateIssuer = true,
-            ValidIssuer = jwtSettings["Issuer"],
+            ValidIssuer = issuer,
             ValidateAudience = true,
-            ValidAudience = jwtSettings["Audience"],
+            ValidAudience = audience,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero // Eliminar el margen de 5 minutos por defecto
         };

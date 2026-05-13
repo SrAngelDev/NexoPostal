@@ -1,4 +1,6 @@
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using AspNetCore.ApiGateway;
 using AspNetCore.ApiGateway.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,6 +15,19 @@ namespace Nexopostal.Gateway.Extensions;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
+    private static string ResolveConfigValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        return Regex.Replace(value, @"\$\{([^}]+)\}", match =>
+            Environment.GetEnvironmentVariable(match.Groups[1].Value) ?? match.Value);
+    }
+
+    private static byte[] GetJwtKeyBytes(string secret)
+    {
+        var keyBytes = Encoding.UTF8.GetBytes(secret);
+        return keyBytes.Length >= 32 ? keyBytes : SHA256.HashData(keyBytes);
+    }
+
     /// <summary>
     /// Configura CORS con los orígenes permitidos definidos en appsettings.
     /// </summary>
@@ -44,9 +59,13 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services, IConfiguration config)
     {
         var jwtSettings = config.GetSection("JwtSettings");
-        var secretKey = jwtSettings["SecretKey"]
-            ?? throw new InvalidOperationException("JWT SecretKey no configurada");
-        var key = Encoding.UTF8.GetBytes(secretKey);
+        var secretKey = ResolveConfigValue(jwtSettings["SecretKey"]);
+        if (string.IsNullOrWhiteSpace(secretKey))
+            throw new InvalidOperationException("JWT SecretKey no configurada");
+            
+        var key = GetJwtKeyBytes(secretKey);
+        var issuer = ResolveConfigValue(jwtSettings["Issuer"]);
+        var audience = ResolveConfigValue(jwtSettings["Audience"]);
 
         services.AddAuthentication(options =>
         {
@@ -62,9 +81,9 @@ public static class ServiceCollectionExtensions
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
                 ValidateIssuer = true,
-                ValidIssuer = jwtSettings["Issuer"],
+                ValidIssuer = issuer,
                 ValidateAudience = true,
-                ValidAudience = jwtSettings["Audience"],
+                ValidAudience = audience,
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };

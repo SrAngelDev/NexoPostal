@@ -23,6 +23,7 @@ public class PagosController : ControllerBase
     private readonly IEmailService _emailService;
     private readonly ITrackingNumberGenerator _trackingGenerator;
     private readonly ILogisticaNotifierService _logisticaNotifier;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<PagosController> _logger;
 
     public PagosController(
@@ -33,6 +34,7 @@ public class PagosController : ControllerBase
         IEmailService emailService,
         ITrackingNumberGenerator trackingGenerator,
         ILogisticaNotifierService logisticaNotifier,
+        IConfiguration configuration,
         ILogger<PagosController> logger)
     {
         _envioRepo = envioRepo;
@@ -42,6 +44,7 @@ public class PagosController : ControllerBase
         _emailService = emailService;
         _trackingGenerator = trackingGenerator;
         _logisticaNotifier = logisticaNotifier;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -219,8 +222,24 @@ public class PagosController : ControllerBase
 
         try
         {
-            // En modo test, procesamos el evento directamente sin verificar firma
-            var stripeEvent = Stripe.EventUtility.ParseEvent(json);
+            var webhookSecret = _configuration["Stripe:WebhookSecret"]
+                ?? Environment.GetEnvironmentVariable("STRIPE_WEBHOOK_SECRET");
+
+            Stripe.Event stripeEvent;
+            if (!string.IsNullOrWhiteSpace(webhookSecret)
+                && webhookSecret != "whsec_TU_WEBHOOK_SECRET")
+            {
+                // PRODUCCIÓN: verificar que el evento viene realmente de Stripe
+                var stripeSignature = Request.Headers["Stripe-Signature"];
+                stripeEvent = Stripe.EventUtility.ConstructEvent(
+                    json, stripeSignature, webhookSecret);
+            }
+            else
+            {
+                // DESARROLLO: sin webhook secret configurado, parsear sin verificar
+                _logger.LogWarning("Webhook de Stripe sin verificación de firma (modo test/dev)");
+                stripeEvent = Stripe.EventUtility.ParseEvent(json);
+            }
 
             if (stripeEvent.Type == Stripe.EventTypes.CheckoutSessionCompleted)
             {

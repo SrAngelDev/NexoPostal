@@ -7,12 +7,34 @@ using NexoPostal.Auth.Data;
 using NexoPostal.Auth.Models;
 using NexoPostal.Auth.Repositories;
 using NexoPostal.Auth.Services;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+static string ResolveConfigValue(string? value)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        return string.Empty;
+
+    return Regex.Replace(value, @"\$\{([^}]+)\}", match =>
+    {
+        var envVar = match.Groups[1].Value;
+        return Environment.GetEnvironmentVariable(envVar) ?? match.Value;
+    });
+}
+
+static byte[] GetJwtKeyBytes(string secret)
+{
+    var keyBytes = Encoding.UTF8.GetBytes(secret);
+    return keyBytes.Length >= 32 ? keyBytes : SHA256.HashData(keyBytes);
+}
+
+var connectionString = ResolveConfigValue(builder.Configuration.GetConnectionString("DefaultConnection"));
+
 // Entity Framework
 builder.Services.AddDbContext<AuthDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // Identity (sin roles de Identity, usamos enum Rol en ApplicationUser)
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -28,9 +50,13 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 // JWT Bearer Authentication (para endpoints [Authorize])
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"]
-    ?? throw new InvalidOperationException("JWT SecretKey no configurada");
-var key = Encoding.UTF8.GetBytes(secretKey);
+var secretKey = ResolveConfigValue(jwtSettings["SecretKey"]);
+if (string.IsNullOrWhiteSpace(secretKey))
+    throw new InvalidOperationException("JWT SecretKey no configurada");
+
+var key = GetJwtKeyBytes(secretKey);
+var issuer = ResolveConfigValue(jwtSettings["Issuer"]);
+var audience = ResolveConfigValue(jwtSettings["Audience"]);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -46,9 +72,9 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = true,
-        ValidIssuer = jwtSettings["Issuer"],
+        ValidIssuer = issuer,
         ValidateAudience = true,
-        ValidAudience = jwtSettings["Audience"],
+        ValidAudience = audience,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };

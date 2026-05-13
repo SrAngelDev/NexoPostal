@@ -122,12 +122,6 @@ jobs:
           context: ./driver-app
           tags: nexopostal-driver-app:latest
 
-      - name: Save Docker images to artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-images
-          path: /var/run/docker.sock
-
   # ═══════════════════════════════════════
   # DEPLOY TO VPS
   # ═══════════════════════════════════════
@@ -151,6 +145,86 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy and Inject .env to VPS
+        run: |
+          set -euo pipefail
+
+          # ── 1. Construir .env de producción desde secrets individuales ──────────
+          # Cada variable sensible es un secreto de GitHub independiente.
+          # De esta forma NUNCA hay credenciales en el código ni en la imagen Docker.
+          cat > .env <<EOF
+          ASPNETCORE_ENVIRONMENT=Production
+
+          JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+          JWT_ISSUER=${{ secrets.JWT_ISSUER }}
+          JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
+          JWT_EXPIRY_MINUTES=60
+
+          POSTGRES_AUTH_HOST=postgres-auth
+          POSTGRES_AUTH_PORT=5432
+          POSTGRES_AUTH_DB=nexopostal_auth
+          POSTGRES_AUTH_USER=postgres
+          POSTGRES_AUTH_PASSWORD=${{ secrets.POSTGRES_AUTH_PASSWORD }}
+
+          POSTGRES_CIUDADANO_HOST=postgres-ciudadano
+          POSTGRES_CIUDADANO_PORT=5432
+          POSTGRES_CIUDADANO_DB=nexopostal_ciudadano
+          POSTGRES_CIUDADANO_USER=postgres
+          POSTGRES_CIUDADANO_PASSWORD=${{ secrets.POSTGRES_CIUDADANO_PASSWORD }}
+
+          POSTGRES_INTRANET_HOST=postgres-intranet
+          POSTGRES_INTRANET_PORT=5432
+          POSTGRES_INTRANET_DB=nexopostal_intranet
+          POSTGRES_INTRANET_USER=postgres
+          POSTGRES_INTRANET_PASSWORD=${{ secrets.POSTGRES_INTRANET_PASSWORD }}
+
+          POSTGRES_REPARTO_HOST=postgres-reparto
+          POSTGRES_REPARTO_PORT=5432
+          POSTGRES_REPARTO_DB=nexopostal_reparto
+          POSTGRES_REPARTO_USER=postgres
+          POSTGRES_REPARTO_PASSWORD=${{ secrets.POSTGRES_REPARTO_PASSWORD }}
+
+          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+
+          SMTP_HOST=${{ secrets.SMTP_HOST }}
+          SMTP_PORT=${{ secrets.SMTP_PORT }}
+          SMTP_USESSL=${{ secrets.SMTP_USESSL }}
+          SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM_NAME=NexoPostal
+          SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}
+
+          INTER_SERVICE_KEY=${{ secrets.INTER_SERVICE_KEY }}
+          INTRANET_BASE_URL=http://modulo-logistica:80
+
+          URL_MODULO_SEGURIDAD=http://modulo-seguridad:80
+          URL_MODULO_CIUDADANO=http://modulo-ciudadano:80
+          URL_MODULO_LOGISTICA=http://modulo-logistica:80
+          URL_MODULO_REPARTO=http://modulo-reparto:80
+          URL_API_GATEWAY=http://api-gateway:80
+
+          NGINX_HTTP_PORT=80
+          NGINX_HTTPS_PORT=443
+          EOF
+
+          # ── 2. Transferir código + .env al VPS (sin .git ni node_modules) ──────
+          rsync -avz --exclude '.git' --exclude 'node_modules' . deploy@${{ secrets.VPS_HOST }}:~/nexopostal
+
+          # ── 3. Levantar la infraestructura en el VPS ─────────────────────────
+          ssh deploy@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          set -euo pipefail
+          cd ~/nexopostal
+          if command -v docker-compose >/dev/null 2>&1; then
+            DC="docker-compose"
+          else
+            DC="docker compose"
+          fi
+          $DC --env-file ./.env -f docker-compose.production.yml down
+          $DC --env-file ./.env -f docker-compose.production.yml build --no-cache
+          $DC --env-file ./.env -f docker-compose.production.yml up -d
+          ENDSSH
 
       - name: Verify deployment
         run: |
