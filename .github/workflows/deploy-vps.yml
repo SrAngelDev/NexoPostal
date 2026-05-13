@@ -142,8 +142,10 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          # printf preserva los saltos de línea del secreto sin depender de ssh-agent
-          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          # El secreto VPS_SSH_PRIVATE_KEY debe estar codificado en base64
+          # (sin saltos de línea) para evitar corrupción del formato PEM.
+          # Genera el valor con: cat ~/.ssh/id_rsa | base64 -w 0
+          echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" | base64 -d > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
