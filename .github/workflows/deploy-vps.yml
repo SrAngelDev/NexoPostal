@@ -218,8 +218,12 @@ jobs:
           EOF
 
           # ── 2. Transferir código + .env al VPS (sin .git ni node_modules) ──────
+          # Excluimos nginx/certs para no sobreescribir los certificados
+          # Let's Encrypt que viven en el VPS.
           rsync -avz \
-            --exclude '.git' --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude 'nginx/certs' \
             . deploy@${{ secrets.VPS_HOST }}:~/nexopostal
 
           # ── 3. Levantar la infraestructura en el VPS ─────────────────────────
