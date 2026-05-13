@@ -90,7 +90,11 @@ builder.Services.AddScoped<IFacturaPdfService, FacturaPdfService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 // 3.1. Registrar servicio de notificación a Intranet (logística)
-var intranetBaseUrl = builder.Configuration["IntranetSettings:BaseUrl"] ?? "http://localhost:5163";
+var intranetBaseUrl = ResolveConfigValue(builder.Configuration["IntranetSettings:BaseUrl"]);
+if (string.IsNullOrWhiteSpace(intranetBaseUrl))
+{
+    intranetBaseUrl = "http://localhost:5163";
+}
 builder.Services.AddHttpClient<ILogisticaNotifierService, LogisticaNotifierService>(client =>
 {
     client.BaseAddress = new Uri(intranetBaseUrl);
