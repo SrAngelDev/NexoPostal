@@ -231,12 +231,11 @@ app.MapHub<TrackingHub>("/hubs/tracking");
 
 // ===== INICIALIZACIÓN DE BASE DE DATOS =====
 
-// En desarrollo: aplicar migraciones automáticamente
-if (app.Environment.IsDevelopment())
+// Aplicar migraciones automáticamente (incluye producción)
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<CiudadanoDbContext>();
-    
+
     try
     {
         await dbContext.Database.MigrateAsync();
