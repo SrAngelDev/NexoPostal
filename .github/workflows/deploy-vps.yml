@@ -144,16 +144,14 @@ jobs:
           chmod 700 ~/.ssh
           # El secreto VPS_SSH_PRIVATE_KEY debe estar codificado en base64
           # (sin saltos de línea) para evitar corrupción del formato PEM.
-          # Genera el valor con: cat ~/.ssh/id_rsa | base64 -w 0
-          echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" | base64 -d > ~/.ssh/deploy_key
+          # Genera el valor con:
+          #   Linux:      cat ~/.ssh/id_rsa | base64 -w 0
+          #   Windows PS: [Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\.ssh\id_rsa")) | Set-Clipboard
+          # tr -d '\r' elimina los CRLF que introduce Windows al codificar la clave,
+          # que provocan "error in libcrypto" al intentar cargar la clave en OpenSSH.
+          printf '%s' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" | base64 -d | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Deploy and Inject .env to VPS
-        run: |
-          set -euo pipefail
-
           # ── 1. Construir .env de producción desde secrets individuales ──────────
           # Cada variable sensible es un secreto de GitHub independiente.
           # De esta forma NUNCA hay credenciales en el código ni en la imagen Docker.
