@@ -65,6 +65,7 @@ public class TarifasController : ControllerBase
                     TiempoEstimadoDias = tarifa.TiempoEstimadoDias,
                     PrecioBase = tarifa.PrecioBase,
                     Recargo = tarifa.Recargo,
+                    Iva = tarifa.Iva,
                     PrecioTotal = tarifa.PrecioTotal,
                     Activa = true,
                     PrecioEstimado = tarifa.PrecioTotal
@@ -121,6 +122,7 @@ public class TarifasController : ControllerBase
             {
                 PrecioBase = resultado.PrecioBase,
                 Recargo = resultado.Recargo,
+                Iva = resultado.Iva,
                 PrecioTotal = resultado.PrecioTotal,
                 Moneda = "EUR",
                 TiempoEntregaEstimado = resultado.TiempoEntregaEstimado,
@@ -173,6 +175,7 @@ public class TarifaDetalleDto
     public int TiempoEstimadoDias { get; set; }
     public decimal PrecioBase { get; set; }
     public decimal Recargo { get; set; }
+    public decimal Iva { get; set; }
     public decimal PrecioTotal { get; set; }
     public bool Activa { get; set; }
     public decimal? PrecioEstimado { get; set; }
@@ -203,6 +206,7 @@ public class CalculoPrecioDto
 {
     public decimal PrecioBase { get; set; }
     public decimal Recargo { get; set; }
+    public decimal Iva { get; set; }
     public decimal PrecioTotal { get; set; }
     public string Moneda { get; set; } = "EUR";
     public string TiempoEntregaEstimado { get; set; } = string.Empty;

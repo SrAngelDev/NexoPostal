@@ -3,3 +3,8 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+
+# Secrets locales - NO subir credenciales reales
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/*.user.secrets.json

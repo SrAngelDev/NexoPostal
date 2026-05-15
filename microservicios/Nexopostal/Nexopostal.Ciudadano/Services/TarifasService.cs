@@ -27,6 +27,7 @@ public record TarifaOpcion(
     int TiempoEstimadoDias,
     decimal PrecioBase,
     decimal Recargo,
+    decimal Iva,
     decimal PrecioTotal);
 
 public record TarifaConsultaResult(
@@ -48,6 +49,7 @@ public record TarifaCalculoResult(
     decimal PesoFacturable,
     decimal PrecioBase,
     decimal Recargo,
+    decimal Iva,
     decimal PrecioTotal,
     bool AplicaRecargo,
     decimal RecargoPorcentaje);
@@ -63,8 +65,19 @@ public class TarifasService : ITarifasService
 {
     private const decimal VolumetricDivisor = 6000m;
     private const decimal RecargoPorcentaje = 0.35m;
+    private const decimal IvaPorcentaje = 0.21m;
     private static readonly decimal[] BandasPeso = [1m, 2m, 5m, 10m, 20m, 30m];
 
+    // Precios base sin IVA — Zona Local/Provincial (misma provincia)
+    private static readonly decimal[] LocalEstandar = [
+        4.50m, 5.25m, 6.95m, 9.95m, 14.95m, 19.95m
+    ];
+
+    private static readonly decimal[] LocalPremium = [
+        6.50m, 7.75m, 10.50m, 14.95m, 21.95m, 29.95m
+    ];
+
+    // Precios base sin IVA — Zona Península (nacional)
     private static readonly decimal[] PeninsulaEstandar = [
         5.95m, 6.95m, 8.95m, 12.95m, 18.95m, 25.95m
     ];
@@ -73,8 +86,10 @@ public class TarifasService : ITarifasService
         8.95m, 10.50m, 13.95m, 19.95m, 28.95m, 38.95m
     ];
 
+    // Multiplicadores aplicados sobre precio Península para zonas especiales
     private static readonly Dictionary<string, decimal> MultiplicadorZona = new(StringComparer.OrdinalIgnoreCase)
     {
+        { "Local", 1.00m },       // Precio propio — se usa tabla Local directamente
         { "Península", 1.00m },
         { "Baleares", 1.15m },
         { "Ceuta/Melilla", 1.35m },
@@ -84,10 +99,11 @@ public class TarifasService : ITarifasService
     private static readonly Dictionary<string, (string Estandar, int DiasEstandar, string Premium, int DiasPremium)> EtaPorZona
         = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "Península", ("48-72h", 3, "24-48h", 2) },
-        { "Baleares", ("72-96h", 4, "48-72h", 3) },
-        { "Ceuta/Melilla", ("4-6 días", 6, "3-4 días", 4) },
-        { "Canarias", ("4-7 días", 7, "3-5 días", 5) }
+        { "Local",        ("24-48h",  2, "12-24h",  1) },
+        { "Península",    ("48-72h",  3, "24-48h",  2) },
+        { "Baleares",     ("72-96h",  4, "48-72h",  3) },
+        { "Ceuta/Melilla",("4-6 días",6, "3-4 días",4) },
+        { "Canarias",     ("4-7 días",7, "3-5 días",5) }
     };
 
     public TarifaConsultaResult Consultar(TarifaConsultaInput input)
@@ -132,6 +148,7 @@ public class TarifasService : ITarifasService
             baseCalc.PesoFacturable,
             opcion.PrecioBase,
             opcion.Recargo,
+            opcion.Iva,
             opcion.PrecioTotal,
             baseCalc.AplicaRecargo,
             baseCalc.RecargoPorcentaje);
@@ -232,12 +249,17 @@ public class TarifasService : ITarifasService
 
     private static string ResolverZona(string? codigoPostalOrigen, string? codigoPostalDestino)
     {
-        var origen = codigoPostalOrigen ?? string.Empty;
-        var destino = codigoPostalDestino ?? string.Empty;
+        var origen = (codigoPostalOrigen ?? string.Empty).Trim();
+        var destino = (codigoPostalDestino ?? string.Empty).Trim();
 
+        // Zonas especiales tienen prioridad sobre la local
         if (EsCanarias(origen) || EsCanarias(destino)) return "Canarias";
         if (EsCeutaOMelilla(origen) || EsCeutaOMelilla(destino)) return "Ceuta/Melilla";
         if (EsBaleares(origen) || EsBaleares(destino)) return "Baleares";
+
+        // Zona Local: misma provincia (2 primeros dígitos del CP coinciden)
+        if (origen.Length >= 2 && destino.Length >= 2 && origen[..2] == destino[..2])
+            return "Local";
 
         return "Península";
     }
@@ -263,32 +285,48 @@ public class TarifasService : ITarifasService
     {
         var index = GetBandIndex(baseCalc.PesoFacturable);
         var zona = baseCalc.Zona;
-        var multiplicador = MultiplicadorZona[zona];
+        var esPremium = tipoTarifa.Equals("Premium", StringComparison.OrdinalIgnoreCase);
 
-        var precioBase = tipoTarifa.Equals("Premium", StringComparison.OrdinalIgnoreCase)
-            ? PeninsulaPremium[index]
-            : PeninsulaEstandar[index];
+        // Zona Local usa su propia tabla de precios; el resto usa Península × multiplicador
+        decimal precioBase;
+        if (zona.Equals("Local", StringComparison.OrdinalIgnoreCase))
+        {
+            precioBase = esPremium ? LocalPremium[index] : LocalEstandar[index];
+        }
+        else
+        {
+            var tablaBase = esPremium ? PeninsulaPremium[index] : PeninsulaEstandar[index];
+            precioBase = RedondearMoneda(tablaBase * MultiplicadorZona[zona]);
+        }
 
-        precioBase = RedondearMoneda(precioBase * multiplicador);
-
+        // Recargo por dimensiones extra (suma > 210 cm o lado > 170 cm)
         var recargo = baseCalc.AplicaRecargo ? RedondearMoneda(precioBase * baseCalc.RecargoPorcentaje) : 0m;
-        var total = RedondearMoneda(precioBase + recargo);
 
-        var descripcion = tipoTarifa.Equals("Premium", StringComparison.OrdinalIgnoreCase)
+        // Subtotal sin IVA
+        var subtotal = RedondearMoneda(precioBase + recargo);
+
+        // IVA 21%
+        var iva = RedondearMoneda(subtotal * IvaPorcentaje);
+
+        // Precio total con IVA
+        var total = RedondearMoneda(subtotal + iva);
+
+        var descripcion = esPremium
             ? "Entrega premium prioritaria"
             : "Entrega estándar económica";
 
         var eta = EtaPorZona[zona];
-        var tiempoEntrega = tipoTarifa.Equals("Premium", StringComparison.OrdinalIgnoreCase) ? eta.Premium : eta.Estandar;
-        var dias = tipoTarifa.Equals("Premium", StringComparison.OrdinalIgnoreCase) ? eta.DiasPremium : eta.DiasEstandar;
+        var tiempoEntrega = esPremium ? eta.Premium : eta.Estandar;
+        var dias = esPremium ? eta.DiasPremium : eta.DiasEstandar;
 
         return new TarifaOpcion(
-            tipoTarifa.Equals("Premium", StringComparison.OrdinalIgnoreCase) ? "Premium" : "Estandar",
+            esPremium ? "Premium" : "Estandar",
             descripcion,
             tiempoEntrega,
             dias,
             precioBase,
             recargo,
+            iva,
             total);
     }
 

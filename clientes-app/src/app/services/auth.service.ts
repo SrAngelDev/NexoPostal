@@ -25,6 +25,26 @@ export interface Usuario {
   rol: string;
 }
 
+export interface SolicitarResetRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  token: string;
+  nuevaPassword: string;
+}
+
+export interface SolicitarResetRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  token: string;
+  nuevaPassword: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -148,5 +168,19 @@ export class AuthService {
     } catch {
       return true;
     }
+  }
+
+  /**
+   * Solicita el envío del email de recuperación de contraseña
+   */
+  solicitarResetPassword(email: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>(`${this.API_URL}/solicitar-reset`, { email });
+  }
+
+  /**
+   * Restablece la contraseña con el token recibido por email
+   */
+  resetPassword(email: string, token: string, nuevaPassword: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>(`${this.API_URL}/reset-password`, { email, token, nuevaPassword });
   }
 }

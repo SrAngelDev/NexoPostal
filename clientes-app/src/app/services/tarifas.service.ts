@@ -20,6 +20,7 @@ export interface TarifaDetalle {
   tiempoEstimadoDias: number;
   precioBase: number;
   recargo: number;
+  iva: number;
   precioTotal: number;
   activa: boolean;
   precioEstimado?: number;

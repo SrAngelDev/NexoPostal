@@ -14,6 +14,9 @@ interface RateOption {
   tipoTarifa: 'Estandar' | 'Premium';
   name: string;
   description: string;
+  precioBase: number;
+  recargo: number;
+  iva: number;
   price: number;
   deliveryTime: string;
 }
@@ -48,8 +51,6 @@ export class EnvioPaqueteComponent {
   totalSteps = 3;
   
   // Datos del formulario
-  cpOrigin = signal('');
-  cpDest = signal('');
   weight = signal<number | null>(null);
   length = signal<number | null>(null);
   width = signal<number | null>(null);
@@ -92,8 +93,10 @@ export class EnvioPaqueteComponent {
 
   // Canarias: CP que empiezan por 35 (Las Palmas) o 38 (Sta. Cruz de Tenerife)
   requiereDni = computed(() => {
-    const cpOrigen = this.cpOrigin();
-    const cpDestino = this.cpDest();
+    const rem = this.remitente();
+    const dest = this.destinatario();
+    const cpOrigen = rem.tipoEntrega === 'oficina' ? (rem.oficina?.codigoPostal || '') : rem.codigoPostal;
+    const cpDestino = dest.tipoEntrega === 'oficina' ? (dest.oficina?.codigoPostal || '') : dest.codigoPostal;
     return this.esCanarias(cpOrigen) || this.esCanarias(cpDestino);
   });
 
@@ -146,25 +149,31 @@ export class EnvioPaqueteComponent {
 
   goToStep(step: number): void {
     if (step === 2 && this.currentStep() === 1) {
-      if (this.validateStep1()) {
-        this.calculateRates();
-        this.currentStep.set(step);
+      const cpOrigenRemitente = this.getCpOrigen();
+      if (!this.validarPersona(this.remitente(), 'remitente', this.esCanarias(cpOrigenRemitente))) return;
+      if (!this.remitente().email.trim()) {
+        this.notificacion.aviso('Campos incompletos', 'Introduce el email del remitente para recibir la etiqueta.');
+        return;
       }
+      this.currentStep.set(step);
     } else if (step === 3 && this.currentStep() === 2) {
-      if (this.selectedRate()) {
-        this.currentStep.set(step);
-      } else {
-        this.notificacion.aviso('Tarifa requerida', 'Selecciona una tarifa antes de continuar.');
+      const dniRequerido = this.requiereDni();
+      if (!this.validarPersona(this.destinatario(), 'destinatario', dniRequerido)) return;
+      if (dniRequerido && !this.remitente().dni.trim()) {
+        this.notificacion.aviso('DNI requerido', 'El DNI/NIF del remitente es obligatorio para envíos a/desde Canarias. Vuelve al paso anterior y complétalo.');
+        return;
       }
+      this.currentStep.set(step);
+      this.ratesOptions.set([]);
+      this.selectedRate.set(null);
     } else if (step < this.currentStep()) {
       this.currentStep.set(step);
     }
   }
 
-  validateStep1(): boolean {
-    if (!this.cpOrigin() || !this.cpDest() || !this.weight() || 
-        !this.length() || !this.width() || !this.height()) {
-      this.notificacion.aviso('Campos incompletos', 'Completa todos los campos requeridos.');
+  validateDimensiones(): boolean {
+    if (!this.weight() || !this.length() || !this.width() || !this.height()) {
+      this.notificacion.aviso('Campos incompletos', 'Completa el peso y las dimensiones del paquete.');
       return false;
     }
 
@@ -202,6 +211,7 @@ export class EnvioPaqueteComponent {
   }
 
   calculateRates(): void {
+    if (!this.validateDimensiones()) return;
     this.isCalculating.set(true);
     
     const weight = this.weight() || 1;
@@ -214,8 +224,8 @@ export class EnvioPaqueteComponent {
       largo: length,
       ancho: width,
       alto: height,
-      codigoPostalOrigen: this.cpOrigin(),
-      codigoPostalDestino: this.cpDest()
+      codigoPostalOrigen: this.getCpOrigen(),
+      codigoPostalDestino: this.getCpDestino()
     }).subscribe({
       next: (response) => {
         this.ratesOptions.set(
@@ -224,6 +234,9 @@ export class EnvioPaqueteComponent {
             name: `Envío ${tarifa.nombre}`,
             description: tarifa.descripcion,
             deliveryTime: tarifa.tiempoEntregaEstimado,
+            precioBase: tarifa.precioBase,
+            recargo: tarifa.recargo,
+            iva: tarifa.iva,
             price: tarifa.precioTotal
           }))
         );
@@ -300,7 +313,17 @@ export class EnvioPaqueteComponent {
     return prefijo === '35' || prefijo === '38';
   }
 
-  private validarPersona(persona: DatosPersona, label: string): boolean {
+  private getCpOrigen(): string {
+    const rem = this.remitente();
+    return rem.tipoEntrega === 'oficina' ? (rem.oficina?.codigoPostal || '') : rem.codigoPostal;
+  }
+
+  private getCpDestino(): string {
+    const dest = this.destinatario();
+    return dest.tipoEntrega === 'oficina' ? (dest.oficina?.codigoPostal || '') : dest.codigoPostal;
+  }
+
+  private validarPersona(persona: DatosPersona, label: string, requireDni = false): boolean {
     if (!persona.nombre.trim()) {
       this.notificacion.aviso('Campos incompletos', `Introduce el nombre del ${label}.`);
       return false;
@@ -338,7 +361,7 @@ export class EnvioPaqueteComponent {
       }
     }
 
-    if (this.requiereDni() && !persona.dni.trim()) {
+    if (requireDni && !persona.dni.trim()) {
       this.notificacion.aviso('DNI requerido', `El DNI/NIF del ${label} es obligatorio para envíos a/desde Canarias.`);
       return false;
     }
@@ -352,8 +375,10 @@ export class EnvioPaqueteComponent {
       return;
     }
 
-    if (!this.validarPersona(this.remitente(), 'remitente')) return;
-    if (!this.validarPersona(this.destinatario(), 'destinatario')) return;
+    const dniRequerido = this.requiereDni();
+    if (!this.validarPersona(this.remitente(), 'remitente', this.esCanarias(this.getCpOrigen()))) return;
+    if (!this.validarPersona(this.destinatario(), 'destinatario', dniRequerido)) return;
+    if (!this.validateDimensiones()) return;
 
     if (!this.remitente().email.trim()) {
       this.notificacion.aviso('Campos incompletos', 'Introduce el email del remitente para recibir la etiqueta.');
@@ -385,8 +410,8 @@ export class EnvioPaqueteComponent {
     const request: CrearSesionPagoRequest = {
       peso: this.weight() || 0,
       dimensiones: `${this.length()}x${this.width()}x${this.height()} cm`,
-      codigoPostalOrigen: this.cpOrigin(),
-      codigoPostalDestino: this.cpDest(),
+      codigoPostalOrigen: this.getCpOrigen(),
+      codigoPostalDestino: this.getCpDestino(),
       tipoTarifa: rate.tipoTarifa,
       coste: rate.price,
       tiempoEntregaEstimado: rate.deliveryTime,

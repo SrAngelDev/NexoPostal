@@ -16,6 +16,8 @@ public interface IAuthService
     Task<UsuarioInfoDto?> GetUserInfoAsync(string userId);
     Task<(UsuarioInfoDto? User, string? Error)> UpdateProfileAsync(string userId, ActualizarUsuarioDto dto);
     Task<(bool Success, string? Error)> ChangePasswordAsync(string userId, CambiarPasswordDto dto);
+    Task SolicitarResetPasswordAsync(string email, string frontendUrl);
+    Task<(bool Success, string? Error)> ResetPasswordAsync(ResetPasswordDto dto);
 }
 
 /// <summary>
@@ -30,11 +32,13 @@ public class AuthService : IAuthService
 
     private readonly IUserRepository _userRepository;
     private readonly TokenService _tokenService;
+    private readonly IEmailService _emailService;
 
-    public AuthService(IUserRepository userRepository, TokenService tokenService)
+    public AuthService(IUserRepository userRepository, TokenService tokenService, IEmailService emailService)
     {
         _userRepository = userRepository;
         _tokenService = tokenService;
+        _emailService = emailService;
     }
 
     public async Task<TokenResponseDto?> LoginAsync(LoginDto dto)
@@ -200,5 +204,39 @@ public class AuthService : IAuthService
     {
         await _userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenHashName);
         await _userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenExpiryName);
+    }
+
+    public async Task SolicitarResetPasswordAsync(string email, string frontendUrl)
+    {
+        var user = await _userRepository.GetByEmailAsync(email);
+        // Si el usuario no existe, respondemos igual para no revelar si el email está registrado
+        if (user == null) return;
+
+        var token = await _userRepository.GeneratePasswordResetTokenAsync(user);
+        var encodedToken = Uri.EscapeDataString(token);
+        var encodedEmail = Uri.EscapeDataString(email);
+        var resetLink = $"{frontendUrl.TrimEnd('/')}/reset-password?email={encodedEmail}&token={encodedToken}";
+
+        await _emailService.SendPasswordResetEmailAsync(user.Email!, user.NombreCompleto, resetLink);
+    }
+
+    public async Task<(bool Success, string? Error)> ResetPasswordAsync(ResetPasswordDto dto)
+    {
+        var user = await _userRepository.GetByEmailAsync(dto.Email);
+        if (user == null)
+            return (false, "El enlace de recuperación no es válido o ha expirado.");
+
+        var result = await _userRepository.ResetPasswordAsync(user, dto.Token, dto.NuevaPassword);
+        if (!result.Succeeded)
+        {
+            var error = result.Errors.FirstOrDefault()?.Description
+                        ?? "Error al restablecer la contraseña.";
+            return (false, error);
+        }
+
+        // Revocar refresh tokens existentes por seguridad
+        await RevokeRefreshTokenAsync(user);
+
+        return (true, null);
     }
 }

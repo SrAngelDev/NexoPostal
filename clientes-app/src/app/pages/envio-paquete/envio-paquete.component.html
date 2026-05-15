@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-gray-50">
   <!-- Navbar -->
-  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
+  <nav class="bg-[#1A237E] text-white h-17.5 sticky top-0 z-50 shadow-lg">
     <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
       <!-- Logo -->
       <div class="flex items-center gap-2 text-2xl font-bold">
@@ -20,12 +20,11 @@
 
   <!-- Wizard Container -->
   <div class="max-w-4xl mx-auto px-5 mt-10 mb-10">
-    <div class="bg-white p-10 rounded-xl shadow-lg min-h-[500px]">
+    <div class="bg-white p-10 rounded-xl shadow-lg min-h-125">
       
       <!-- Progress Bar -->
       <div class="flex items-center justify-between mb-12 relative">
         @for (step of [1, 2, 3]; track step; let i = $index) {
-          <!-- Step Circle -->
           <div class="flex flex-col items-center relative z-10" [class.text-[#1A237E]]="currentStep() >= step" [class.text-gray-400]="currentStep() < step">
             <div 
               class="w-10 h-10 rounded-full flex items-center justify-center font-bold mb-2 transition-all"
@@ -36,254 +35,51 @@
               {{ step }}
             </div>
             <span class="text-sm font-medium">
-              {{ step === 1 ? 'Paquete' : step === 2 ? 'Tarifa' : 'Datos y Pago' }}
+              {{ step === 1 ? 'Remitente' : step === 2 ? 'Destinatario' : 'Envío y Pago' }}
             </span>
           </div>
 
-          <!-- Line Between Steps -->
           @if (i < 2) {
-            <div class="flex-grow h-0.5 bg-gray-300 -mx-2 relative" style="top: -18px; z-index: 1"></div>
+            <div class="grow h-0.5 bg-gray-300 -mx-2 relative" style="top: -18px; z-index: 1"></div>
           }
         }
       </div>
 
-      <!-- Step 1: Package Info -->
+      <!-- Step 1: Datos del Remitente -->
       @if (currentStep() === 1) {
         <div class="animate-fadeIn">
-          <h2 class="text-3xl font-bold text-[#1A237E] mb-2">¿Qué vas a enviar?</h2>
-          <p class="text-gray-600 mb-8">Introduce las características para calcular el precio.</p>
+          <h2 class="text-3xl font-bold text-[#1A237E] mb-2">¿Quién envía el paquete?</h2>
+          <p class="text-gray-600 mb-8">Introduce los datos del remitente y la dirección de recogida.</p>
 
-          <div class="grid md:grid-cols-2 gap-5 mb-5">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-semibold text-gray-700">Código Postal Origen</label>
-              <input 
-                type="text" 
-                [(ngModel)]="cpOrigin"
-                placeholder="Ej: 28001" 
-                maxlength="5" pattern="\d{5}"
-                (keypress)="$event.charCode >= 48 && $event.charCode <= 57 || $event.preventDefault()"
-                class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
-                required
-              />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-semibold text-gray-700">Código Postal Destino</label>
-              <input 
-                type="text" 
-                [(ngModel)]="cpDest"
-                placeholder="Ej: 08001" 
-                maxlength="5" pattern="\d{5}"
-                (keypress)="$event.charCode >= 48 && $event.charCode <= 57 || $event.preventDefault()"
-                class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
-                required
-              />
-            </div>
-          </div>
-
-          <div class="h-px bg-gray-200 my-6"></div>
-
-          <div class="grid md:grid-cols-4 gap-5 mb-5">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-semibold text-gray-700">Peso (kg)</label>
-              <input 
-                type="number" 
-                [(ngModel)]="weight"
-                step="0.1"
-                min="0.1"
-                max="30"
-                placeholder="Ej: 1.5" 
-                class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
-                required
-              />
-              <span class="text-xs text-gray-500">Máx: 30kg</span>
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-semibold text-gray-700">Largo (cm)</label>
-              <input 
-                type="number" 
-                [(ngModel)]="length"
-                min="10"
-                max="170"
-                placeholder="30" 
-                class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
-                required
-              />
-              <span class="text-xs text-gray-500">Máx: 170cm</span>
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-semibold text-gray-700">Ancho (cm)</label>
-              <input 
-                type="number" 
-                [(ngModel)]="width"
-                min="10"
-                placeholder="20" 
-                class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
-                required
-              />
-              <span class="text-xs text-gray-500">Mín: 10cm</span>
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-semibold text-gray-700">Alto (cm)</label>
-              <input 
-                type="number" 
-                [(ngModel)]="height"
-                min="10"
-                placeholder="10" 
-                class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
-                required
-              />
-              <span class="text-xs text-gray-500">Mín: 10cm</span>
-            </div>
-          </div>
-
-          <!-- Información de restricciones -->
-          <div class="mt-5 p-3 md:p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p class="text-xs md:text-sm font-semibold text-[#1A237E] flex items-center gap-1.5">
-              <span class="text-base md:text-lg">ℹ️</span>
-              <span>Restricciones de Envío</span>
-            </p>
-            <ul class="text-[10px] md:text-xs text-gray-700 mt-2 space-y-1 ml-5">
-              <li>• Dimensiones mínimas: <strong>10x15 cm</strong></li>
-              <li>• Lado mayor máximo: <strong>170 cm</strong></li>
-              <li>• Suma total: <strong>210 cm máximo</strong></li>
-              <li>• Peso máximo: <strong>30 kg</strong></li>
-            </ul>
-          </div>
-
-          <!-- Aviso importante sobre embalaje -->
-          <div class="mt-3 p-3 md:p-4 bg-orange-50 rounded-lg border-l-4 border-orange-500">
-            <div class="flex gap-2 md:gap-3">
-              <span class="material-symbols-outlined text-orange-600 text-xl md:text-2xl flex-shrink-0">warning</span>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs md:text-sm font-bold text-orange-800 mb-1.5 md:mb-2">⚠️ IMPORTANTE: Embalaje Correcto</p>
-                <ul class="text-[10px] md:text-xs text-gray-700 space-y-1">
-                  <li>• El cliente es <strong>responsable del embalaje</strong> adecuado.</li>
-                  <li>• NexoPostal <strong>no se responsabiliza</strong> por daños de embalaje inadecuado.</li>
-                  <li>• Los paquetes mal embalados <strong>pueden ser rechazados</strong>.</li>
-                  <li>• Use materiales resistentes y protección adecuada.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex justify-end mt-10 pt-5 border-t border-gray-200">
-            <button 
-              (click)="goToStep(2)"
-              class="px-8 py-3 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform flex items-center gap-2"
-            >
-              Ver Tarifas
-              <span class="material-symbols-outlined">arrow_forward</span>
-            </button>
-          </div>
-        </div>
-      }
-
-      <!-- Step 2: Rate Selection -->
-      @if (currentStep() === 2) {
-        <div class="animate-fadeIn">
-          <h2 class="text-3xl font-bold text-[#1A237E] mb-2">Selecciona tu tarifa</h2>
-          <p class="text-gray-600 mb-8">Precios calculados según peso y destino.</p>
-
-          @if (isCalculating()) {
-            <div class="text-center py-10">
-              <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A237E]"></div>
-              <p class="mt-4 text-gray-600">Calculando mejor ruta...</p>
-            </div>
-          } @else {
-            <div class="space-y-4">
-              @for (rate of ratesOptions(); track rate.name) {
-                <div 
-                  (click)="selectRate(rate)"
-                  class="border-2 rounded-lg p-5 cursor-pointer transition-all flex justify-between items-center"
-                  [class.border-gray-300]="selectedRate()?.name !== rate.name"
-                  [class.bg-white]="selectedRate()?.name !== rate.name"
-                  [class.hover:border-[#1A237E]]="selectedRate()?.name !== rate.name"
-                  [class.border-[#FFC107]]="selectedRate()?.name === rate.name"
-                  [class.bg-yellow-50]="selectedRate()?.name === rate.name"
-                >
-                  <div>
-                    <h4 class="text-lg font-bold text-[#1A237E] mb-1">{{ rate.name }} ({{ rate.deliveryTime }})</h4>
-                    <p class="text-gray-600 text-sm">{{ rate.description }}</p>
-                  </div>
-                  <div class="text-2xl font-bold text-gray-900">{{ rate.price }} €</div>
+          @if (direccionesGuardadas().length > 0) {
+            <div class="mb-5">
+              <button type="button" (click)="showSelectorRemitente.set(!showSelectorRemitente())"
+                class="flex items-center gap-2 text-sm font-semibold text-[#1A237E] hover:text-[#283593] transition-colors cursor-pointer">
+                <span class="material-symbols-outlined text-lg">contact_page</span>
+                Usar dirección de mi agenda
+                <span class="material-symbols-outlined text-base transition-transform" [class.rotate-180]="showSelectorRemitente()">expand_more</span>
+              </button>
+              @if (showSelectorRemitente()) {
+                <div class="mt-2 grid gap-2 animate-fadeIn">
+                  @for (dir of direccionesGuardadas(); track dir.id) {
+                    <button type="button" (click)="aplicarDireccion('remitente', dir)"
+                      class="text-left p-3 bg-white border border-gray-200 rounded-lg hover:border-[#1A237E] hover:bg-blue-50 transition-all cursor-pointer">
+                      <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-gray-800">{{ dir.alias }}</p>
+                        <span class="material-symbols-outlined text-gray-400 text-base">arrow_forward</span>
+                      </div>
+                      <p class="text-xs text-gray-600">{{ dir.nombreDestinatario }}</p>
+                      <p class="text-xs text-gray-500">{{ dir.direccion }}, {{ dir.codigoPostal }} {{ dir.ciudad }} ({{ dir.provincia }})</p>
+                    </button>
+                  }
                 </div>
               }
             </div>
           }
 
-          <div class="flex justify-between mt-10 pt-5 border-t border-gray-200">
-            <button 
-              (click)="goToStep(1)"
-              class="px-6 py-3 border border-gray-300 bg-transparent text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
-            >
-              Atrás
-            </button>
-            <button 
-              (click)="goToStep(3)"
-              [disabled]="!selectedRate()"
-              class="px-8 py-3 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Continuar
-            </button>
-          </div>
-        </div>
-      }
-
-      <!-- Step 3: Sender/Recipient Data -->
-      @if (currentStep() === 3) {
-        <div class="animate-fadeIn">
-          <h2 class="text-3xl font-bold text-[#1A237E] mb-2">Finalizar Envío</h2>
-          <p class="text-gray-600 mb-8">Completa los datos de remitente y destinatario.</p>
-
-          <!-- Aviso Canarias -->
-          @if (requiereDni()) {
-            <div class="mb-6 p-4 bg-amber-50 rounded-lg border-2 border-amber-400">
-              <div class="flex gap-3 items-start">
-                <span class="material-symbols-outlined text-amber-600 text-2xl flex-shrink-0">id_card</span>
-                <div>
-                  <p class="text-sm font-bold text-amber-800 mb-1">Envío a/desde Canarias — DNI obligatorio</p>
-                  <p class="text-xs text-gray-700">Los envíos con origen o destino en Canarias requieren el DNI/NIF de ambas partes por normativa aduanera.</p>
-                </div>
-              </div>
-            </div>
-          }
-
-          <!-- REMITENTE -->
-          <div class="bg-gray-50 p-5 rounded-lg mb-6">
-            <h3 class="text-lg font-bold text-[#1A237E] mb-4 flex items-center gap-2">
-              <span class="material-symbols-outlined">person</span>
-              Remitente
-            </h3>
-
-            <!-- Selector de dirección guardada remitente -->
-            @if (direccionesGuardadas().length > 0) {
-              <div class="mb-4">
-                <button type="button" (click)="showSelectorRemitente.set(!showSelectorRemitente())"
-                  class="flex items-center gap-2 text-sm font-semibold text-[#1A237E] hover:text-[#283593] transition-colors cursor-pointer">
-                  <span class="material-symbols-outlined text-lg">contact_page</span>
-                  Usar dirección de mi agenda
-                  <span class="material-symbols-outlined text-base transition-transform" [class.rotate-180]="showSelectorRemitente()">expand_more</span>
-                </button>
-                @if (showSelectorRemitente()) {
-                  <div class="mt-2 grid gap-2 animate-fadeIn">
-                    @for (dir of direccionesGuardadas(); track dir.id) {
-                      <button type="button" (click)="aplicarDireccion('remitente', dir)"
-                        class="text-left p-3 bg-white border border-gray-200 rounded-lg hover:border-[#1A237E] hover:bg-blue-50 transition-all cursor-pointer">
-                        <div class="flex items-center justify-between">
-                          <p class="text-sm font-semibold text-gray-800">{{ dir.alias }}</p>
-                          <span class="material-symbols-outlined text-gray-400 text-base">arrow_forward</span>
-                        </div>
-                        <p class="text-xs text-gray-600">{{ dir.nombreDestinatario }}</p>
-                        <p class="text-xs text-gray-500">{{ dir.direccion }}, {{ dir.codigoPostal }} {{ dir.ciudad }} ({{ dir.provincia }})</p>
-                      </button>
-                    }
-                  </div>
-                }
-              </div>
-            }
-
-            <!-- Datos personales remitente -->
-            <div class="grid md:grid-cols-2 gap-3 mb-4">
+          <div class="bg-gray-50 p-5 rounded-lg mb-5">
+            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Datos personales</h3>
+            <div class="grid md:grid-cols-2 gap-3 mb-3">
               <div class="flex flex-col gap-1">
                 <label class="text-xs font-semibold text-gray-600">Nombre *</label>
                 <input type="text" [ngModel]="remitente().nombre" (ngModelChange)="updateRemitente('nombre', $event)"
@@ -295,67 +91,57 @@
                   placeholder="Apellidos" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
               </div>
             </div>
-            <div class="grid md:grid-cols-2 gap-3 mb-4">
+            <div class="grid md:grid-cols-2 gap-3 mb-3">
               <div class="flex flex-col gap-1">
                 <label class="text-xs font-semibold text-gray-600">Teléfono *</label>
                 <input type="tel" [ngModel]="remitente().telefono" (ngModelChange)="updateRemitente('telefono', $event)"
                   placeholder="Ej: 612345678" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-semibold text-gray-600">Email * <span class="text-gray-400 font-normal">(para recibir etiqueta)</span></label>
+                <label class="text-xs font-semibold text-gray-600">Email * <span class="text-gray-400 font-normal">(para recibir la etiqueta)</span></label>
                 <input type="email" [ngModel]="remitente().email" (ngModelChange)="updateRemitente('email', $event)"
                   placeholder="correo@ejemplo.com" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
               </div>
             </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-gray-600">DNI / NIF <span class="text-gray-400 font-normal ml-1">(obligatorio para envíos a/desde Canarias)</span></label>
+              <input type="text" [ngModel]="remitente().dni" (ngModelChange)="updateRemitente('dni', $event)"
+                placeholder="12345678A" maxlength="9"
+                class="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
+            </div>
+          </div>
 
-            <!-- DNI remitente (solo Canarias) -->
-            @if (requiereDni()) {
-              <div class="mb-4">
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs font-semibold text-gray-600">DNI / NIF *</label>
-                  <input type="text" [ngModel]="remitente().dni" (ngModelChange)="updateRemitente('dni', $event)"
-                    placeholder="12345678A" maxlength="9"
-                    class="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
-                </div>
-              </div>
-            }
-
-            <!-- Tipo de recogida remitente -->
-            <div class="mb-4">
-              <label class="text-xs font-semibold text-gray-600 mb-2 block">¿Dónde se recoge el paquete? *</label>
-              <div class="flex gap-3">
-                <button (click)="setTipoEntrega('remitente', 'direccion')" type="button"
-                  class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                  [class.border-[#1A237E]]="remitente().tipoEntrega === 'direccion'"
-                  [class.bg-[#1A237E]]="remitente().tipoEntrega === 'direccion'"
-                  [class.text-white]="remitente().tipoEntrega === 'direccion'"
-                  [class.border-gray-300]="remitente().tipoEntrega !== 'direccion'"
-                  [class.text-gray-600]="remitente().tipoEntrega !== 'direccion'"
-                  [class.hover:border-gray-400]="remitente().tipoEntrega !== 'direccion'">
-                  <span class="material-symbols-outlined text-lg">home</span>
-                  Dirección
-                </button>
-                <button (click)="setTipoEntrega('remitente', 'oficina')" type="button"
-                  class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                  [class.border-[#1A237E]]="remitente().tipoEntrega === 'oficina'"
-                  [class.bg-[#1A237E]]="remitente().tipoEntrega === 'oficina'"
-                  [class.text-white]="remitente().tipoEntrega === 'oficina'"
-                  [class.border-gray-300]="remitente().tipoEntrega !== 'oficina'"
-                  [class.text-gray-600]="remitente().tipoEntrega !== 'oficina'"
-                  [class.hover:border-gray-400]="remitente().tipoEntrega !== 'oficina'">
-                  <span class="material-symbols-outlined text-lg">location_on</span>
-                  Oficina
-                </button>
-              </div>
+          <div class="bg-gray-50 p-5 rounded-lg mb-5">
+            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">¿Dónde se recoge el paquete?</h3>
+            <div class="flex gap-3 mb-4">
+              <button (click)="setTipoEntrega('remitente', 'direccion')" type="button"
+                class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                [class.border-[#1A237E]]="remitente().tipoEntrega === 'direccion'"
+                [class.bg-[#1A237E]]="remitente().tipoEntrega === 'direccion'"
+                [class.text-white]="remitente().tipoEntrega === 'direccion'"
+                [class.border-gray-300]="remitente().tipoEntrega !== 'direccion'"
+                [class.text-gray-600]="remitente().tipoEntrega !== 'direccion'">
+                <span class="material-symbols-outlined text-lg">home</span>
+                Dirección
+              </button>
+              <button (click)="setTipoEntrega('remitente', 'oficina')" type="button"
+                class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                [class.border-[#1A237E]]="remitente().tipoEntrega === 'oficina'"
+                [class.bg-[#1A237E]]="remitente().tipoEntrega === 'oficina'"
+                [class.text-white]="remitente().tipoEntrega === 'oficina'"
+                [class.border-gray-300]="remitente().tipoEntrega !== 'oficina'"
+                [class.text-gray-600]="remitente().tipoEntrega !== 'oficina'">
+                <span class="material-symbols-outlined text-lg">location_on</span>
+                Oficina
+              </button>
             </div>
 
-            <!-- Dirección remitente -->
             @if (remitente().tipoEntrega === 'direccion') {
               <div class="space-y-3 animate-fadeIn">
                 <div class="flex flex-col gap-1">
                   <label class="text-xs font-semibold text-gray-600">Dirección completa *</label>
                   <input type="text" [ngModel]="remitente().direccion" (ngModelChange)="updateRemitente('direccion', $event)"
-                    placeholder="Calle, número, piso, puerta..." class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
+                    placeholder="Calle, numero, piso, puerta..." class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div class="flex flex-col gap-1">
@@ -379,7 +165,6 @@
               </div>
             }
 
-            <!-- Oficina remitente -->
             @if (remitente().tipoEntrega === 'oficina') {
               <div class="animate-fadeIn">
                 <div class="flex flex-col gap-1 relative">
@@ -391,7 +176,6 @@
                       class="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
                     <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                   </div>
-
                   @if (senderShowOficinas() && senderOficinas().length > 0) {
                     <div class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto mt-1">
                       @for (ofi of senderOficinas(); track ofi.id) {
@@ -405,8 +189,6 @@
                     </div>
                   }
                 </div>
-
-                <!-- Oficina seleccionada -->
                 @if (remitente().oficina) {
                   <div class="mt-3 p-3 bg-green-50 border border-green-300 rounded-lg">
                     <div class="flex items-start gap-2">
@@ -423,42 +205,63 @@
             }
           </div>
 
-          <!-- DESTINATARIO -->
-          <div class="bg-gray-50 p-5 rounded-lg mb-6">
-            <h3 class="text-lg font-bold text-[#1A237E] mb-4 flex items-center gap-2">
-              <span class="material-symbols-outlined">person_pin</span>
-              Destinatario
-            </h3>
+          <div class="flex justify-end mt-10 pt-5 border-t border-gray-200">
+            <button (click)="goToStep(2)"
+              class="px-8 py-3 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform flex items-center gap-2">
+              Continuar
+              <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      }
 
-            <!-- Selector de dirección guardada destinatario -->
-            @if (direccionesGuardadas().length > 0) {
-              <div class="mb-4">
-                <button type="button" (click)="showSelectorDestinatario.set(!showSelectorDestinatario())"
-                  class="flex items-center gap-2 text-sm font-semibold text-[#1A237E] hover:text-[#283593] transition-colors cursor-pointer">
-                  <span class="material-symbols-outlined text-lg">contact_page</span>
-                  Usar dirección de mi agenda
-                  <span class="material-symbols-outlined text-base transition-transform" [class.rotate-180]="showSelectorDestinatario()">expand_more</span>
-                </button>
-                @if (showSelectorDestinatario()) {
-                  <div class="mt-2 grid gap-2 animate-fadeIn">
-                    @for (dir of direccionesGuardadas(); track dir.id) {
-                      <button type="button" (click)="aplicarDireccion('destinatario', dir)"
-                        class="text-left p-3 bg-white border border-gray-200 rounded-lg hover:border-[#1A237E] hover:bg-blue-50 transition-all cursor-pointer">
-                        <div class="flex items-center justify-between">
-                          <p class="text-sm font-semibold text-gray-800">{{ dir.alias }}</p>
-                          <span class="material-symbols-outlined text-gray-400 text-base">arrow_forward</span>
-                        </div>
-                        <p class="text-xs text-gray-600">{{ dir.nombreDestinatario }}</p>
-                        <p class="text-xs text-gray-500">{{ dir.direccion }}, {{ dir.codigoPostal }} {{ dir.ciudad }} ({{ dir.provincia }})</p>
-                      </button>
-                    }
-                  </div>
-                }
+      <!-- Step 2: Datos del Destinatario -->
+      @if (currentStep() === 2) {
+        <div class="animate-fadeIn">
+          <h2 class="text-3xl font-bold text-[#1A237E] mb-2">¿A quién va dirigido?</h2>
+          <p class="text-gray-600 mb-8">Introduce los datos del destinatario y la dirección de entrega.</p>
+
+          @if (requiereDni()) {
+            <div class="mb-5 p-4 bg-amber-50 rounded-lg border-2 border-amber-400">
+              <div class="flex gap-3 items-start">
+                <span class="material-symbols-outlined text-amber-600 text-2xl shrink-0">id_card</span>
+                <div>
+                  <p class="text-sm font-bold text-amber-800 mb-1">Envío a/desde Canarias — DNI obligatorio</p>
+                  <p class="text-xs text-gray-700">Los envíos con origen o destino en Canarias requieren el DNI/NIF de ambas partes por normativa aduanera. Asegúrate de haberlo completado también en el paso anterior.</p>
+                </div>
               </div>
-            }
+            </div>
+          }
 
-            <!-- Datos personales destinatario -->
-            <div class="grid md:grid-cols-2 gap-3 mb-4">
+          @if (direccionesGuardadas().length > 0) {
+            <div class="mb-5">
+              <button type="button" (click)="showSelectorDestinatario.set(!showSelectorDestinatario())"
+                class="flex items-center gap-2 text-sm font-semibold text-[#1A237E] hover:text-[#283593] transition-colors cursor-pointer">
+                <span class="material-symbols-outlined text-lg">contact_page</span>
+                Usar dirección de mi agenda
+                <span class="material-symbols-outlined text-base transition-transform" [class.rotate-180]="showSelectorDestinatario()">expand_more</span>
+              </button>
+              @if (showSelectorDestinatario()) {
+                <div class="mt-2 grid gap-2 animate-fadeIn">
+                  @for (dir of direccionesGuardadas(); track dir.id) {
+                    <button type="button" (click)="aplicarDireccion('destinatario', dir)"
+                      class="text-left p-3 bg-white border border-gray-200 rounded-lg hover:border-[#1A237E] hover:bg-blue-50 transition-all cursor-pointer">
+                      <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-gray-800">{{ dir.alias }}</p>
+                        <span class="material-symbols-outlined text-gray-400 text-base">arrow_forward</span>
+                      </div>
+                      <p class="text-xs text-gray-600">{{ dir.nombreDestinatario }}</p>
+                      <p class="text-xs text-gray-500">{{ dir.direccion }}, {{ dir.codigoPostal }} {{ dir.ciudad }} ({{ dir.provincia }})</p>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <div class="bg-gray-50 p-5 rounded-lg mb-5">
+            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Datos personales</h3>
+            <div class="grid md:grid-cols-2 gap-3 mb-3">
               <div class="flex flex-col gap-1">
                 <label class="text-xs font-semibold text-gray-600">Nombre *</label>
                 <input type="text" [ngModel]="destinatario().nombre" (ngModelChange)="updateDestinatario('nombre', $event)"
@@ -470,7 +273,7 @@
                   placeholder="Apellidos" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
               </div>
             </div>
-            <div class="grid md:grid-cols-2 gap-3 mb-4">
+            <div class="grid md:grid-cols-2 gap-3 mb-3">
               <div class="flex flex-col gap-1">
                 <label class="text-xs font-semibold text-gray-600">Teléfono * <span class="text-gray-400 font-normal">(para avisos de reparto)</span></label>
                 <input type="tel" [ngModel]="destinatario().telefono" (ngModelChange)="updateDestinatario('telefono', $event)"
@@ -482,55 +285,45 @@
                   placeholder="correo@ejemplo.com" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
               </div>
             </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-gray-600">DNI / NIF <span class="text-gray-400 font-normal ml-1">(obligatorio para envíos a/desde Canarias)</span></label>
+              <input type="text" [ngModel]="destinatario().dni" (ngModelChange)="updateDestinatario('dni', $event)"
+                placeholder="12345678A" maxlength="9"
+                class="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
+            </div>
+          </div>
 
-            <!-- DNI destinatario (solo Canarias) -->
-            @if (requiereDni()) {
-              <div class="mb-4">
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs font-semibold text-gray-600">DNI / NIF *</label>
-                  <input type="text" [ngModel]="destinatario().dni" (ngModelChange)="updateDestinatario('dni', $event)"
-                    placeholder="12345678A" maxlength="9"
-                    class="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
-                </div>
-              </div>
-            }
-
-            <!-- Tipo de entrega destinatario -->
-            <div class="mb-4">
-              <label class="text-xs font-semibold text-gray-600 mb-2 block">¿Dónde se entrega el paquete? *</label>
-              <div class="flex gap-3">
-                <button (click)="setTipoEntrega('destinatario', 'direccion')" type="button"
-                  class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                  [class.border-[#1A237E]]="destinatario().tipoEntrega === 'direccion'"
-                  [class.bg-[#1A237E]]="destinatario().tipoEntrega === 'direccion'"
-                  [class.text-white]="destinatario().tipoEntrega === 'direccion'"
-                  [class.border-gray-300]="destinatario().tipoEntrega !== 'direccion'"
-                  [class.text-gray-600]="destinatario().tipoEntrega !== 'direccion'"
-                  [class.hover:border-gray-400]="destinatario().tipoEntrega !== 'direccion'">
-                  <span class="material-symbols-outlined text-lg">home</span>
-                  Dirección
-                </button>
-                <button (click)="setTipoEntrega('destinatario', 'oficina')" type="button"
-                  class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                  [class.border-[#1A237E]]="destinatario().tipoEntrega === 'oficina'"
-                  [class.bg-[#1A237E]]="destinatario().tipoEntrega === 'oficina'"
-                  [class.text-white]="destinatario().tipoEntrega === 'oficina'"
-                  [class.border-gray-300]="destinatario().tipoEntrega !== 'oficina'"
-                  [class.text-gray-600]="destinatario().tipoEntrega !== 'oficina'"
-                  [class.hover:border-gray-400]="destinatario().tipoEntrega !== 'oficina'">
-                  <span class="material-symbols-outlined text-lg">location_on</span>
-                  Oficina
-                </button>
-              </div>
+          <div class="bg-gray-50 p-5 rounded-lg mb-5">
+            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">¿Dónde se entrega el paquete?</h3>
+            <div class="flex gap-3 mb-4">
+              <button (click)="setTipoEntrega('destinatario', 'direccion')" type="button"
+                class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                [class.border-[#1A237E]]="destinatario().tipoEntrega === 'direccion'"
+                [class.bg-[#1A237E]]="destinatario().tipoEntrega === 'direccion'"
+                [class.text-white]="destinatario().tipoEntrega === 'direccion'"
+                [class.border-gray-300]="destinatario().tipoEntrega !== 'direccion'"
+                [class.text-gray-600]="destinatario().tipoEntrega !== 'direccion'">
+                <span class="material-symbols-outlined text-lg">home</span>
+                Dirección
+              </button>
+              <button (click)="setTipoEntrega('destinatario', 'oficina')" type="button"
+                class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                [class.border-[#1A237E]]="destinatario().tipoEntrega === 'oficina'"
+                [class.bg-[#1A237E]]="destinatario().tipoEntrega === 'oficina'"
+                [class.text-white]="destinatario().tipoEntrega === 'oficina'"
+                [class.border-gray-300]="destinatario().tipoEntrega !== 'oficina'"
+                [class.text-gray-600]="destinatario().tipoEntrega !== 'oficina'">
+                <span class="material-symbols-outlined text-lg">location_on</span>
+                Oficina
+              </button>
             </div>
 
-            <!-- Dirección destinatario -->
             @if (destinatario().tipoEntrega === 'direccion') {
               <div class="space-y-3 animate-fadeIn">
                 <div class="flex flex-col gap-1">
                   <label class="text-xs font-semibold text-gray-600">Dirección completa *</label>
                   <input type="text" [ngModel]="destinatario().direccion" (ngModelChange)="updateDestinatario('direccion', $event)"
-                    placeholder="Calle, número, piso, puerta..." class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
+                    placeholder="Calle, numero, piso, puerta..." class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div class="flex flex-col gap-1">
@@ -554,7 +347,6 @@
               </div>
             }
 
-            <!-- Oficina destinatario -->
             @if (destinatario().tipoEntrega === 'oficina') {
               <div class="animate-fadeIn">
                 <div class="flex flex-col gap-1 relative">
@@ -566,7 +358,6 @@
                       class="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
                     <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                   </div>
-
                   @if (recipientShowOficinas() && recipientOficinas().length > 0) {
                     <div class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto mt-1">
                       @for (ofi of recipientOficinas(); track ofi.id) {
@@ -580,8 +371,6 @@
                     </div>
                   }
                 </div>
-
-                <!-- Oficina seleccionada -->
                 @if (destinatario().oficina) {
                   <div class="mt-3 p-3 bg-green-50 border border-green-300 rounded-lg">
                     <div class="flex items-start gap-2">
@@ -598,48 +387,196 @@
             }
           </div>
 
-          <!-- Summary Card -->
-          @if (selectedRate()) {
-            <div class="bg-[#1A237E] text-white p-6 rounded-lg">
-              <h3 class="text-xl font-bold mb-4">Resumen del Pedido</h3>
-              <div class="flex justify-between items-center font-bold text-lg">
-                <span>{{ selectedRate()!.name }} ({{ selectedRate()!.deliveryTime }})</span>
-                <span class="text-[#FFC107] text-2xl">{{ selectedRate()!.price }} €</span>
+          <div class="flex justify-between mt-10 pt-5 border-t border-gray-200">
+            <button (click)="goToStep(1)"
+              class="px-6 py-3 border border-gray-300 bg-transparent text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all">
+              Atrás
+            </button>
+            <button (click)="goToStep(3)"
+              class="px-8 py-3 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform flex items-center gap-2">
+              Continuar
+              <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Step 3: Paquete, Tarifa y Pago -->
+      @if (currentStep() === 3) {
+        <div class="animate-fadeIn">
+          <h2 class="text-3xl font-bold text-[#1A237E] mb-2">Paquete y pago</h2>
+          <p class="text-gray-600 mb-8">Indica las dimensiones del paquete y elige tu tarifa.</p>
+
+          <div class="bg-gray-50 p-5 rounded-lg mb-5">
+            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Medidas del paquete</h3>
+            <div class="grid md:grid-cols-4 gap-5">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-sm font-semibold text-gray-700">Peso (kg)</label>
+                <input type="number" [(ngModel)]="weight" step="0.1" min="0.1" max="30" placeholder="Ej: 1.5"
+                  class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors" />
+                <span class="text-xs text-gray-500">Máx: 30kg</span>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-sm font-semibold text-gray-700">Largo (cm)</label>
+                <input type="number" [(ngModel)]="length" min="10" max="170" placeholder="30"
+                  class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors" />
+                <span class="text-xs text-gray-500">Máx: 170cm</span>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-sm font-semibold text-gray-700">Ancho (cm)</label>
+                <input type="number" [(ngModel)]="width" min="10" placeholder="20"
+                  class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors" />
+                <span class="text-xs text-gray-500">Mín: 10cm</span>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-sm font-semibold text-gray-700">Alto (cm)</label>
+                <input type="number" [(ngModel)]="height" min="10" placeholder="10"
+                  class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors" />
+                <span class="text-xs text-gray-500">Mín: 10cm</span>
+              </div>
+            </div>
+
+            <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p class="text-xs font-semibold text-[#1A237E] flex items-center gap-1.5">
+                <span>ℹ️</span>
+                <span>Restricciones de envío</span>
+              </p>
+              <ul class="text-xs text-gray-700 mt-2 space-y-1 ml-5">
+                <li>• Dimensiones mínimas: <strong>10x15 cm</strong></li>
+                <li>• Lado mayor máximo: <strong>170 cm</strong></li>
+                <li>• Suma total: <strong>210 cm máximo</strong></li>
+                <li>• Peso máximo: <strong>30 kg</strong></li>
+              </ul>
+            </div>
+
+            <div class="mt-3 p-3 bg-orange-50 rounded-lg border-l-4 border-orange-500">
+              <div class="flex gap-2">
+                <span class="material-symbols-outlined text-orange-600 text-xl shrink-0">warning</span>
+                <div>
+                  <p class="text-xs font-bold text-orange-800 mb-1">⚠️ IMPORTANTE: Embalaje Correcto</p>
+                  <ul class="text-xs text-gray-700 space-y-1">
+                    <li>• El cliente es <strong>responsable del embalaje</strong> adecuado.</li>
+                    <li>• NexoPostal <strong>no se responsabiliza</strong> por daños de embalaje inadecuado.</li>
+                    <li>• Los paquetes mal embalados <strong>pueden ser rechazados</strong>.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-5 flex justify-center">
+              <button (click)="calculateRates()" [disabled]="isCalculating()"
+                class="px-8 py-3 bg-[#1A237E] text-white rounded-lg font-semibold hover:bg-[#283593] transition-all hover:-translate-y-0.5 transform flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none">
+                @if (isCalculating()) {
+                  <div class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                  Calculando...
+                } @else {
+                  <span class="material-symbols-outlined">calculate</span>
+                  Calcular precio
+                }
+              </button>
+            </div>
+          </div>
+
+          @if (!isCalculating() && ratesOptions().length > 0) {
+            <div class="mb-5 animate-fadeIn">
+              <h3 class="text-lg font-bold text-[#1A237E] mb-4">Elige tu tarifa</h3>
+              <div class="space-y-4">
+                @for (rate of ratesOptions(); track rate.name) {
+                  <div (click)="selectRate(rate)"
+                    class="border-2 rounded-lg p-5 cursor-pointer transition-all flex justify-between items-start"
+                    [class.border-gray-300]="selectedRate()?.name !== rate.name"
+                    [class.bg-white]="selectedRate()?.name !== rate.name"
+                    [class.border-[#FFC107]]="selectedRate()?.name === rate.name"
+                    [class.bg-yellow-50]="selectedRate()?.name === rate.name">
+                    <div class="flex-1">
+                      <h4 class="text-lg font-bold text-[#1A237E] mb-1">{{ rate.name }} ({{ rate.deliveryTime }})</h4>
+                      <p class="text-gray-600 text-sm mb-2">{{ rate.description }}</p>
+                      <div class="text-xs text-gray-500 space-y-0.5">
+                        <p>Precio base: <span class="font-medium">{{ rate.precioBase | number:'1.2-2' }} €</span></p>
+                        @if (rate.recargo > 0) {
+                          <p class="text-orange-600">Recargo dimensiones: <span class="font-medium">+{{ rate.recargo | number:'1.2-2' }} €</span></p>
+                        }
+                        <p>IVA (21%): <span class="font-medium">{{ rate.iva | number:'1.2-2' }} €</span></p>
+                      </div>
+                    </div>
+                    <div class="text-2xl font-bold text-gray-900 ml-4 shrink-0">{{ rate.price | number:'1.2-2' }} €</div>
+                  </div>
+                }
               </div>
             </div>
           }
 
-          <!-- Confirmación de embalaje -->
-          <div class="mt-5 md:mt-6 p-4 md:p-5 bg-red-50 rounded-lg border-2 border-red-300">
-            <div class="flex gap-2 md:gap-3 items-start">
-              <span class="material-symbols-outlined text-red-600 text-2xl md:text-3xl flex-shrink-0">gpp_maybe</span>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs md:text-sm font-bold text-red-800 mb-1.5 md:mb-2">⚠️ DECLARACIÓN DE EMBALAJE</p>
-                <p class="text-[10px] md:text-xs text-gray-800 mb-2 md:mb-3">
-                  Al continuar, confirmo que:
-                </p>
-                <ul class="text-[10px] md:text-xs text-gray-700 space-y-1 md:space-y-1.5 ml-4">
-                  <li>✓ El paquete está <strong>correctamente embalado</strong> y protegido.</li>
-                  <li>✓ Soy <strong>responsable del embalaje</strong> y su adecuación al contenido.</li>
-                  <li>✓ Entiendo que NexoPostal <strong>puede rechazar paquetes mal embalados</strong>.</li>
-                  <li>✓ Acepto que NexoPostal <strong>no se responsabiliza de daños</strong> por embalaje inadecuado.</li>
-                </ul>
+          @if (selectedRate()) {
+            <div class="animate-fadeIn">
+              <div class="bg-[#1A237E] text-white p-6 rounded-lg mb-5">
+                <h3 class="text-xl font-bold mb-4">Resumen del pedido</h3>
+                <div class="grid grid-cols-2 gap-3 text-sm mb-4">
+                  <div>
+                    <p class="text-blue-200 text-xs uppercase mb-1">Remitente</p>
+                    <p class="font-semibold">{{ remitente().nombre }} {{ remitente().apellidos }}</p>
+                    @if (remitente().tipoEntrega === 'oficina' && remitente().oficina) {
+                      <p class="text-blue-200 text-xs">{{ remitente().oficina!.nombre }}</p>
+                    } @else {
+                      <p class="text-blue-200 text-xs">{{ remitente().codigoPostal }} {{ remitente().ciudad }}</p>
+                    }
+                  </div>
+                  <div>
+                    <p class="text-blue-200 text-xs uppercase mb-1">Destinatario</p>
+                    <p class="font-semibold">{{ destinatario().nombre }} {{ destinatario().apellidos }}</p>
+                    @if (destinatario().tipoEntrega === 'oficina' && destinatario().oficina) {
+                      <p class="text-blue-200 text-xs">{{ destinatario().oficina!.nombre }}</p>
+                    } @else {
+                      <p class="text-blue-200 text-xs">{{ destinatario().codigoPostal }} {{ destinatario().ciudad }}</p>
+                    }
+                  </div>
+                </div>
+                <div class="border-t border-blue-400 pt-4">
+                  <div class="flex justify-between text-sm mb-1">
+                    <span>{{ selectedRate()!.name }} ({{ selectedRate()!.deliveryTime }})</span>
+                    <span>{{ selectedRate()!.precioBase | number:'1.2-2' }} €</span>
+                  </div>
+                  @if (selectedRate()!.recargo > 0) {
+                    <div class="flex justify-between text-sm text-orange-300 mb-1">
+                      <span>Recargo por dimensiones</span>
+                      <span>+{{ selectedRate()!.recargo | number:'1.2-2' }} €</span>
+                    </div>
+                  }
+                  <div class="flex justify-between text-sm text-blue-200 mb-2">
+                    <span>IVA (21%)</span>
+                    <span>{{ selectedRate()!.iva | number:'1.2-2' }} €</span>
+                  </div>
+                  <div class="flex justify-between items-center font-bold text-lg border-t border-blue-400 pt-2">
+                    <span>Total</span>
+                    <span class="text-[#FFC107] text-2xl">{{ selectedRate()!.price | number:'1.2-2' }} €</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-4 bg-red-50 rounded-lg border-2 border-red-300 mb-6">
+                <div class="flex gap-3 items-start">
+                  <span class="material-symbols-outlined text-red-600 text-2xl shrink-0">gpp_maybe</span>
+                  <div>
+                    <p class="text-sm font-bold text-red-800 mb-2">⚠️ DECLARACIÓN DE EMBALAJE</p>
+                    <p class="text-xs text-gray-800 mb-2">Al continuar, confirmo que:</p>
+                    <ul class="text-xs text-gray-700 space-y-1 ml-4">
+                      <li>✓ El paquete está <strong>correctamente embalado</strong> y protegido.</li>
+                      <li>✓ Soy <strong>responsable del embalaje</strong> y su adecuación al contenido.</li>
+                      <li>✓ Entiendo que NexoPostal <strong>puede rechazar paquetes mal embalados</strong>.</li>
+                      <li>✓ Acepto que NexoPostal <strong>no se responsabiliza de daños</strong> por embalaje inadecuado.</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          }
 
-          <div class="flex justify-between mt-10 pt-5 border-t border-gray-200">
-            <button 
-              (click)="goToStep(2)"
-              class="px-6 py-3 border border-gray-300 bg-transparent text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
-            >
+          <div class="flex justify-between mt-6 pt-5 border-t border-gray-200">
+            <button (click)="goToStep(2)"
+              class="px-6 py-3 border border-gray-300 bg-transparent text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all">
               Atrás
             </button>
-            <button 
-              (click)="onSubmit()"
-              [disabled]="procesandoPago()"
-              class="px-8 py-3 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button (click)="onSubmit()" [disabled]="procesandoPago() || !selectedRate()"
+              class="px-8 py-3 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
               @if (procesandoPago()) {
                 <div class="animate-spin rounded-full h-5 w-5 border-2 border-black border-t-transparent"></div>
                 Redirigiendo a pasarela de pago...

@@ -35,4 +35,10 @@ public interface IUserRepository
 
     /// <summary>Elimina un token asociado al usuario</summary>
     Task RemoveUserTokenAsync(ApplicationUser user, string loginProvider, string tokenName);
+
+    /// <summary>Genera un token de restablecimiento de contraseña firmado por Identity</summary>
+    Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user);
+
+    /// <summary>Restablece la contraseña usando el token generado por Identity</summary>
+    Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword);
 }

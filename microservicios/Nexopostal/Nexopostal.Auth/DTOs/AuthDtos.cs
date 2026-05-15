@@ -85,3 +85,30 @@ public class CambiarPasswordDto
     public string NuevaPassword { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// Solicita el envío del email de recuperación de contraseña.
+/// </summary>
+public class SolicitarResetPasswordDto
+{
+    [Required(ErrorMessage = "El email es obligatorio")]
+    [EmailAddress(ErrorMessage = "El formato del email no es válido")]
+    public string Email { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Restablece la contraseña con el token recibido por email.
+/// </summary>
+public class ResetPasswordDto
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "El token de recuperación es obligatorio")]
+    public string Token { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "La nueva contraseña es obligatoria")]
+    [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+    public string NuevaPassword { get; set; } = string.Empty;
+}
+

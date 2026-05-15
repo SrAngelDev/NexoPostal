@@ -12,6 +12,7 @@ import { AyudaComponent } from './pages/ayuda/ayuda.component';
 import { PoliticaPrivacidadComponent } from './pages/politica-privacidad/politica-privacidad.component';
 import { TerminosUsoComponent } from './pages/terminos-uso/terminos-uso.component';
 import { TrackingComponent } from './pages/tracking/tracking.component';
+import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -28,5 +29,6 @@ export const routes: Routes = [
   { path: 'ayuda', component: AyudaComponent },
   { path: 'politica-privacidad', component: PoliticaPrivacidadComponent },
   { path: 'terminos-uso', component: TerminosUsoComponent },
+  { path: 'reset-password', component: ResetPasswordComponent },
   { path: '**', redirectTo: '' }
 ];

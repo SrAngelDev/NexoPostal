@@ -15,10 +15,12 @@ namespace NexoPostal.Auth.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IConfiguration _config;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IConfiguration config)
     {
         _authService = authService;
+        _config = config;
     }
 
     [HttpPost("login")]
@@ -106,6 +108,38 @@ public class AuthController : ControllerBase
             return Unauthorized(new { error = "Refresh token inválido o expirado" });
 
         return Ok(refreshed);
+    }
+
+    /// <summary>
+    /// Envía un email con enlace de recuperación de contraseña.
+    /// Siempre responde 200 OK para no revelar si el email está registrado.
+    /// </summary>
+    [HttpPost("solicitar-reset")]
+    public async Task<IActionResult> SolicitarReset([FromBody] SolicitarResetPasswordDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var frontendUrl = _config["AppSettings:FrontendUrl"] ?? "http://localhost:4200";
+        await _authService.SolicitarResetPasswordAsync(dto.Email, frontendUrl);
+
+        return Ok(new { mensaje = "Si el email está registrado, recibirás un enlace de recuperación en breve." });
+    }
+
+    /// <summary>
+    /// Restablece la contraseña usando el token del email de recuperación.
+    /// </summary>
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var (success, error) = await _authService.ResetPasswordAsync(dto);
+        if (!success)
+            return BadRequest(new { error });
+
+        return Ok(new { mensaje = "Contraseña restablecida correctamente. Ya puedes iniciar sesión." });
     }
 }
 

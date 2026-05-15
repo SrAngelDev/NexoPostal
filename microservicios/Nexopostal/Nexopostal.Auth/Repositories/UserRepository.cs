@@ -69,4 +69,16 @@ public class UserRepository : IUserRepository
     {
         await _userManager.RemoveAuthenticationTokenAsync(user, loginProvider, tokenName);
     }
+
+    /// <inheritdoc />
+    public async Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user)
+    {
+        return await _userManager.GeneratePasswordResetTokenAsync(user);
+    }
+
+    /// <inheritdoc />
+    public async Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword)
+    {
+        return await _userManager.ResetPasswordAsync(user, token, newPassword);
+    }
 }
