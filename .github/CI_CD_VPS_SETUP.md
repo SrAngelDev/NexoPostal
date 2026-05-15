@@ -47,7 +47,7 @@ cat ~/.ssh/github_actions
 | Secret Name | Value |
 |-------------|-------|
 | `VPS_HOST` | Tu IP de DigitalOcean (ej: 164.90.123.45) |
-| `VPS_USER` | `deploy` |
+| `VPS_USER` | `deploy` (o `root` si prefieres) |
 | `VPS_SSH_PRIVATE_KEY` | Contenido del archivo `~/.ssh/github_actions` |
 
 ## Paso 5: Verificar Funcionamiento
@@ -55,7 +55,7 @@ cat ~/.ssh/github_actions
 ```bash
 # Test de conexión SSH desde GitHub Actions
 # Hará un echo "OK" si la conexión funciona
-ssh root@TU_IP "echo OK"
+ssh <VPS_USER>@TU_IP "echo OK"
 ```
 
 ## Solución de Problemas
