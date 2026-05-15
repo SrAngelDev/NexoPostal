@@ -1,5 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, OnDestroy, OnInit, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  signal
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -13,6 +22,16 @@ import {
   RutaRepartoDetalle
 } from '../../services/reparto.service';
 import { RepartoOfflineQueueService } from '../../services/reparto-offline-queue.service';
+import type { CircleMarker, LatLngExpression, Map, Polyline } from 'leaflet';
+
+type PosicionGps = {
+  latitud: number;
+  longitud: number;
+  fecha: string;
+};
+
+type FuenteGps = 'watch' | 'heartbeat' | 'manual' | 'retry' | 'inicio' | 'foreground';
+type NavegadorExterno = 'google' | 'waze';
 
 @Component({
   selector: 'app-ruta',
@@ -21,7 +40,9 @@ import { RepartoOfflineQueueService } from '../../services/reparto-offline-queue
   templateUrl: './ruta.component.html',
   styleUrl: './ruta.component.css'
 })
-export class RutaComponent implements OnInit, OnDestroy {
+export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('mapCanvas') mapCanvas?: ElementRef<HTMLDivElement>;
+
   userName = '';
   userRole = '';
 
@@ -36,11 +57,15 @@ export class RutaComponent implements OnInit, OnDestroy {
 
   online = signal(navigator.onLine);
   gpsActivo = signal(false);
+  seguimientoSegundoPlano = signal(false);
+  mapaDisponible = signal(false);
 
   ruta = signal<RutaRepartoDetalle | null>(null);
   entregas = signal<EntregaPaquete[]>([]);
   entregaSeleccionadaId = signal<number | null>(null);
-  ultimaUbicacion = signal<{ latitud: number; longitud: number; fecha: string } | null>(null);
+  ultimaUbicacion = signal<PosicionGps | null>(null);
+  historialUbicaciones = signal<PosicionGps[]>([]);
+  ultimaSincronizacionGps = signal<string | null>(null);
   fotoPreview = signal<string | null>(null);
 
   estadoSeleccionado: EstadoEntregaConfirmacion = 'Entregado';
@@ -53,10 +78,30 @@ export class RutaComponent implements OnInit, OnDestroy {
 
   readonly estadosConfirmacion = ESTADOS_CONFIRMACION;
 
+  readonly siguienteParada = computed(() => {
+    return this.entregas().find(e => e.estado === 'Pendiente' || e.estado === 'EnCamino') ?? null;
+  });
+
   readonly entregaSeleccionada = computed(() => {
     const id = this.entregaSeleccionadaId();
     if (id == null) return null;
     return this.entregas().find(e => e.id === id) ?? null;
+  });
+
+  readonly distanciaSiguienteParadaKm = computed(() => {
+    const siguiente = this.siguienteParada();
+    const gps = this.ultimaUbicacion();
+
+    if (!siguiente || !gps || siguiente.latitudEntrega == null || siguiente.longitudEntrega == null) {
+      return null;
+    }
+
+    return this.calcularDistanciaKm(
+      gps.latitud,
+      gps.longitud,
+      siguiente.latitudEntrega,
+      siguiente.longitudEntrega
+    );
   });
 
   readonly resumen = computed(() => {
@@ -75,7 +120,23 @@ export class RutaComponent implements OnInit, OnDestroy {
     };
   });
 
-  private gpsTimer: ReturnType<typeof setInterval> | null = null;
+  private leafletModule: typeof import('leaflet') | null = null;
+  private mapa: Map | null = null;
+  private marcadorRepartidor: CircleMarker | null = null;
+  private marcadorDestinoSeleccionado: CircleMarker | null = null;
+  private capaHistorial: Polyline | null = null;
+  private marcadoresEntrega: CircleMarker[] = [];
+
+  private gpsHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private gpsRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  private watchId: number | null = null;
+  private ultimoEnvioGpsMs = 0;
+  private erroresGpsConsecutivos = 0;
+
+  private readonly centroMapaDefecto: LatLngExpression = [40.4168, -3.7038];
+  private readonly intervaloGpsActivoMs = 20000;
+  private readonly intervaloGpsSegundoPlanoMs = 60000;
+  private readonly maxHistorialUbicaciones = 80;
 
   constructor(
     private authService: AuthService,
@@ -88,9 +149,16 @@ export class RutaComponent implements OnInit, OnDestroy {
     this.userRole = user?.rol ?? '';
   }
 
+  ngAfterViewInit(): void {
+    this.solicitarInicializacionMapa();
+  }
+
   ngOnInit(): void {
+    this.seguimientoSegundoPlano.set(document.visibilityState === 'hidden');
+
     window.addEventListener('online', this.onOnline);
     window.addEventListener('offline', this.onOffline);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
 
     this.cargarRutaActiva();
     this.sincronizarPendientes();
@@ -98,8 +166,11 @@ export class RutaComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.detenerGps();
+    this.destruirMapa();
+
     window.removeEventListener('online', this.onOnline);
     window.removeEventListener('offline', this.onOffline);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   logout(): void {
@@ -130,6 +201,7 @@ export class RutaComponent implements OnInit, OnDestroy {
       next: (actualizada) => {
         this.ruta.set(actualizada);
         this.mensaje.set(`Ruta ${actualizada.codigo} iniciada.`);
+
         this.iniciarGps(actualizada.id);
         this.cargarEntregas(actualizada.id);
         this.procesandoRutaAccion.set(false);
@@ -157,6 +229,7 @@ export class RutaComponent implements OnInit, OnDestroy {
         this.ruta.set(actualizada);
         this.mensaje.set(`Ruta ${actualizada.codigo} finalizada con estado ${actualizada.estado}.`);
         this.observacionesFinRuta = '';
+
         this.detenerGps();
         this.cargarEntregas(actualizada.id);
         this.procesandoRutaAccion.set(false);
@@ -176,7 +249,9 @@ export class RutaComponent implements OnInit, OnDestroy {
     this.firmaDigital = entrega.firmaDigital ?? '';
     this.fotoEntrega = entrega.fotoEntrega ?? '';
     this.fotoPreview.set(null);
+
     this.sugerirEstadoInicial(entrega.estado);
+    this.actualizarMapa();
   }
 
   confirmarEntrega(): void {
@@ -224,6 +299,37 @@ export class RutaComponent implements OnInit, OnDestroy {
       });
   }
 
+  abrirNavegacionSiguiente(navegador: NavegadorExterno = 'google'): void {
+    const entrega = this.siguienteParada();
+    if (!entrega) return;
+
+    this.abrirNavegacion(entrega, navegador);
+  }
+
+  abrirNavegacionSeleccionada(navegador: NavegadorExterno = 'google'): void {
+    const entrega = this.entregaSeleccionada();
+    if (!entrega) return;
+
+    this.abrirNavegacion(entrega, navegador);
+  }
+
+  centrarEnMiPosicion(): void {
+    const gps = this.ultimaUbicacion();
+    if (gps && this.mapa) {
+      this.mapa.setView([gps.latitud, gps.longitud], 16);
+      return;
+    }
+
+    const ruta = this.ruta();
+    if (ruta) {
+      this.enviarUbicacion(ruta.id, 'manual', true);
+    }
+  }
+
+  centrarMapaEnRuta(): void {
+    this.actualizarMapa();
+  }
+
   onFotoSeleccionada(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -253,6 +359,8 @@ export class RutaComponent implements OnInit, OnDestroy {
       this.mensaje.set(`Sincronización completada. Enviados ${result.procesados} eventos pendientes.`);
       const ruta = this.ruta();
       if (ruta) this.cargarEntregas(ruta.id);
+
+      this.ultimaSincronizacionGps.set(new Date().toISOString());
     }
 
     this.sincronizando.set(false);
@@ -285,12 +393,17 @@ export class RutaComponent implements OnInit, OnDestroy {
 
         if (!rutaActiva) {
           this.entregas.set([]);
+          this.historialUbicaciones.set([]);
+
           this.detenerGps();
+          this.destruirMapa();
           this.cargandoRuta.set(false);
           return;
         }
 
+        this.solicitarInicializacionMapa();
         this.cargarEntregas(rutaActiva.id);
+
         if (rutaActiva.estado === 'EnCurso') {
           this.iniciarGps(rutaActiva.id);
         } else {
@@ -316,6 +429,9 @@ export class RutaComponent implements OnInit, OnDestroy {
           this.entregaSeleccionadaId.set(null);
         }
 
+        this.solicitarInicializacionMapa();
+        this.actualizarMapa();
+
         this.cargandoEntregas.set(false);
         this.cargandoRuta.set(false);
       },
@@ -330,50 +446,201 @@ export class RutaComponent implements OnInit, OnDestroy {
   private iniciarGps(rutaId: number): void {
     if (!('geolocation' in navigator)) {
       this.gpsActivo.set(false);
+      this.error.set('El dispositivo no soporta geolocalización.');
       return;
     }
 
     this.detenerGps();
+
     this.gpsActivo.set(true);
+    this.erroresGpsConsecutivos = 0;
+    this.ultimoEnvioGpsMs = 0;
 
-    this.enviarUbicacion(rutaId);
-    this.gpsTimer = setInterval(() => this.enviarUbicacion(rutaId), 30000);
+    this.activarWatchGps(rutaId);
+    this.programarHeartbeatGps(rutaId);
+    this.enviarUbicacion(rutaId, 'inicio', true);
   }
 
-  private detenerGps(): void {
-    if (this.gpsTimer) {
-      clearInterval(this.gpsTimer);
-      this.gpsTimer = null;
+  private activarWatchGps(rutaId: number): void {
+    if (this.watchId != null) {
+      navigator.geolocation.clearWatch(this.watchId);
+      this.watchId = null;
     }
-    this.gpsActivo.set(false);
+
+    this.watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        this.procesarPosicionGps(rutaId, pos.coords.latitude, pos.coords.longitude, 'watch');
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          this.error.set('Permiso de ubicación denegado. Actívalo para mantener el tracking.');
+          this.detenerGps();
+          return;
+        }
+
+        this.programarReintentoGps(rutaId);
+      },
+      {
+        enableHighAccuracy: !this.seguimientoSegundoPlano(),
+        timeout: 12000,
+        maximumAge: this.seguimientoSegundoPlano() ? 45000 : 15000
+      }
+    );
   }
 
-  private enviarUbicacion(rutaId: number): void {
+  private programarHeartbeatGps(rutaId: number): void {
+    if (this.gpsHeartbeatTimer) {
+      clearInterval(this.gpsHeartbeatTimer);
+      this.gpsHeartbeatTimer = null;
+    }
+
+    const intervalo = this.seguimientoSegundoPlano()
+      ? this.intervaloGpsSegundoPlanoMs
+      : this.intervaloGpsActivoMs * 2;
+
+    this.gpsHeartbeatTimer = setInterval(() => {
+      this.enviarUbicacion(rutaId, 'heartbeat');
+    }, intervalo);
+  }
+
+  private enviarUbicacion(rutaId: number, fuente: FuenteGps = 'manual', forzar = false): void {
     this.obtenerPosicionActual().then((coords) => {
       if (!coords) return;
 
-      this.ultimaUbicacion.set({
-        ...coords,
-        fecha: new Date().toISOString()
-      });
+      this.procesarPosicionGps(rutaId, coords.latitud, coords.longitud, fuente, forzar);
+    });
+  }
 
-      const request = {
-        latitud: coords.latitud,
-        longitud: coords.longitud,
-        rutaId
-      };
+  private procesarPosicionGps(
+    rutaId: number,
+    latitud: number,
+    longitud: number,
+    fuente: FuenteGps,
+    forzar = false
+  ): void {
+    this.actualizarPosicionLocal(latitud, longitud);
 
-      if (!this.online()) {
+    const now = Date.now();
+    const intervaloMinimo = this.seguimientoSegundoPlano()
+      ? this.intervaloGpsSegundoPlanoMs
+      : this.intervaloGpsActivoMs;
+
+    const haPasadoIntervalo = now - this.ultimoEnvioGpsMs >= intervaloMinimo;
+    if (!forzar && !haPasadoIntervalo) {
+      return;
+    }
+
+    this.ultimoEnvioGpsMs = now;
+    this.enviarPosicionServidor(rutaId, latitud, longitud, fuente);
+  }
+
+  private actualizarPosicionLocal(latitud: number, longitud: number): void {
+    const fecha = new Date().toISOString();
+    const posicion: PosicionGps = { latitud, longitud, fecha };
+
+    this.ultimaUbicacion.set(posicion);
+    this.historialUbicaciones.update((actual) => {
+      const ultima = actual[actual.length - 1];
+      if (ultima) {
+        const distanciaMetros = this.calcularDistanciaKm(
+          ultima.latitud,
+          ultima.longitud,
+          latitud,
+          longitud
+        ) * 1000;
+
+        if (distanciaMetros < 15) {
+          return actual;
+        }
+      }
+
+      const next = [...actual, posicion];
+      if (next.length <= this.maxHistorialUbicaciones) {
+        return next;
+      }
+
+      return next.slice(next.length - this.maxHistorialUbicaciones);
+    });
+
+    this.actualizarMapa();
+  }
+
+  private enviarPosicionServidor(
+    rutaId: number,
+    latitud: number,
+    longitud: number,
+    fuente: FuenteGps
+  ): void {
+    const request = {
+      latitud,
+      longitud,
+      rutaId,
+      tipoUbicacion: this.seguimientoSegundoPlano() ? 'SegundoPlano' : 'GPSActivo',
+      descripcion: this.descripcionTracking(fuente)
+    };
+
+    if (!this.online()) {
+      this.offlineQueue.encolarUbicacion({ request });
+      return;
+    }
+
+    this.repartoService.registrarUbicacion(request).subscribe({
+      next: () => {
+        this.erroresGpsConsecutivos = 0;
+        this.ultimaSincronizacionGps.set(new Date().toISOString());
+      },
+      error: () => {
+        this.erroresGpsConsecutivos++;
         this.offlineQueue.encolarUbicacion({ request });
+        this.programarReintentoGps(rutaId);
+      }
+    });
+  }
+
+  private descripcionTracking(fuente: FuenteGps): string {
+    if (fuente === 'retry') return 'Reintento automático de ubicación';
+    if (fuente === 'heartbeat') return 'Heartbeat de seguimiento de ruta';
+    if (this.seguimientoSegundoPlano()) return 'Seguimiento de ruta en segundo plano';
+    return 'Seguimiento de ruta en curso';
+  }
+
+  private programarReintentoGps(rutaId: number): void {
+    if (this.gpsRetryTimer) {
+      return;
+    }
+
+    const nivel = Math.min(this.erroresGpsConsecutivos, 5);
+    const delayMs = Math.min(120000, 4000 * 2 ** nivel);
+
+    this.gpsRetryTimer = setTimeout(() => {
+      this.gpsRetryTimer = null;
+
+      if (!this.gpsActivo()) {
         return;
       }
 
-      this.repartoService.registrarUbicacion(request).subscribe({
-        error: () => {
-          this.offlineQueue.encolarUbicacion({ request });
-        }
-      });
-    });
+      this.enviarUbicacion(rutaId, 'retry', true);
+    }, delayMs);
+  }
+
+  private detenerGps(): void {
+    if (this.gpsHeartbeatTimer) {
+      clearInterval(this.gpsHeartbeatTimer);
+      this.gpsHeartbeatTimer = null;
+    }
+
+    if (this.gpsRetryTimer) {
+      clearTimeout(this.gpsRetryTimer);
+      this.gpsRetryTimer = null;
+    }
+
+    if (this.watchId != null) {
+      navigator.geolocation.clearWatch(this.watchId);
+      this.watchId = null;
+    }
+
+    this.gpsActivo.set(false);
+    this.seguimientoSegundoPlano.set(false);
   }
 
   private obtenerPosicionActual(): Promise<{ latitud: number; longitud: number } | null> {
@@ -386,13 +653,225 @@ export class RutaComponent implements OnInit, OnDestroy {
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ latitud: pos.coords.latitude, longitud: pos.coords.longitude }),
         () => resolve(null),
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 }
+        {
+          enableHighAccuracy: !this.seguimientoSegundoPlano(),
+          timeout: this.seguimientoSegundoPlano() ? 12000 : 8000,
+          maximumAge: this.seguimientoSegundoPlano() ? 45000 : 15000
+        }
       );
     });
   }
 
+  private async inicializarMapa(): Promise<void> {
+    if (this.mapa || !this.mapCanvas?.nativeElement) {
+      return;
+    }
+
+    try {
+      this.leafletModule ??= await import('leaflet');
+      const L = this.leafletModule;
+
+      this.mapa = L.map(this.mapCanvas.nativeElement, {
+        zoomControl: false,
+        attributionControl: true
+      }).setView(this.centroMapaDefecto, 6);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(this.mapa);
+
+      L.control.zoom({ position: 'bottomright' }).addTo(this.mapa);
+
+      this.mapaDisponible.set(true);
+      this.actualizarMapa();
+
+      setTimeout(() => this.mapa?.invalidateSize(), 0);
+    } catch {
+      this.mapaDisponible.set(false);
+    }
+  }
+
+  private solicitarInicializacionMapa(): void {
+    setTimeout(() => {
+      void this.inicializarMapa();
+    }, 0);
+  }
+
+  private destruirMapa(): void {
+    this.marcadoresEntrega.forEach((m) => m.remove());
+    this.marcadoresEntrega = [];
+
+    this.marcadorDestinoSeleccionado?.remove();
+    this.marcadorDestinoSeleccionado = null;
+
+    this.marcadorRepartidor?.remove();
+    this.marcadorRepartidor = null;
+
+    this.capaHistorial?.remove();
+    this.capaHistorial = null;
+
+    if (this.mapa) {
+      this.mapa.remove();
+      this.mapa = null;
+    }
+
+    this.mapaDisponible.set(false);
+  }
+
+  private actualizarMapa(): void {
+    if (!this.mapa || !this.leafletModule) {
+      return;
+    }
+
+    const L = this.leafletModule;
+    const puntos: [number, number][] = [];
+
+    this.marcadoresEntrega.forEach((m) => m.remove());
+    this.marcadoresEntrega = [];
+
+    this.marcadorDestinoSeleccionado?.remove();
+    this.marcadorDestinoSeleccionado = null;
+
+    this.capaHistorial?.remove();
+    this.capaHistorial = null;
+
+    const gps = this.ultimaUbicacion();
+    if (gps) {
+      const currentPoint: [number, number] = [gps.latitud, gps.longitud];
+      puntos.push(currentPoint);
+
+      if (!this.marcadorRepartidor) {
+        this.marcadorRepartidor = L.circleMarker(currentPoint, {
+          radius: 8,
+          color: '#1d4ed8',
+          fillColor: '#3b82f6',
+          fillOpacity: 0.9,
+          weight: 2
+        }).addTo(this.mapa);
+        this.marcadorRepartidor.bindTooltip('Tu ubicación actual');
+      } else {
+        this.marcadorRepartidor.setLatLng(currentPoint);
+      }
+    } else {
+      this.marcadorRepartidor?.remove();
+      this.marcadorRepartidor = null;
+    }
+
+    const entregasConCoords = this.entregas().filter(
+      (e) => e.latitudEntrega != null && e.longitudEntrega != null
+    );
+
+    for (const entrega of entregasConCoords) {
+      const point: [number, number] = [entrega.latitudEntrega!, entrega.longitudEntrega!];
+      puntos.push(point);
+
+      const marker = L.circleMarker(point, {
+        radius: 6,
+        color: '#0f172a',
+        fillColor: this.colorEstadoMapa(entrega.estado),
+        fillOpacity: 0.85,
+        weight: 1.5
+      }).addTo(this.mapa);
+
+      marker.bindTooltip(`#${entrega.ordenEnRuta} · ${entrega.nombreDestinatario} (${entrega.estado})`);
+      this.marcadoresEntrega.push(marker);
+    }
+
+    const seleccionada = this.entregaSeleccionada();
+    if (seleccionada?.latitudEntrega != null && seleccionada.longitudEntrega != null) {
+      const selectedPoint: [number, number] = [
+        seleccionada.latitudEntrega,
+        seleccionada.longitudEntrega
+      ];
+      puntos.push(selectedPoint);
+
+      this.marcadorDestinoSeleccionado = L.circleMarker(selectedPoint, {
+        radius: 10,
+        color: '#7c2d12',
+        fillColor: '#fb923c',
+        fillOpacity: 0.8,
+        weight: 2
+      }).addTo(this.mapa);
+
+      this.marcadorDestinoSeleccionado.bindTooltip('Parada seleccionada');
+    }
+
+    const historial = this.historialUbicaciones().map((p) => [p.latitud, p.longitud] as [number, number]);
+    if (historial.length > 1) {
+      this.capaHistorial = L.polyline(historial, {
+        color: '#0284c7',
+        weight: 3,
+        opacity: 0.75,
+        dashArray: '6 8'
+      }).addTo(this.mapa);
+
+      puntos.push(...historial);
+    }
+
+    if (puntos.length === 0) {
+      this.mapa.setView(this.centroMapaDefecto, 6);
+      return;
+    }
+
+    if (puntos.length === 1) {
+      this.mapa.setView(puntos[0], 15);
+      return;
+    }
+
+    this.mapa.fitBounds(L.latLngBounds(puntos), {
+      padding: [24, 24],
+      maxZoom: 16
+    });
+  }
+
+  private colorEstadoMapa(estado: string): string {
+    if (estado === 'Entregado' || estado === 'EntregadoPuntoAlternativo') return '#16a34a';
+    if (estado === 'Ausente' || estado === 'DireccionIncorrecta' || estado === 'Rechazado') return '#dc2626';
+    if (estado === 'EnCamino') return '#2563eb';
+    return '#64748b';
+  }
+
+  private abrirNavegacion(entrega: EntregaPaquete, navegador: NavegadorExterno): void {
+    const direccion = `${entrega.direccionEntrega}, ${entrega.codigoPostal} ${entrega.ciudad}`.trim();
+    const encoded = encodeURIComponent(direccion);
+
+    let url = '';
+    if (navegador === 'waze') {
+      if (entrega.latitudEntrega != null && entrega.longitudEntrega != null) {
+        url = `https://waze.com/ul?ll=${entrega.latitudEntrega},${entrega.longitudEntrega}&navigate=yes`;
+      } else {
+        url = `https://waze.com/ul?q=${encoded}&navigate=yes`;
+      }
+    } else {
+      if (entrega.latitudEntrega != null && entrega.longitudEntrega != null) {
+        url = `https://www.google.com/maps/dir/?api=1&destination=${entrega.latitudEntrega},${entrega.longitudEntrega}&travelmode=driving`;
+      } else {
+        url = `https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`;
+      }
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  private calcularDistanciaKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const toRad = (value: number) => (value * Math.PI) / 180;
+    const radioTierraKm = 6371;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return radioTierraKm * c;
+  }
+
   private reemplazarEntrega(actualizada: EntregaPaquete): void {
     this.entregas.update(list => list.map(e => (e.id === actualizada.id ? actualizada : e)));
+    this.actualizarMapa();
   }
 
   private encolarConfirmacionLocal(entregaId: number, request: RegistrarEntregaRequest): void {
@@ -465,10 +944,32 @@ export class RutaComponent implements OnInit, OnDestroy {
 
   private readonly onOnline = () => {
     this.online.set(true);
+
+    const ruta = this.ruta();
+    if (ruta?.estado === 'EnCurso' && this.gpsActivo()) {
+      this.enviarUbicacion(ruta.id, 'foreground', true);
+    }
+
     this.sincronizarPendientes();
   };
 
   private readonly onOffline = () => {
     this.online.set(false);
+  };
+
+  private readonly onVisibilityChange = () => {
+    const hidden = document.visibilityState === 'hidden';
+    this.seguimientoSegundoPlano.set(hidden);
+
+    const ruta = this.ruta();
+    if (ruta?.estado === 'EnCurso' && this.gpsActivo()) {
+      this.activarWatchGps(ruta.id);
+      this.programarHeartbeatGps(ruta.id);
+      this.enviarUbicacion(ruta.id, hidden ? 'manual' : 'foreground', true);
+    }
+
+    if (!hidden) {
+      this.sincronizarPendientes();
+    }
   };
 }

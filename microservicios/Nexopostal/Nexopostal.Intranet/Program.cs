@@ -110,6 +110,18 @@ builder.Services.AddSingleton<OficinasJsonService>();
 builder.Services.AddScoped<IOficinaPostalService, OficinaPostalService>();
 builder.Services.AddScoped<IScanProcessorService, ScanProcessorService>();
 
+var repartoBaseUrl = ResolveConfigValue(builder.Configuration["RepartoSettings:BaseUrl"]);
+if (string.IsNullOrWhiteSpace(repartoBaseUrl) || repartoBaseUrl.Contains("${"))
+{
+    repartoBaseUrl = "http://localhost:5300";
+}
+
+builder.Services.AddHttpClient<IRepartoOrquestacionService, RepartoOrquestacionService>(client =>
+{
+    client.BaseAddress = new Uri(repartoBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 // 4.1 Servicios de automatización
 builder.Services.AddScoped<IClasificacionAutomaticaService, ClasificacionAutomaticaService>();
 builder.Services.AddScoped<INotificacionAutomaticaService, NotificacionAutomaticaService>();

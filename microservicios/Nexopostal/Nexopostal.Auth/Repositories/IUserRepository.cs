@@ -26,4 +26,13 @@ public interface IUserRepository
 
     /// <summary>Cambia la contraseña de un usuario</summary>
     Task<IdentityResult> ChangePasswordAsync(ApplicationUser user, string currentPassword, string newPassword);
+
+    /// <summary>Guarda un token asociado al usuario (Identity token store)</summary>
+    Task SetUserTokenAsync(ApplicationUser user, string loginProvider, string tokenName, string tokenValue);
+
+    /// <summary>Obtiene un token asociado al usuario</summary>
+    Task<string?> GetUserTokenAsync(ApplicationUser user, string loginProvider, string tokenName);
+
+    /// <summary>Elimina un token asociado al usuario</summary>
+    Task RemoveUserTokenAsync(ApplicationUser user, string loginProvider, string tokenName);
 }

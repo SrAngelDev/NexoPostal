@@ -118,7 +118,15 @@ public class EntregaPaqueteRepository : IEntregaPaqueteRepository
 
     public async Task<List<EntregaPaquete>> GetBySeguimientoAsync(string numeroSeguimiento)
         => await _context.EntregasPaquetes
+            .Include(e => e.RutaReparto)
             .Where(e => e.NumeroSeguimiento == numeroSeguimiento)
+            .OrderByDescending(e => e.FechaCreacion)
+            .ToListAsync();
+
+    public async Task<List<EntregaPaquete>> GetByExpedicionAsync(string numeroExpedicion)
+        => await _context.EntregasPaquetes
+            .Include(e => e.RutaReparto)
+            .Where(e => e.NumeroExpedicion == numeroExpedicion)
             .OrderByDescending(e => e.FechaCreacion)
             .ToListAsync();
 

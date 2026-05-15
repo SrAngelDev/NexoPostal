@@ -5,6 +5,8 @@ using Nexopostal.Ciudadano.Models;
 using Nexopostal.Ciudadano.Repositories;
 using Nexopostal.Ciudadano.Services;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Nexopostal.Ciudadano.Controllers;
 
@@ -24,6 +26,7 @@ public class EnviosController : ControllerBase
     private readonly IEtiquetaPdfService _etiquetaPdfService;
     private readonly ITarifasService _tarifasService;
     private readonly ITrackingNotificacionService _trackingNotificacionService;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<EnviosController> _logger;
 
     public EnviosController(
@@ -33,6 +36,7 @@ public class EnviosController : ControllerBase
         IEtiquetaPdfService etiquetaPdfService,
         ITarifasService tarifasService,
         ITrackingNotificacionService trackingNotificacionService,
+        IConfiguration configuration,
         ILogger<EnviosController> logger)
     {
         _envioRepo = envioRepo;
@@ -41,6 +45,7 @@ public class EnviosController : ControllerBase
         _etiquetaPdfService = etiquetaPdfService;
         _tarifasService = tarifasService;
         _trackingNotificacionService = trackingNotificacionService;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -387,23 +392,16 @@ public class EnviosController : ControllerBase
         if (!Enum.TryParse<EstadoInterno>(dto.NuevoEstadoInterno, out var nuevoEstado))
             return BadRequest(new { mensaje = $"Estado interno no válido: {dto.NuevoEstadoInterno}" });
 
-        // Actualizar estado interno
-        envio.EstadoInternoActual = nuevoEstado;
+        var descripcion = string.IsNullOrWhiteSpace(dto.Observaciones)
+            ? ObtenerDescripcionEstadoInterno(nuevoEstado)
+            : dto.Observaciones;
 
-        // Sincronizar estado público automáticamente
-        envio.EstadoActual = DeducirEstadoPublico(nuevoEstado);
-
-        // Agregar observaciones si se proporcionaron
-        if (!string.IsNullOrEmpty(dto.Observaciones))
-        {
-            var timestamp = DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm");
-            var nota = $"[{timestamp}] {dto.Observaciones}";
-            envio.Observaciones = string.IsNullOrEmpty(envio.Observaciones)
-                ? nota
-                : $"{envio.Observaciones}\n{nota}";
-        }
-
-        await _envioRepo.UpdateAsync(envio);
+        await AplicarCambioEstadoInternoYNotificar(
+            envio,
+            nuevoEstado,
+            dto.Observaciones,
+            descripcion,
+            tipoUbicacion: "OperacionInterna");
 
         _logger.LogInformation(
             "Estado interno de {Expedicion} actualizado a {Estado} (público: {EstadoPublico})",
@@ -416,11 +414,15 @@ public class EnviosController : ControllerBase
     /// Endpoint interno para publicar ubicación de reparto en el tracking público (SignalR).
     /// Consumido por el microservicio de Reparto.
     /// </summary>
+    [AllowAnonymous]
     [HttpPost("interno/tracking/ubicacion")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> NotificarUbicacionReparto([FromBody] TrackingUbicacionRepartoDto dto)
     {
+        if (!IsInternalServiceAuthorized())
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensaje = "Service key inválida" });
+
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
@@ -453,7 +455,196 @@ public class EnviosController : ControllerBase
         return Accepted(new { mensaje = "Ubicación de tracking publicada" });
     }
 
+    /// <summary>
+    /// Endpoint interno para sincronizar eventos de entrega de Reparto.
+    /// Actualiza estado interno/público del envío y publica eventos realtime consistentes.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("interno/tracking/evento-entrega")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> NotificarEventoEntregaReparto([FromBody] TrackingEventoEntregaDto dto)
+    {
+        if (!IsInternalServiceAuthorized())
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensaje = "Service key inválida" });
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var envio = await _envioRepo.GetByTrackingAsync(dto.NumeroSeguimiento);
+        if (envio == null)
+            return NotFound(new { mensaje = "Envío no encontrado" });
+
+        if (!TryMapearEstadoInternoDesdeEntrega(dto, out var nuevoEstadoInterno))
+            return BadRequest(new { mensaje = $"Estado de entrega no soportado: {dto.EstadoEntrega}" });
+
+        var descripcion = ConstruirDescripcionEventoEntrega(dto, nuevoEstadoInterno);
+
+        await AplicarCambioEstadoInternoYNotificar(
+            envio,
+            nuevoEstadoInterno,
+            dto.Observaciones,
+            descripcion,
+            dto.Latitud,
+            dto.Longitud,
+            "EventoEntregaReparto");
+
+        _logger.LogInformation(
+            "Evento de reparto sincronizado para {Seguimiento}: {EstadoEntrega} -> {EstadoInterno} (público: {EstadoPublico})",
+            dto.NumeroSeguimiento,
+            dto.EstadoEntrega,
+            envio.EstadoInternoActual,
+            envio.EstadoActual);
+
+        return Accepted(new
+        {
+            mensaje = "Evento de reparto sincronizado",
+            estadoInterno = envio.EstadoInternoActual.ToString(),
+            estadoPublico = envio.EstadoActual.ToString()
+        });
+    }
+
     // ===== MÉTODOS AUXILIARES =====
+
+    private async Task AplicarCambioEstadoInternoYNotificar(
+        Envio envio,
+        EstadoInterno nuevoEstado,
+        string? observaciones,
+        string descripcionTracking,
+        double? latitud = null,
+        double? longitud = null,
+        string tipoUbicacion = "OperacionInterna")
+    {
+        envio.EstadoInternoActual = nuevoEstado;
+        envio.EstadoActual = DeducirEstadoPublico(nuevoEstado);
+
+        if (!string.IsNullOrWhiteSpace(observaciones))
+        {
+            envio.Observaciones = ConstruirObservaciones(envio.Observaciones, observaciones);
+        }
+
+        await _envioRepo.UpdateAsync(envio);
+
+        var ubicacion = latitud.HasValue && longitud.HasValue
+            ? $"Lat {latitud:F5}, Lng {longitud:F5}"
+            : null;
+
+        await _trackingNotificacionService.NotificarCambioEstado(
+            envio.NumeroSeguimiento,
+            envio.EstadoActual.ToString(),
+            envio.EstadoInternoActual.ToString(),
+            descripcionTracking,
+            ubicacion);
+
+        if (latitud.HasValue && longitud.HasValue)
+        {
+            await _trackingNotificacionService.NotificarCambioUbicacion(
+                envio.NumeroSeguimiento,
+                ubicacion ?? string.Empty,
+                tipoUbicacion,
+                descripcionTracking,
+                latitud,
+                longitud);
+        }
+
+        if (envio.EstadoActual == EstadoEnvio.Entregado)
+        {
+            await _trackingNotificacionService.NotificarEntregaCompletada(
+                envio.NumeroSeguimiento,
+                envio.EstadoInternoActual.ToString(),
+                descripcionTracking);
+        }
+        else if (envio.EstadoActual == EstadoEnvio.Incidencia || envio.EstadoActual == EstadoEnvio.Devuelto)
+        {
+            await _trackingNotificacionService.NotificarIncidencia(
+                envio.NumeroSeguimiento,
+                envio.EstadoInternoActual.ToString(),
+                descripcionTracking);
+        }
+    }
+
+    private bool IsInternalServiceAuthorized()
+    {
+        var expectedKey = _configuration["InterServiceSettings:ServiceKey"]
+            ?? "nexopostal-internal-service-key-2025";
+        var providedKey = Request.Headers["X-Service-Key"].FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(providedKey))
+            return false;
+
+        return SecureEquals(expectedKey, providedKey);
+    }
+
+    private static bool SecureEquals(string expected, string provided)
+    {
+        var expectedBytes = Encoding.UTF8.GetBytes(expected ?? string.Empty);
+        var providedBytes = Encoding.UTF8.GetBytes(provided ?? string.Empty);
+
+        if (expectedBytes.Length != providedBytes.Length)
+            return false;
+
+        return CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
+    }
+
+    private static bool TryMapearEstadoInternoDesdeEntrega(
+        TrackingEventoEntregaDto dto,
+        out EstadoInterno nuevoEstadoInterno)
+    {
+        var estadoEntrega = dto.EstadoEntrega?.Trim().ToUpperInvariant();
+
+        nuevoEstadoInterno = estadoEntrega switch
+        {
+            "ENTREGADO" => EstadoInterno.EntregadoEnDomicilio,
+            "ENTREGADOPUNTOALTERNATIVO" => EstadoInterno.EntregadoEnOficina,
+            "AUSENTE" => dto.NumeroIntento >= 2
+                ? EstadoInterno.SegundoIntentoFallido
+                : EstadoInterno.PrimerIntentoFallido,
+            "DIRECCIONINCORRECTA" => EstadoInterno.IncidenciaDireccionIncorrecta,
+            "RECHAZADO" => EstadoInterno.IncidenciaDestinatarioRechaza,
+            "DEVUELTOAOFICINA" => EstadoInterno.EnDevolucionAlRemitente,
+            "ENCAMINO" => EstadoInterno.EnReparto,
+            "PENDIENTE" => EstadoInterno.AsignadoARuta,
+            _ => (EstadoInterno)(-999)
+        };
+
+        return Enum.IsDefined(typeof(EstadoInterno), nuevoEstadoInterno) && (int)nuevoEstadoInterno >= -1;
+    }
+
+    private static string ConstruirDescripcionEventoEntrega(
+        TrackingEventoEntregaDto dto,
+        EstadoInterno estadoInterno)
+    {
+        var baseEstado = estadoInterno switch
+        {
+            EstadoInterno.EntregadoEnDomicilio => "Entrega completada en domicilio",
+            EstadoInterno.EntregadoEnOficina => "Entrega completada en punto alternativo/oficina",
+            EstadoInterno.PrimerIntentoFallido => "Intento de entrega fallido: destinatario ausente",
+            EstadoInterno.SegundoIntentoFallido => "Segundo intento de entrega fallido",
+            EstadoInterno.IncidenciaDireccionIncorrecta => "Incidencia en reparto: dirección incorrecta",
+            EstadoInterno.IncidenciaDestinatarioRechaza => "Incidencia en reparto: envío rechazado por destinatario",
+            EstadoInterno.EnDevolucionAlRemitente => "Envío en devolución tras reparto",
+            EstadoInterno.EnReparto => "Envío en reparto",
+            _ => ObtenerDescripcionEstadoInterno(estadoInterno)
+        };
+
+        if (!string.IsNullOrWhiteSpace(dto.Observaciones))
+        {
+            return $"{baseEstado}. {dto.Observaciones}";
+        }
+
+        return baseEstado;
+    }
+
+    private static string ConstruirObservaciones(string? observacionesActuales, string nuevaNota)
+    {
+        var timestamp = DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm");
+        var nota = $"[{timestamp}] {nuevaNota}";
+
+        return string.IsNullOrEmpty(observacionesActuales)
+            ? nota
+            : $"{observacionesActuales}\n{nota}";
+    }
 
     /// <summary>
     /// Devuelve una descripción pública genérica del estado del envío

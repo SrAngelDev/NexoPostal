@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Reparto.DTOs;
 using Nexopostal.Reparto.Services;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Nexopostal.Reparto.Controllers;
 
@@ -16,15 +18,18 @@ public class RepartoController : ControllerBase
 {
     private readonly IRepartoService _repartoService;
     private readonly ICiudadanoTrackingNotifierService _ciudadanoTrackingNotifier;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<RepartoController> _logger;
 
     public RepartoController(
         IRepartoService repartoService,
         ICiudadanoTrackingNotifierService ciudadanoTrackingNotifier,
+        IConfiguration configuration,
         ILogger<RepartoController> logger)
     {
         _repartoService = repartoService;
         _ciudadanoTrackingNotifier = ciudadanoTrackingNotifier;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -230,6 +235,8 @@ public class RepartoController : ControllerBase
         var entrega = await _repartoService.RegistrarEntrega(entregaId, dto);
         if (entrega == null)
             return BadRequest(new { message = "No se pudo registrar la entrega. Verifique el ID y el estado." });
+
+        await NotificarEventoEntregaTracking(entrega);
         return Ok(entrega);
     }
 
@@ -242,6 +249,8 @@ public class RepartoController : ControllerBase
         var entrega = await _repartoService.RegistrarEntrega(entregaId, dto);
         if (entrega == null)
             return BadRequest(new { message = "No se pudo registrar la entrega." });
+
+        await NotificarEventoEntregaTracking(entrega);
         return Ok(entrega);
     }
 
@@ -303,6 +312,73 @@ public class RepartoController : ControllerBase
             message = "Ubicación registrada",
             trackingNotificados = seguimientos.Count
         });
+    }
+
+    /// <summary>
+    /// Endpoint interno para auto-generar/asignar entrega de última milla
+    /// a partir de una admisión logística.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("interno/admision/auto-asignar")]
+    [ProducesResponseType(typeof(AutoAsignacionEntregaResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AutoAsignarEntregaDesdeAdmision([FromBody] AutoAsignacionEntregaDesdeAdmisionDto dto)
+    {
+        if (!IsInternalServiceAuthorized())
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Service key inválida" });
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var resultado = await _repartoService.AutoAsignarEntregaDesdeAdmision(dto);
+        return Ok(resultado);
+    }
+
+    private bool IsInternalServiceAuthorized()
+    {
+        var expectedKey = _configuration["InterServiceSettings:ServiceKey"]
+            ?? "nexopostal-internal-service-key-2025";
+        var providedKey = Request.Headers["X-Service-Key"].FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(providedKey))
+            return false;
+
+        return SecureEquals(expectedKey, providedKey);
+    }
+
+    private static bool SecureEquals(string expected, string provided)
+    {
+        var expectedBytes = Encoding.UTF8.GetBytes(expected ?? string.Empty);
+        var providedBytes = Encoding.UTF8.GetBytes(provided ?? string.Empty);
+
+        if (expectedBytes.Length != providedBytes.Length)
+            return false;
+
+        return CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
+    }
+
+    private async Task NotificarEventoEntregaTracking(EntregaPaqueteDto entrega)
+    {
+        if (string.IsNullOrWhiteSpace(entrega.NumeroSeguimiento))
+        {
+            return;
+        }
+
+        var payload = new TrackingEventoEntregaPayload(
+            entrega.NumeroSeguimiento.Trim().ToUpperInvariant(),
+            entrega.NumeroExpedicion,
+            entrega.Estado,
+            entrega.NumeroIntento,
+            entrega.Observaciones,
+            entrega.ReceptorNombre,
+            entrega.ReceptorDni,
+            entrega.LatitudEntrega,
+            entrega.LongitudEntrega,
+            entrega.FirmaDigital,
+            entrega.FotoEntrega);
+
+        await _ciudadanoTrackingNotifier.NotificarEventoEntregaAsync(payload, HttpContext.RequestAborted);
     }
 }
 

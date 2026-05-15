@@ -320,7 +320,11 @@ public class PagosController : ControllerBase
             envio.CodigoPostalOrigen,
             remitente,
             destinatario,
-            esUrgente);
+            esUrgente,
+            envio.NumeroSeguimiento,
+            envio.Destino,
+            null,
+            envio.TelefonoDestinatario);
     }
 
     private VerificarPagoResultadoDto MapToVerificarDto(Envio envio)

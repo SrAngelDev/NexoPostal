@@ -21,13 +21,21 @@ public interface ILogisticaNotifierService
     /// <param name="remitente">Nombre del remitente</param>
     /// <param name="destinatario">Nombre del destinatario</param>
     /// <param name="esUrgente">Si el envío es urgente (tarifa Express)</param>
+    /// <param name="numeroSeguimiento">Número de seguimiento externo (NXP-...)</param>
+    /// <param name="direccionEntrega">Dirección completa de entrega de última milla</param>
+    /// <param name="ciudadDestino">Ciudad destino de la entrega</param>
+    /// <param name="telefonoDestinatario">Teléfono de contacto del destinatario</param>
     Task NotificarAdmisionAsync(
         string numeroExpedicion,
         string codigoPostalDestino,
         string? codigoPostalOrigen = null,
         string? remitente = null,
         string? destinatario = null,
-        bool esUrgente = false);
+        bool esUrgente = false,
+        string? numeroSeguimiento = null,
+        string? direccionEntrega = null,
+        string? ciudadDestino = null,
+        string? telefonoDestinatario = null);
 }
 
 public class LogisticaNotifierService : ILogisticaNotifierService
@@ -53,7 +61,11 @@ public class LogisticaNotifierService : ILogisticaNotifierService
         string? codigoPostalOrigen = null,
         string? remitente = null,
         string? destinatario = null,
-        bool esUrgente = false)
+        bool esUrgente = false,
+        string? numeroSeguimiento = null,
+        string? direccionEntrega = null,
+        string? ciudadDestino = null,
+        string? telefonoDestinatario = null)
     {
         try
         {
@@ -63,11 +75,16 @@ public class LogisticaNotifierService : ILogisticaNotifierService
             var payload = new
             {
                 numeroExpedicion,
+                numeroSeguimiento,
                 codigoPostalDestino,
                 codigoPostalOrigen,
                 esUrgente,
                 remitente,
                 destinatario,
+                nombreDestinatario = destinatario,
+                direccionEntrega,
+                ciudadDestino,
+                telefonoDestinatario,
                 observaciones = $"Admitido automáticamente tras pago confirmado"
             };
 

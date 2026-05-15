@@ -27,6 +27,7 @@ public interface IRepartoService
     Task<EntregaPaqueteDto?> RegistrarEntrega(int entregaId, RegistrarEntregaDto dto);
     Task<List<EntregaPaqueteDto>> ObtenerEntregasPorRuta(int rutaId);
     Task<List<EntregaPaqueteDto>> ObtenerEntregasPorSeguimiento(string numeroSeguimiento);
+    Task<AutoAsignacionEntregaResultDto> AutoAsignarEntregaDesdeAdmision(AutoAsignacionEntregaDesdeAdmisionDto dto);
 
     // ─── Dashboard ───
     Task<DashboardRepartoDto> ObtenerDashboard(int? oficinaJsonId = null);
@@ -390,6 +391,148 @@ public class RepartoService : IRepartoService
         }).ToList();
     }
 
+    public async Task<AutoAsignacionEntregaResultDto> AutoAsignarEntregaDesdeAdmision(AutoAsignacionEntregaDesdeAdmisionDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.NumeroExpedicion) ||
+            string.IsNullOrWhiteSpace(dto.NumeroSeguimiento) ||
+            string.IsNullOrWhiteSpace(dto.CodigoPostalDestino) ||
+            string.IsNullOrWhiteSpace(dto.DireccionEntrega) ||
+            string.IsNullOrWhiteSpace(dto.CiudadDestino) ||
+            string.IsNullOrWhiteSpace(dto.NombreDestinatario))
+        {
+            return new AutoAsignacionEntregaResultDto
+            {
+                Success = false,
+                Message = "Datos insuficientes para auto-asignar la entrega."
+            };
+        }
+
+        var fechaReparto = ParseFechaReparto(dto.FechaReparto);
+
+        var entregasExistentes = await _entregaRepo.GetByExpedicionAsync(dto.NumeroExpedicion);
+        var entregaActiva = entregasExistentes.FirstOrDefault(e =>
+            e.RutaReparto.FechaReparto == fechaReparto &&
+            (e.Estado == EstadoEntrega.Pendiente || e.Estado == EstadoEntrega.EnCamino));
+
+        if (entregaActiva != null)
+        {
+            return new AutoAsignacionEntregaResultDto
+            {
+                Success = true,
+                Idempotente = true,
+                CreadaRuta = false,
+                RutaId = entregaActiva.RutaRepartoId,
+                RutaCodigo = entregaActiva.RutaReparto.Codigo,
+                RepartidorId = entregaActiva.RutaReparto.RepartidorId,
+                EntregaId = entregaActiva.Id,
+                Message = "La entrega ya estaba asignada en una ruta activa del día."
+            };
+        }
+
+        var repartidor = await SeleccionarRepartidor(fechaReparto, dto.OficinaPreferidaJsonId);
+        if (repartidor == null)
+        {
+            return new AutoAsignacionEntregaResultDto
+            {
+                Success = false,
+                Message = "No hay repartidores activos disponibles para auto-asignar la entrega."
+            };
+        }
+
+        var ruta = await ObtenerRutaPlanificadaDelDia(fechaReparto, repartidor.Id);
+        var rutaCreada = false;
+
+        if (ruta == null)
+        {
+            ruta = await CrearRuta(new CrearRutaRepartoDto
+            {
+                RepartidorId = repartidor.Id,
+                FechaReparto = fechaReparto.ToString("yyyy-MM-dd"),
+                OficinaOrigenJsonId = repartidor.OficinaJsonId,
+                OficinaOrigenNombre = string.IsNullOrWhiteSpace(repartidor.OficinaNombre)
+                    ? dto.OficinaPreferidaNombre ?? $"Oficina {repartidor.OficinaJsonId}"
+                    : repartidor.OficinaNombre,
+                Observaciones = "Ruta creada automáticamente desde admisión logística"
+            });
+
+            rutaCreada = true;
+        }
+
+        if (ruta == null)
+        {
+            return new AutoAsignacionEntregaResultDto
+            {
+                Success = false,
+                Message = "No se pudo crear ni recuperar una ruta planificada para la auto-asignación."
+            };
+        }
+
+        var entregaExistenteRuta = (await _entregaRepo.GetByRutaAsync(ruta.Id))
+            .FirstOrDefault(e => e.NumeroExpedicion == dto.NumeroExpedicion);
+
+        if (entregaExistenteRuta != null)
+        {
+            return new AutoAsignacionEntregaResultDto
+            {
+                Success = true,
+                Idempotente = true,
+                CreadaRuta = rutaCreada,
+                RutaId = ruta.Id,
+                RutaCodigo = ruta.Codigo,
+                RepartidorId = repartidor.Id,
+                RepartidorNombre = repartidor.NombreCompleto,
+                EntregaId = entregaExistenteRuta.Id,
+                Message = "La entrega ya estaba incluida en la ruta seleccionada."
+            };
+        }
+
+        var entrega = await AgregarEntregaARuta(ruta.Id, new AgregarEntregaDto
+        {
+            NumeroExpedicion = dto.NumeroExpedicion,
+            NumeroSeguimiento = dto.NumeroSeguimiento,
+            DireccionEntrega = dto.DireccionEntrega,
+            CodigoPostal = dto.CodigoPostalDestino,
+            Ciudad = dto.CiudadDestino,
+            NombreDestinatario = dto.NombreDestinatario,
+            TelefonoDestinatario = dto.TelefonoDestinatario
+        });
+
+        if (entrega == null)
+        {
+            return new AutoAsignacionEntregaResultDto
+            {
+                Success = false,
+                CreadaRuta = rutaCreada,
+                RutaId = ruta.Id,
+                RutaCodigo = ruta.Codigo,
+                RepartidorId = repartidor.Id,
+                RepartidorNombre = repartidor.NombreCompleto,
+                Message = "No se pudo agregar la entrega a la ruta planificada."
+            };
+        }
+
+        _logger.LogInformation(
+            "Auto-asignación completada: {Expedicion} ({Seguimiento}) -> Ruta {Ruta} (Repartidor {Repartidor})",
+            dto.NumeroExpedicion,
+            dto.NumeroSeguimiento,
+            ruta.Codigo,
+            repartidor.CodigoEmpleado);
+
+        return new AutoAsignacionEntregaResultDto
+        {
+            Success = true,
+            CreadaRuta = rutaCreada,
+            RutaId = ruta.Id,
+            RutaCodigo = ruta.Codigo,
+            RepartidorId = repartidor.Id,
+            RepartidorNombre = repartidor.NombreCompleto,
+            EntregaId = entrega.Id,
+            Message = rutaCreada
+                ? "Ruta y entrega creadas automáticamente desde admisión."
+                : "Entrega asignada automáticamente a una ruta planificada existente."
+        };
+    }
+
     // ═══════════════════════════════════════════
     //  DASHBOARD
     // ═══════════════════════════════════════════
@@ -499,5 +642,47 @@ public class RepartoService : IRepartoService
             FirmaDigital = e.FirmaDigital,
             FotoEntrega = e.FotoEntrega
         };
+    }
+
+    private static DateOnly ParseFechaReparto(string? fechaReparto)
+    {
+        if (!string.IsNullOrWhiteSpace(fechaReparto) && DateOnly.TryParse(fechaReparto, out var parsed))
+        {
+            return parsed;
+        }
+
+        return DateOnly.FromDateTime(DateTime.UtcNow);
+    }
+
+    private async Task<Repartidor?> SeleccionarRepartidor(DateOnly fechaReparto, int? oficinaPreferidaJsonId)
+    {
+        var candidatos = await _repartidorRepo.GetAllAsync(oficinaPreferidaJsonId);
+        var activos = candidatos.Where(r => r.Activo).ToList();
+
+        if (!activos.Any() && oficinaPreferidaJsonId.HasValue)
+        {
+            activos = (await _repartidorRepo.GetAllAsync(null)).Where(r => r.Activo).ToList();
+        }
+
+        return activos
+            .OrderBy(r => r.Rutas.Count(rt =>
+                rt.FechaReparto == fechaReparto &&
+                (rt.Estado == EstadoRuta.Planificada || rt.Estado == EstadoRuta.EnCurso)))
+            .ThenBy(r => r.Rutas.Count(rt => rt.FechaReparto == fechaReparto))
+            .ThenBy(r => r.Id)
+            .FirstOrDefault();
+    }
+
+    private async Task<RutaRepartoDetalleDto?> ObtenerRutaPlanificadaDelDia(DateOnly fechaReparto, int repartidorId)
+    {
+        var rutas = await _rutaRepo.GetAllAsync(fechaReparto, repartidorId);
+        var candidata = rutas.FirstOrDefault(r => r.Estado == EstadoRuta.Planificada);
+
+        if (candidata == null)
+        {
+            return null;
+        }
+
+        return await ObtenerRutaPorId(candidata.Id);
     }
 }

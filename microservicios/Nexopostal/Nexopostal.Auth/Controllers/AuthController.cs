@@ -96,10 +96,16 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh")]
-    public IActionResult Refresh()
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto dto)
     {
-        // TODO: Implementar refresh token logic
-        return Ok(new { message = "Refresh token endpoint" });
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var refreshed = await _authService.RefreshTokenAsync(dto);
+        if (refreshed == null)
+            return Unauthorized(new { error = "Refresh token inválido o expirado" });
+
+        return Ok(refreshed);
     }
 }
 

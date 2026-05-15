@@ -120,6 +120,7 @@ Services/
  OficinaPostalService.cs
  OficinasJsonService.cs
  OperarioService.cs
+ RepartoOrquestacionService.cs
  ScanProcessorService.cs
  SimulacionTransporteService.cs
 

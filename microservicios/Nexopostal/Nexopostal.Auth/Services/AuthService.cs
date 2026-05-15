@@ -1,6 +1,7 @@
 using NexoPostal.Auth.DTOs;
 using NexoPostal.Auth.Models;
 using NexoPostal.Auth.Repositories;
+using System.Globalization;
 
 namespace NexoPostal.Auth.Services;
 
@@ -11,6 +12,7 @@ public interface IAuthService
 {
     Task<TokenResponseDto?> LoginAsync(LoginDto dto);
     Task<(TokenResponseDto? Token, IEnumerable<string>? Errors)> RegisterAsync(RegisterDto dto);
+    Task<TokenResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto dto);
     Task<UsuarioInfoDto?> GetUserInfoAsync(string userId);
     Task<(UsuarioInfoDto? User, string? Error)> UpdateProfileAsync(string userId, ActualizarUsuarioDto dto);
     Task<(bool Success, string? Error)> ChangePasswordAsync(string userId, CambiarPasswordDto dto);
@@ -22,6 +24,10 @@ public interface IAuthService
 /// </summary>
 public class AuthService : IAuthService
 {
+    private const string TokenProvider = "NexoPostal";
+    private const string RefreshTokenHashName = "RefreshTokenHash";
+    private const string RefreshTokenExpiryName = "RefreshTokenExpiryUtc";
+
     private readonly IUserRepository _userRepository;
     private readonly TokenService _tokenService;
 
@@ -37,14 +43,7 @@ public class AuthService : IAuthService
         if (user == null || !await _userRepository.CheckPasswordAsync(user, dto.Password))
             return null;
 
-        var token = _tokenService.GenerateJwtToken(user);
-        return new TokenResponseDto
-        {
-            Token = token,
-            Expiration = DateTime.UtcNow.AddMinutes(60),
-            User = user.NombreCompleto,
-            Rol = user.Rol.ToString()
-        };
+        return await EmitTokenPairAsync(user);
     }
 
     public async Task<(TokenResponseDto? Token, IEnumerable<string>? Errors)> RegisterAsync(RegisterDto dto)
@@ -62,14 +61,49 @@ public class AuthService : IAuthService
         if (!result.Succeeded)
             return (null, result.Errors.Select(e => e.Description));
 
-        var token = _tokenService.GenerateJwtToken(user);
-        return (new TokenResponseDto
+        var token = await EmitTokenPairAsync(user);
+        return (token, null);
+    }
+
+    public async Task<TokenResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.RefreshToken))
+            return null;
+
+        if (!_tokenService.TryExtractUserId(dto.RefreshToken, out var userId))
+            return null;
+
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+            return null;
+
+        var storedHash = await _userRepository.GetUserTokenAsync(user, TokenProvider, RefreshTokenHashName);
+        var storedExpiry = await _userRepository.GetUserTokenAsync(user, TokenProvider, RefreshTokenExpiryName);
+
+        if (string.IsNullOrWhiteSpace(storedHash) || string.IsNullOrWhiteSpace(storedExpiry))
+            return null;
+
+        if (!DateTime.TryParse(
+                storedExpiry,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out var expiryUtc))
         {
-            Token = token,
-            Expiration = DateTime.UtcNow.AddMinutes(60),
-            User = user.NombreCompleto,
-            Rol = user.Rol.ToString()
-        }, null);
+            await RevokeRefreshTokenAsync(user);
+            return null;
+        }
+
+        if (expiryUtc <= DateTime.UtcNow)
+        {
+            await RevokeRefreshTokenAsync(user);
+            return null;
+        }
+
+        var incomingHash = _tokenService.HashToken(dto.RefreshToken);
+        if (!_tokenService.SecureEquals(incomingHash, storedHash))
+            return null;
+
+        return await EmitTokenPairAsync(user);
     }
 
     public async Task<UsuarioInfoDto?> GetUserInfoAsync(string userId)
@@ -131,6 +165,40 @@ public class AuthService : IAuthService
         if (!result.Succeeded)
             return (false, result.Errors.FirstOrDefault()?.Description ?? "Error al cambiar la contraseña");
 
+        await RevokeRefreshTokenAsync(user);
+
         return (true, null);
+    }
+
+    private async Task<TokenResponseDto> EmitTokenPairAsync(ApplicationUser user)
+    {
+        var (accessToken, accessExpirationUtc) = _tokenService.GenerateAccessToken(user);
+
+        var refreshToken = _tokenService.GenerateRefreshToken(user.Id);
+        var refreshTokenHash = _tokenService.HashToken(refreshToken);
+        var refreshExpirationUtc = DateTime.UtcNow.AddDays(_tokenService.GetRefreshTokenExpiryDays());
+
+        await _userRepository.SetUserTokenAsync(user, TokenProvider, RefreshTokenHashName, refreshTokenHash);
+        await _userRepository.SetUserTokenAsync(
+            user,
+            TokenProvider,
+            RefreshTokenExpiryName,
+            refreshExpirationUtc.ToString("O", CultureInfo.InvariantCulture));
+
+        return new TokenResponseDto
+        {
+            Token = accessToken,
+            Expiration = accessExpirationUtc,
+            RefreshToken = refreshToken,
+            RefreshTokenExpiration = refreshExpirationUtc,
+            User = user.NombreCompleto,
+            Rol = user.Rol.ToString()
+        };
+    }
+
+    private async Task RevokeRefreshTokenAsync(ApplicationUser user)
+    {
+        await _userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenHashName);
+        await _userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenExpiryName);
     }
 }

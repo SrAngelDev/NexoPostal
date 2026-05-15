@@ -51,4 +51,22 @@ public class UserRepository : IUserRepository
     {
         return await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
     }
+
+    /// <inheritdoc />
+    public async Task SetUserTokenAsync(ApplicationUser user, string loginProvider, string tokenName, string tokenValue)
+    {
+        await _userManager.SetAuthenticationTokenAsync(user, loginProvider, tokenName, tokenValue);
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> GetUserTokenAsync(ApplicationUser user, string loginProvider, string tokenName)
+    {
+        return await _userManager.GetAuthenticationTokenAsync(user, loginProvider, tokenName);
+    }
+
+    /// <inheritdoc />
+    public async Task RemoveUserTokenAsync(ApplicationUser user, string loginProvider, string tokenName)
+    {
+        await _userManager.RemoveAuthenticationTokenAsync(user, loginProvider, tokenName);
+    }
 }

@@ -18,6 +18,9 @@
       @if (gpsActivo()) {
         <span class="badge badge-gps">GPS activo</span>
       }
+      @if (gpsActivo() && seguimientoSegundoPlano()) {
+        <span class="badge badge-background">Tracking 2º plano</span>
+      }
       @if (pendientesCola() > 0) {
         <button class="badge badge-queue" (click)="sincronizarPendientes()">
           {{ pendientesCola() }} pendientes
@@ -115,6 +118,73 @@
         <div class="progress-track">
           <div class="progress-bar" [style.width.%]="resumen().progreso"></div>
         </div>
+      </section>
+
+      <section class="mapa-grid">
+        <article class="mapa-card">
+          <header>
+            <h3>Mapa operativo</h3>
+            <div class="mapa-actions">
+              <button class="btn btn-secondary btn-small" (click)="centrarEnMiPosicion()">Mi posición</button>
+              <button class="btn btn-secondary btn-small" (click)="centrarMapaEnRuta()">Ajustar vista</button>
+            </div>
+          </header>
+
+          <div class="mapa-canvas" #mapCanvas></div>
+
+          <div class="mapa-legend">
+            <span><i class="dot dot-driver"></i>Repartidor</span>
+            <span><i class="dot dot-ok"></i>Entregado</span>
+            <span><i class="dot dot-fail"></i>Fallido</span>
+            <span><i class="dot dot-pending"></i>Pendiente</span>
+          </div>
+
+          @if (!mapaDisponible()) {
+            <p class="mapa-warning">El mapa no se ha podido inicializar todavía en este dispositivo.</p>
+          }
+        </article>
+
+        <article class="navegacion-card">
+          <header>
+            <h3>Navegación rápida</h3>
+          </header>
+
+          <div class="navegacion-body">
+            @if (siguienteParada(); as siguiente) {
+              <div class="stop-card">
+                <strong>Siguiente parada #{{ siguiente.ordenEnRuta }}</strong>
+                <p>{{ siguiente.nombreDestinatario }} · {{ siguiente.direccionEntrega }}, {{ siguiente.codigoPostal }} {{ siguiente.ciudad }}</p>
+                <div class="stop-actions">
+                  <button class="btn" (click)="abrirNavegacionSiguiente('google')">Google Maps</button>
+                  <button class="btn btn-secondary" (click)="abrirNavegacionSiguiente('waze')">Waze</button>
+                </div>
+              </div>
+            } @else {
+              <p class="navegacion-empty">No hay paradas pendientes para navegar.</p>
+            }
+
+            @if (entregaSeleccionada(); as selected) {
+              <div class="stop-card stop-card-secondary">
+                <strong>Parada seleccionada</strong>
+                <p>#{{ selected.ordenEnRuta }} · {{ selected.nombreDestinatario }}</p>
+                <div class="stop-actions">
+                  <button class="btn" (click)="abrirNavegacionSeleccionada('google')">Ir en Google Maps</button>
+                  <button class="btn btn-secondary" (click)="abrirNavegacionSeleccionada('waze')">Ir en Waze</button>
+                </div>
+              </div>
+            }
+
+            @if (distanciaSiguienteParadaKm() !== null) {
+              <p class="distance-chip">
+                Distancia aprox. a la siguiente parada: {{ distanciaSiguienteParadaKm()! | number:'1.1-1' }} km
+              </p>
+            }
+
+            @if (ultimaSincronizacionGps(); as syncGps) {
+              <p class="sync-chip">Última sincronización GPS: {{ syncGps | date:'shortTime' }}</p>
+            }
+          </div>
+        </article>
       </section>
 
       <section class="layout-grid">

@@ -31,6 +31,7 @@ public interface IEntregaPaqueteRepository
     Task<EntregaPaquete?> GetWithRutaAsync(int id);
     Task<List<EntregaPaquete>> GetByRutaAsync(int rutaId);
     Task<List<EntregaPaquete>> GetBySeguimientoAsync(string numeroSeguimiento);
+    Task<List<EntregaPaquete>> GetByExpedicionAsync(string numeroExpedicion);
     Task<EntregaPaquete> CreateAsync(EntregaPaquete entrega);
     Task UpdateAsync(EntregaPaquete entrega);
     Task<int> CountByExpedicionAsync(string numeroExpedicion);

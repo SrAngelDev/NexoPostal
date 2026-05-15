@@ -238,3 +238,44 @@ public class TrackingUbicacionRepartoDto
     [MaxLength(300)]
     public string? Descripcion { get; set; }
 }
+
+/// <summary>
+/// DTO interno para sincronizar eventos operativos de entrega desde Reparto.
+/// Permite unificar estado interno/publico y notificaciones realtime en Ciudadano.
+/// </summary>
+public class TrackingEventoEntregaDto
+{
+    [Required]
+    [MaxLength(20)]
+    public string NumeroSeguimiento { get; set; } = string.Empty;
+
+    [MaxLength(20)]
+    public string? NumeroExpedicion { get; set; }
+
+    [Required]
+    [MaxLength(40)]
+    public string EstadoEntrega { get; set; } = string.Empty;
+
+    [Range(1, 10)]
+    public int NumeroIntento { get; set; } = 1;
+
+    [MaxLength(500)]
+    public string? Observaciones { get; set; }
+
+    [MaxLength(200)]
+    public string? ReceptorNombre { get; set; }
+
+    [MaxLength(15)]
+    public string? ReceptorDni { get; set; }
+
+    [Range(-90, 90)]
+    public double? Latitud { get; set; }
+
+    [Range(-180, 180)]
+    public double? Longitud { get; set; }
+
+    [MaxLength(500)]
+    public string? FotoEntrega { get; set; }
+
+    public string? FirmaDigital { get; set; }
+}

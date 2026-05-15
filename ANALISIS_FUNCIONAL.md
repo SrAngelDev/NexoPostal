@@ -2,7 +2,7 @@
 
 Fecha: 2026-05-15
 
-Este documento resume el estado funcional del sistema (frontend, backend y operativa), detalla brechas y propone mejoras. Esta version incorpora los avances recientes en pricing, reparto y tracking en tiempo real.
+Este documento resume el estado funcional del sistema (frontend, backend y operativa), detalla brechas y propone mejoras. Esta version incorpora los avances recientes en pricing, reparto, tracking en tiempo real y orquestacion automatica admision -> ultima milla.
 
 ## Alcance
 - Apps Angular: clientes-app, intranet-app, driver-app.
@@ -29,12 +29,15 @@ Nota: este documento no incluye credenciales ni secretos.
 - Tarifas: motor unico (TarifasService) reutilizado en tarifas, envios y pagos.
 - Tracking realtime: Hub + servicio de notificaciones con soporte de latitud/longitud.
 - Integracion interna de reparto: endpoint POST /api/envios/interno/tracking/ubicacion para publicar ubicacion de reparto al tracking del cliente.
+- Orquestacion de eventos de reparto: endpoint interno de evento de entrega para sincronizar estado interno/publico y emitir realtime consistente (estado, entrega, incidencia/devolucion).
+- Seguridad interna: validacion de X-Service-Key en endpoints internos de tracking.
 
 ### Intranet (Logistica)
 - Admision de paquetes (incluye endpoint interno para inter-servicios).
 - Asignaciones de tareas por CTA y operario.
 - Movimientos troncales (CTA origen/destino).
 - Incidencias (alta y ciclo de vida).
+- Orquestacion automatica hacia Reparto tras admision (cuando llega payload con datos de ultima milla), con respuesta operacional embebida en la admision.
 
 ### Reparto (API)
 - Repartidores: crear, listar, mi perfil.
@@ -43,54 +46,67 @@ Nota: este documento no incluye credenciales ni secretos.
 - Confirmaciones con evidencia: receptor, observaciones, firma/foto y coordenadas de entrega.
 - Dashboard de reparto.
 - Ubicacion: endpoint operativo e integrado con Ciudadano para tracking realtime (por numero de seguimiento o por ruta).
+- Sincronizacion operacional: confirmaciones de entrega/fallo/devolucion notifican a Ciudadano para consolidar estado publico + realtime.
+- Endpoint interno para auto-asignacion desde admision: crea/reutiliza ruta planificada diaria y agrega entrega con idempotencia por expedicion.
 
 ### Driver app (repartidores)
 - Login y dashboard operativo.
 - Ruta activa: carga de ruta asignada, listado/secuenciacion de paradas y resumen de progreso.
 - Ciclo de ruta: iniciar y finalizar ruta desde la app (incluye observaciones de cierre).
 - Entregas: confirmacion con estados (entregado, ausente, rechazado, etc.) y evidencia de entrega.
-- GPS: envio periodico de ubicacion al backend cuando la ruta esta en curso.
+- Mapa operativo en la vista de ruta (Leaflet) con posicion del repartidor, historial de traza y puntos de entrega con coordenadas disponibles.
+- Navegacion rapida por parada mediante deep-links a Google Maps y Waze (siguiente parada y parada seleccionada).
+- GPS reforzado: watchPosition + heartbeat + ajuste por visibilidad (segundo plano) + reintentos exponenciales con cola offline.
 - Offline: cola local de confirmaciones y ubicaciones con reintento automatico al reconectar.
 - Escaneo de codigo de barras (camara y entrada manual) + consulta interna por expedicion.
 
 ## Estado de prioridades (actualizacion)
 
 ### Prioridad 1: Repartidores
-- Estado: implementada en gran parte.
-- Hecho: integracion driver-app con Reparto, vista de ruta, confirmacion de entregas, inicio/fin de ruta, GPS y cola offline.
-- Pendiente: mejorar experiencia de mapa/navegacion y endurecer el seguimiento en segundo plano.
+- Estado: implementada.
+- Hecho: integracion driver-app con Reparto, vista de ruta, confirmacion de entregas, inicio/fin de ruta, mapa operativo, navegacion por parada, GPS endurecido en segundo plano y cola offline.
+- Pendiente: evolucionar a capacidades de background de nivel nativo (si el SO suspende el navegador/PWA).
 
 ### Prioridad 2: Tracking realtime
-- Estado: parcialmente implementada.
-- Hecho: publicacion de ubicacion de reparto hacia tracking del cliente via Ciudadano + SignalR.
-- Pendiente: cerrar sincronizacion completa de eventos de entrega con el estado publico del envio.
+- Estado: implementada en gran parte.
+- Hecho: publicacion de ubicacion de reparto y sincronizacion de eventos operativos de entrega/fallo/devolucion hacia estado interno/publico + SignalR.
+- Pendiente: reforzar resiliencia e idempotencia de la comunicacion entre microservicios para escenarios de fallo transitorio.
 
 ### Prioridad 3: Pricing unico
 - Estado: implementada.
 - Hecho: motor unico de tarifas en backend y consumo de esa fuente desde la web.
 
 ### Prioridad 4: Robustez
-- Estado: pendiente.
-- Incluye: refresh token real, observabilidad basica, hardening de seguridad interna y mas tests de integracion.
+- Estado: parcialmente implementada.
+- Hecho: endpoint refresh token real con rotacion y expiracion; autorizacion inter-servicio mediante X-Service-Key en endpoints internos de tracking.
+- Pendiente: hardening adicional (mTLS o JWT entre servicios), observabilidad basica y mas tests de integracion.
+
+### Prioridad 5: Orquestacion operativa admision -> reparto
+- Estado: implementada (MVP operativo).
+- Hecho: admision en Intranet invoca automaticamente a Reparto para auto-asignar entrega de ultima milla; Reparto selecciona repartidor activo, reutiliza/crea ruta del dia y agrega la entrega.
+- Hecho: flujo con idempotencia basica por numero de expedicion para evitar duplicados en reintentos.
+- Pendiente: evolucionar a outbox/inbox y reglas avanzadas de balanceo/asignacion por capacidad y geografia.
 
 ## Faltantes y brechas actuales
 
 ### Reparto / Driver app
-- Falta capa de mapa/navegacion real (actualmente hay secuencia y progreso, no guiado cartografico).
-- El tracking depende de la sesion activa de la app; no hay estrategia robusta de background para movilidad prolongada.
+- El guiado se apoya en deep-links externos (Google Maps/Waze); no hay motor de navegacion turn-by-turn propio embebido.
+- El tracking en segundo plano esta endurecido en contexto web (visibilidad + heartbeat + reintentos), pero sigue sujeto a limitaciones del navegador/SO en segundo plano estricto.
 - La evidencia de entrega requiere evolucion a almacenamiento/gestor documental centralizado.
 
 ### Tracking en tiempo real
 - Ubicacion de reparto ya integrada en realtime para cliente.
-- Falta consolidar una orquestacion unica para que todos los eventos operativos (entrega/fallo/devolucion) impacten de forma consistente en estado publico + realtime.
+- Ya existe orquestacion unica para eventos operativos de reparto (entrega/fallo/devolucion) con impacto consistente en estado publico + realtime.
+- Pendiente robustecer reintentos/idempotencia y trazabilidad de eventos entre servicios.
 
 ### Autenticacion y seguridad interna
-- Endpoint de refresh token continua como placeholder.
-- Pendiente reforzar autenticacion/autorizacion servicio a servicio en endpoints internos.
+- Refresh token implementado en Auth (rotacion, expiracion y revocacion en cambio de contraseña).
+- Endpoints internos de tracking en Ciudadano protegidos con X-Service-Key.
+- Pendiente ampliar el modelo de seguridad entre servicios a un esquema mas fuerte (mTLS/JWT de servicio).
 
 ### Orquestacion operativa
-- No hay generacion automatica de rutas/entregas a partir de la admision.
-- El flujo end-to-end existe por piezas, pero no esta totalmente automatizado.
+- Implementada la generacion automatica de entrega/ruta desde admision (Intranet -> Reparto) cuando existen datos minimos de ultima milla.
+- Pendiente robustecer la fiabilidad con patrones de mensajeria idempotente (outbox/inbox) y telemetria operacional de reintentos.
 
 ## Detalle funcional por dominio
 
@@ -100,32 +116,35 @@ Nota: este documento no incluye credenciales ni secretos.
 
 ### Intranet / Logistica
 - Implementado: admision, asignaciones, movimientos troncales, incidencias.
-- Falta: automatizar el traspaso operativo hacia reparto para cerrar ciclo sin pasos manuales.
+- Implementado: automatizacion de traspaso operativo hacia reparto al admitir paquetes con datos de entrega (seguimiento, direccion, destinatario, telefono).
+- Falta: reglas de asignacion mas avanzadas (SLA, carga, zona) y politicas de reintento transaccional.
 
 ### Reparto
 - Implementado: API de rutas y entregas, evidencia, inicio/fin de ruta y ubicacion integrada con tracking cliente.
-- Falta: sincronizacion completa con estados publicos de Ciudadano en todos los resultados de entrega.
+- Implementado: sincronizacion de resultados de entrega con estado interno/publico y realtime de Ciudadano.
+- Implementado: endpoint interno de auto-asignacion de admision con reutilizacion/creacion de ruta diaria e idempotencia basica por expedicion.
+- Falta: robustecer mensajeria inter-servicio ante fallos de red (outbox/inbox, deduplicacion por event-id y observabilidad de colas).
 
 ### Driver app
-- Implementado: login, dashboard, escaneo, ruta activa, confirmacion de entregas, GPS y modo offline con reintentos.
-- Falta: navegacion en mapa y robustez de tracking en segundo plano.
+- Implementado: login, dashboard, escaneo, ruta activa, confirmacion de entregas, mapa operativo, navegacion por parada, GPS reforzado y modo offline con reintentos.
+- Falta: capacidades de tracking persistente de nivel nativo y navegacion turn-by-turn embebida.
 
 ## Backlog propuesto (foco actual)
 
 1) Sincronizacion estado publico
-- Propagar automaticamente confirmaciones de Reparto a estado interno/publico en Ciudadano.
-- Unificar eventos realtime para entrega correcta, intento fallido, devolucion e incidencias.
+- Añadir estrategia de reintentos idempotentes (outbox/inbox) para eventos Reparto -> Ciudadano.
+- Incorporar auditoria completa de eventos de tracking para depuracion operativa.
 
 2) Experiencia de ruta avanzada
-- Añadir mapa basico con paradas y progreso espacial.
+- Implementar navegacion turn-by-turn embebida (no solo deep-links externos).
 - Incorporar estimaciones ETA por parada y alertas de desvio.
 
 3) Tracking y offline de nivel produccion
-- Estrategia de background tracking (movil/PWA) y politicas de bateria.
+- Estrategia de background tracking de nivel nativo/PWA (cuando el sistema suspende pestañas) y politicas de bateria.
 - Reintentos con backoff, deduplicacion y telemetria de colas.
 
 4) Robustez transversal
-- Implementar refresh token real.
+- Endurecer seguridad inter-servicio con autenticacion fuerte (mTLS/JWT entre servicios).
 - Añadir observabilidad (logs estructurados, metricas, trazas distribuidas).
 - Extender tests de integracion E2E en flujos criticos.
 
@@ -143,10 +162,17 @@ Ciudadano:
 - GET  /api/envios/interno/listar
 - PUT  /api/envios/interno/{expedicion}/estado
 - POST /api/envios/interno/tracking/ubicacion
+- POST /api/envios/interno/tracking/evento-entrega
 - GET  /api/etiquetas/{numero}
 - GET  /api/perfil
 - POST /api/perfil
 - GET  /api/perfil/direcciones
+
+Auth:
+- POST /api/auth/login
+- POST /api/auth/register
+- POST /api/auth/refresh
+- GET  /api/auth/me
 
 Intranet:
 - POST /api/admision/paquete
@@ -173,6 +199,7 @@ Reparto:
 - POST /api/reparto/confirmar?entregaId=
 - PUT  /api/reparto/entregas/{entregaId}/registrar
 - POST /api/reparto/ubicacion
+- POST /api/reparto/interno/admision/auto-asignar (interno)
 
 Gateway (uso driver-app):
 - POST /api/nexopostal/reparto/ruta-iniciar/{id}/iniciar
@@ -180,9 +207,9 @@ Gateway (uso driver-app):
 
 ## Proximos pasos recomendados
 
-1) Conectar confirmaciones de entrega de Reparto con actualizacion de estado interno/publico en Ciudadano de forma automatica.
-2) Añadir mapa operativo en driver-app y mejorar estrategia de tracking en segundo plano.
-3) Implementar refresh token y hardening de endpoints internos entre microservicios.
+1) Implantar patron idempotente de eventos (outbox/inbox) para robustecer la sincronizacion Reparto -> Ciudadano.
+2) Evolucionar de deep-links a navegacion embebida y reforzar tracking de fondo de nivel nativo/PWA.
+3) Evolucionar la seguridad inter-servicio desde service key a mTLS/JWT de servicio.
 4) Introducir observabilidad y pruebas E2E para flujos de reparto/tracking/pagos.
 
 ---

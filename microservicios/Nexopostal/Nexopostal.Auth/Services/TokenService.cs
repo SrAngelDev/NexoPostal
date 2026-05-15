@@ -10,6 +10,8 @@ namespace NexoPostal.Auth.Services;
 
 public class TokenService
 {
+    private const int DefaultAccessTokenExpiryMinutes = 60;
+    private const int DefaultRefreshTokenExpiryDays = 14;
     private readonly IConfiguration _config;
 
     public TokenService(IConfiguration config)
@@ -35,7 +37,7 @@ public class TokenService
         return keyBytes.Length >= 32 ? keyBytes : SHA256.HashData(keyBytes);
     }
 
-    public string GenerateJwtToken(ApplicationUser user)
+    public (string Token, DateTime ExpirationUtc) GenerateAccessToken(ApplicationUser user)
     {
         var claims = new List<Claim>
         {
@@ -53,6 +55,7 @@ public class TokenService
 
         var issuer = ResolveConfigValue(jwtSettings["Issuer"]);
         var audience = ResolveConfigValue(jwtSettings["Audience"]);
+        var expirationUtc = DateTime.UtcNow.AddMinutes(GetAccessTokenExpiryMinutes());
 
         var key = new SymmetricSecurityKey(GetJwtKeyBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -61,11 +64,76 @@ public class TokenService
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(60),
+            expires: expirationUtc,
             signingCredentials: creds
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return (new JwtSecurityTokenHandler().WriteToken(token), expirationUtc);
+    }
+
+    public int GetAccessTokenExpiryMinutes()
+    {
+        var raw = ResolveConfigValue(_config["JwtSettings:ExpiryMinutes"]);
+        if (int.TryParse(raw, out var minutes) && minutes > 0)
+        {
+            return minutes;
+        }
+
+        return DefaultAccessTokenExpiryMinutes;
+    }
+
+    public int GetRefreshTokenExpiryDays()
+    {
+        var raw = ResolveConfigValue(_config["JwtSettings:RefreshExpiryDays"]);
+        if (int.TryParse(raw, out var days) && days > 0)
+        {
+            return days;
+        }
+
+        return DefaultRefreshTokenExpiryDays;
+    }
+
+    public string GenerateRefreshToken(string userId)
+    {
+        var random = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+
+        return $"{userId}.{random}";
+    }
+
+    public bool TryExtractUserId(string refreshToken, out string userId)
+    {
+        userId = string.Empty;
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return false;
+
+        var separator = refreshToken.IndexOf('.');
+        if (separator <= 0 || separator >= refreshToken.Length - 1)
+            return false;
+
+        userId = refreshToken[..separator];
+        return !string.IsNullOrWhiteSpace(userId);
+    }
+
+    public string HashToken(string rawToken)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken));
+        return Convert.ToHexString(hash);
+    }
+
+    public bool SecureEquals(string left, string right)
+    {
+        var leftBytes = Encoding.UTF8.GetBytes(left ?? string.Empty);
+        var rightBytes = Encoding.UTF8.GetBytes(right ?? string.Empty);
+
+        if (leftBytes.Length != rightBytes.Length)
+        {
+            return false;
+        }
+
+        return CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
     }
 }
 

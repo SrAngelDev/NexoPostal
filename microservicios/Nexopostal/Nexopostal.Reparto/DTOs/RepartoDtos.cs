@@ -132,3 +132,34 @@ public class DashboardRepartoDto
     public int RepartidoresActivos { get; set; }
     public double TasaEntregaExitosa { get; set; }
 }
+
+// ─── Orquestación interna (Intranet -> Reparto) ───
+
+public class AutoAsignacionEntregaDesdeAdmisionDto
+{
+    public string NumeroExpedicion { get; set; } = string.Empty;
+    public string NumeroSeguimiento { get; set; } = string.Empty;
+    public string CodigoPostalDestino { get; set; } = string.Empty;
+    public string DireccionEntrega { get; set; } = string.Empty;
+    public string CiudadDestino { get; set; } = string.Empty;
+    public string NombreDestinatario { get; set; } = string.Empty;
+    public string? TelefonoDestinatario { get; set; }
+    public bool EsUrgente { get; set; }
+    public int? OficinaPreferidaJsonId { get; set; }
+    public string? OficinaPreferidaNombre { get; set; }
+    public string? FechaReparto { get; set; }
+    public string? Observaciones { get; set; }
+}
+
+public class AutoAsignacionEntregaResultDto
+{
+    public bool Success { get; set; }
+    public bool Idempotente { get; set; }
+    public bool CreadaRuta { get; set; }
+    public int? RutaId { get; set; }
+    public string? RutaCodigo { get; set; }
+    public int? RepartidorId { get; set; }
+    public string? RepartidorNombre { get; set; }
+    public int? EntregaId { get; set; }
+    public string Message { get; set; } = string.Empty;
+}

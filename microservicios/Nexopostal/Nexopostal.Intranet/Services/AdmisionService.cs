@@ -29,17 +29,20 @@ public class AdmisionService : IAdmisionService
 {
     private readonly IMovimientoPaqueteRepository _movimientoRepo;
     private readonly IClasificacionService _clasificacionService;
+    private readonly IRepartoOrquestacionService _repartoOrquestacionService;
     private readonly INotificacionService _notificacionService;
     private readonly ILogger<AdmisionService> _logger;
 
     public AdmisionService(
         IMovimientoPaqueteRepository movimientoRepo,
         IClasificacionService clasificacionService,
+        IRepartoOrquestacionService repartoOrquestacionService,
         INotificacionService notificacionService,
         ILogger<AdmisionService> logger)
     {
         _movimientoRepo = movimientoRepo;
         _clasificacionService = clasificacionService;
+        _repartoOrquestacionService = repartoOrquestacionService;
         _notificacionService = notificacionService;
         _logger = logger;
     }
@@ -101,7 +104,31 @@ public class AdmisionService : IAdmisionService
             dto.NumeroExpedicion, dto.CodigoPostalDestino, ctaDestino.CtaCodigo,
             ctaDestino.Area, dto.EsUrgente, requiereTroncal);
 
-        // 5. Construir respuesta
+        // 5. Orquestar última milla con Reparto (si vienen datos mínimos de entrega)
+        var orquestacionIntentada = TieneDatosMinimosReparto(dto);
+        OrquestacionRepartoResultadoDto? orquestacionReparto = null;
+
+        if (orquestacionIntentada)
+        {
+            orquestacionReparto = await _repartoOrquestacionService
+                .AutoAsignarEntregaDesdeAdmisionAsync(dto, ctaDestino);
+
+            _logger.LogInformation(
+                "Orquestación Reparto para {Expedicion}: Success={Success}, Ruta={Ruta}, Entrega={Entrega}, Idempotente={Idempotente}",
+                dto.NumeroExpedicion,
+                orquestacionReparto.Success,
+                orquestacionReparto.RutaCodigo,
+                orquestacionReparto.EntregaId,
+                orquestacionReparto.Idempotente);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Admisión {Expedicion} sin datos suficientes para auto-asignación en Reparto",
+                dto.NumeroExpedicion);
+        }
+
+        // 6. Construir respuesta
         return new AdmisionPaqueteResponseDto
         {
             NumeroExpedicion = dto.NumeroExpedicion,
@@ -115,9 +142,25 @@ public class AdmisionService : IAdmisionService
             Provincia = ctaDestino.Provincia,
             RequiereMovimientoTroncal = requiereTroncal,
             TipoTransporte = tipoTransporteStr,
+            OrquestacionRepartoIntentada = orquestacionIntentada,
+            OrquestacionRepartoExitosa = orquestacionReparto?.Success == true,
+            RepartoIdempotente = orquestacionReparto?.Idempotente == true,
+            RutaRepartoId = orquestacionReparto?.RutaId,
+            RutaRepartoCodigo = orquestacionReparto?.RutaCodigo,
+            RepartidorAsignadoId = orquestacionReparto?.RepartidorId,
+            RepartidorAsignadoNombre = orquestacionReparto?.RepartidorNombre,
+            EntregaRepartoId = orquestacionReparto?.EntregaId,
+            MensajeOrquestacionReparto = orquestacionReparto?.Message,
             Mensaje = requiereTroncal
                 ? $"Paquete admitido. Se enviará de {ctaOrigen!.CtaCodigo} a {ctaDestino.CtaCodigo} vía {tipoTransporteStr}. Operarios del CTA notificados."
                 : $"Paquete admitido directamente en {ctaDestino.CtaCodigo} ({ctaDestino.Provincia}). Operarios del CTA notificados."
         };
+    }
+
+    private static bool TieneDatosMinimosReparto(AdmisionPaqueteDto dto)
+    {
+        return !string.IsNullOrWhiteSpace(dto.NumeroSeguimiento)
+            && !string.IsNullOrWhiteSpace(dto.DireccionEntrega)
+            && !string.IsNullOrWhiteSpace(dto.CodigoPostalDestino);
     }
 }
