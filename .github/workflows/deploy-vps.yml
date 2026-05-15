@@ -28,7 +28,7 @@ jobs:
   # Keep validation for PR and dev, but skip it on master deploy path.
   build-backend:
     name: Build Backend .NET
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/dev'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -55,7 +55,7 @@ jobs:
 
   build-frontend:
     name: Build Frontend Angular
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/dev'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -82,6 +82,7 @@ jobs:
 
   docker-build-push:
     name: Build and Push ${{ matrix.service.name }}
+    needs: [build-backend, build-frontend]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev')
     strategy:

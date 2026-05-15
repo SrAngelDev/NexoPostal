@@ -25,6 +25,17 @@ public class ErrorPropagationHandler : DelegatingHandler
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        // Reenviar el token JWT al microservicio de destino.
+        // aspNetCore.ApiGateway no lo propaga automáticamente, por lo que
+        // endpoints protegidos con [Authorize] en el backend devolverían 401.
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext != null
+            && httpContext.Request.Headers.TryGetValue("Authorization", out var authHeader)
+            && !request.Headers.Contains("Authorization"))
+        {
+            request.Headers.TryAddWithoutValidation("Authorization", authHeader.ToString());
+        }
+
         var response = await base.SendAsync(request, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
@@ -34,7 +45,6 @@ public class ErrorPropagationHandler : DelegatingHandler
             var realStatus = (int)response.StatusCode;
 
             // Guardar la información real del error en HttpContext.Items
-            var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext != null)
             {
                 httpContext.Items["GatewayRealStatus"] = realStatus;
