@@ -25,10 +25,12 @@ public class GatewayAuthorizationService : IGatewayAuthorization
     /// </summary>
     private static readonly HashSet<(string ApiKey, string RouteKey)> PublicRoutes =
     [
-        // Auth: login, registro y refresh son públicos por definición
+        // Auth: login, registro, refresh y recuperación de contraseña son públicos por definición
         ("auth", "login"),
         ("auth", "register"),
         ("auth", "refresh"),
+        ("auth", "solicitar-reset"),
+        ("auth", "reset-password"),
 
         // Envíos: cotización y tracking son de consulta pública
         ("envios", "cotizar"),

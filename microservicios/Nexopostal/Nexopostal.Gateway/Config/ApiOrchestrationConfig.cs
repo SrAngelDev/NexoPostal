@@ -34,7 +34,9 @@ public static class ApiOrchestrationConfig
             .AddRoute("refresh", GatewayVerb.POST, new RouteInfo { Path = "api/auth/refresh" })
             .AddRoute("me", GatewayVerb.GET, new RouteInfo { Path = "api/auth/me" })
             .AddRoute("actualizar-perfil", GatewayVerb.POST, new RouteInfo { Path = "api/auth/actualizar-perfil" })
-            .AddRoute("cambiar-password", GatewayVerb.POST, new RouteInfo { Path = "api/auth/cambiar-password" });
+            .AddRoute("cambiar-password", GatewayVerb.POST, new RouteInfo { Path = "api/auth/cambiar-password" })
+            .AddRoute("solicitar-reset", GatewayVerb.POST, new RouteInfo { Path = "api/auth/solicitar-reset" })
+            .AddRoute("reset-password", GatewayVerb.POST, new RouteInfo { Path = "api/auth/reset-password" });
     }
 
     // ENVÍOS
