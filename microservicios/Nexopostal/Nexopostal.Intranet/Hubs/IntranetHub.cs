@@ -53,6 +53,27 @@ public class IntranetHub : Hub
             return;
         }
 
+        // El rol Admin no tiene registro de operario; se une al grupo "admin" global.
+        var isAdmin = Context.User?.IsInRole("Admin") == true;
+        if (isAdmin)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, "admin");
+            _logger.LogInformation("Admin {UserId} conectado a SignalR · ConnectionId: {ConnId}", userId, Context.ConnectionId);
+            await Clients.Caller.SendAsync("ConexionEstablecida", new
+            {
+                operarioId = 0,
+                nombre = Context.User?.FindFirstValue("Nombre") ?? "Administrador",
+                rol = "Admin",
+                ctaId = 0,
+                ctaCodigo = "ADMIN",
+                ctaNombre = "Panel de Administración",
+                totalCtas = 0,
+                mensaje = "Conectado como Administrador del Sistema"
+            });
+            await base.OnConnectedAsync();
+            return;
+        }
+
         var operarios = await _operarioService.ObtenerTodosPorIdentityUserId(userId);
         if (operarios.Count == 0)
         {

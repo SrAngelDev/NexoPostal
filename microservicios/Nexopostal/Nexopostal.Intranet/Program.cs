@@ -244,9 +244,8 @@ app.MapHub<IntranetHub>("/hubs/intranet");
 
 // ===== INICIALIZACIÓN DE BASE DE DATOS =====
 
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<IntranetDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var oficinasService = scope.ServiceProvider.GetRequiredService<OficinasJsonService>();
@@ -256,7 +255,7 @@ if (app.Environment.IsDevelopment())
         await dbContext.Database.MigrateAsync();
         logger.LogInformation("Migraciones aplicadas correctamente");
 
-        // Ejecutar DataSeeder
+        // Ejecutar DataSeeder (idempotente: solo siembra si la BD está vacía)
         await IntranetDataSeeder.SeedAsync(dbContext, logger, oficinasService);
     }
     catch (Exception ex)
