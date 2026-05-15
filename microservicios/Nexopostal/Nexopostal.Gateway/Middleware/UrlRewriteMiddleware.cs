@@ -73,14 +73,28 @@ public class UrlRewriteMiddleware
         if (segments.Length < 2) return;
 
         var apiKey = segments[0];
-        var routeKey = segments[1];
+        string routeKey;
+        string? extra;
+
+        // Patrón /api/{apiKey}/{numericId}/{action}
+        // ej: /api/ctas/1/dashboard → routeKey="dashboard", parameters="1/dashboard"
+        // Esto permite que RouteInfo { Path = "api/ctas/" } + parameters "1/dashboard"
+        // resulte en upstream: api/ctas/1/dashboard
+        if (segments.Length == 3 && int.TryParse(segments[1], out _))
+        {
+            routeKey = segments[2];
+            extra    = $"{segments[1]}/{segments[2]}";
+        }
+        else
+        {
+            routeKey = segments[1];
+            extra = segments.Length > 2 ? string.Join("/", segments.Skip(2)) : null;
+        }
 
         context.Request.Path = $"{GatewayPrefix}{apiKey}/{routeKey}";
 
-        // Segmentos extra (ej: /track/NXP-xxx) → ?parameters=NXP-xxx
-        if (segments.Length > 2)
+        if (extra != null)
         {
-            var extra = string.Join("/", segments.Skip(2));
             context.Request.QueryString = context.Request.QueryString.Add("parameters", extra);
         }
     }
