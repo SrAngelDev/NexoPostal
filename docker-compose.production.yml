@@ -35,7 +35,7 @@ services:
       - nexopostal-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider --no-check-certificate https://localhost/"]
+      test: ["CMD-SHELL", "pidof nginx >/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
