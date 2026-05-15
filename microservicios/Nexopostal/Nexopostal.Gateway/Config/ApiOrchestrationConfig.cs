@@ -137,8 +137,8 @@ public static class ApiOrchestrationConfig
             .AddRoute("mi-cta", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/mi-cta" })
             .AddRoute("mis-ctas", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/mis-ctas" })
             .AddRoute("cta", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/cta/" })
-            .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/" })
-            .AddRoute("crear", GatewayVerb.POST, new RouteInfo { Path = "api/operarios" })
+            .AddRoute("operario-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/" })
+            .AddRoute("operario-crear", GatewayVerb.POST, new RouteInfo { Path = "api/operarios" })
             .AddRoute("desactivar", GatewayVerb.DELETE, new RouteInfo { Path = "api/operarios/" });
     }
 
