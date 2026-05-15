@@ -20,6 +20,7 @@ public static class ApiOrchestrationConfig
         ConfigureOperativa(orchestrator, microservices);
         ConfigureReparto(orchestrator, microservices);
         ConfigureCtas(orchestrator, microservices);
+        ConfigureOperarios(orchestrator, microservices);
     }
 
     // AUTH (Autenticación con Identity)
@@ -125,6 +126,20 @@ public static class ApiOrchestrationConfig
             .AddRoute("confirmar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/confirmar" })
             .AddRoute("ubicacion", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/ubicacion" })
             .AddRoute("entregas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/entregas" });
+    }
+
+    // OPERARIOS (Gestión de operarios de CTA — Intranet)
+    private static void ConfigureOperarios(IApiOrchestrator orchestrator, IConfigurationSection section)
+    {
+        var url = section["Logistica"] ?? "http://modulo-logistica:80";
+
+        orchestrator.AddApi("operarios", url + "/")
+            .AddRoute("mi-cta", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/mi-cta" })
+            .AddRoute("mis-ctas", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/mis-ctas" })
+            .AddRoute("cta", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/cta/" })
+            .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/" })
+            .AddRoute("crear", GatewayVerb.POST, new RouteInfo { Path = "api/operarios" })
+            .AddRoute("desactivar", GatewayVerb.DELETE, new RouteInfo { Path = "api/operarios/" });
     }
 
     // CTAs (Centros de Tratamiento Automatizado — Intranet / Admin)

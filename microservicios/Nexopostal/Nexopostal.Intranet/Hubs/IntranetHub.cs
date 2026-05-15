@@ -31,11 +31,13 @@ namespace Nexopostal.Intranet.Hubs;
 public class IntranetHub : Hub
 {
     private readonly IOperarioService _operarioService;
+    private readonly IClasificacionService _clasificacionService;
     private readonly ILogger<IntranetHub> _logger;
 
-    public IntranetHub(IOperarioService operarioService, ILogger<IntranetHub> logger)
+    public IntranetHub(IOperarioService operarioService, IClasificacionService clasificacionService, ILogger<IntranetHub> logger)
     {
         _operarioService = operarioService;
+        _clasificacionService = clasificacionService;
         _logger = logger;
     }
 
@@ -53,12 +55,25 @@ public class IntranetHub : Hub
             return;
         }
 
-        // El rol Admin no tiene registro de operario; se une al grupo "admin" global.
+        // El rol Admin se une al grupo "admin" y a TODOS los grupos de CTA.
         var isAdmin = Context.User?.IsInRole("Admin") == true;
         if (isAdmin)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, "admin");
-            _logger.LogInformation("Admin {UserId} conectado a SignalR · ConnectionId: {ConnId}", userId, Context.ConnectionId);
+
+            var todasCtas = await _clasificacionService.ObtenerTodosCtas();
+            foreach (var cta in todasCtas)
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}");
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-logistico");
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-jefe");
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-operarios");
+            }
+
+            _logger.LogInformation(
+                "Admin {UserId} conectado a SignalR · {NumCtas} CTAs · ConnectionId: {ConnId}",
+                userId, todasCtas.Count, Context.ConnectionId);
+
             await Clients.Caller.SendAsync("ConexionEstablecida", new
             {
                 operarioId = 0,
@@ -67,8 +82,8 @@ public class IntranetHub : Hub
                 ctaId = 0,
                 ctaCodigo = "ADMIN",
                 ctaNombre = "Panel de Administración",
-                totalCtas = 0,
-                mensaje = "Conectado como Administrador del Sistema"
+                totalCtas = todasCtas.Count,
+                mensaje = $"Conectado como Administrador — monitorizando {todasCtas.Count} CTAs"
             });
             await base.OnConnectedAsync();
             return;
