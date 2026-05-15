@@ -88,6 +88,7 @@ builder.Services.AddScoped<IStripeService, StripeService>();
 builder.Services.AddScoped<IEtiquetaPdfService, EtiquetaPdfService>();
 builder.Services.AddScoped<IFacturaPdfService, FacturaPdfService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddSingleton<ITarifasService, TarifasService>();
 
 // 3.1. Registrar servicio de notificación a Intranet (logística)
 var intranetBaseUrl = ResolveConfigValue(builder.Configuration["IntranetSettings:BaseUrl"]);

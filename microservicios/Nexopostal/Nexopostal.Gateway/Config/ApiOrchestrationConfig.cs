@@ -120,6 +120,8 @@ public static class ApiOrchestrationConfig
 
         orchestrator.AddApi("reparto", url + "/")
             .AddRoute("ruta", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/ruta" })
+            .AddRoute("ruta-iniciar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
+            .AddRoute("ruta-finalizar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
             .AddRoute("confirmar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/confirmar" })
             .AddRoute("ubicacion", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/ubicacion" })
             .AddRoute("entregas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/entregas" });

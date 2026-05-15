@@ -1,0 +1,211 @@
+<div class="ruta-page">
+  <nav class="ruta-nav">
+    <div class="nav-left">
+      <button class="icon-btn" (click)="volverDashboard()">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <span class="material-symbols-outlined brand-icon">route</span>
+      <div>
+        <h1>Ruta de reparto</h1>
+        <p class="sub">{{ userName }} · {{ userRole }}</p>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <span class="badge" [class.badge-offline]="!online()">
+        {{ online() ? 'Online' : 'Offline' }}
+      </span>
+      @if (gpsActivo()) {
+        <span class="badge badge-gps">GPS activo</span>
+      }
+      @if (pendientesCola() > 0) {
+        <button class="badge badge-queue" (click)="sincronizarPendientes()">
+          {{ pendientesCola() }} pendientes
+        </button>
+      }
+      <button class="icon-btn" (click)="logout()">
+        <span class="material-symbols-outlined">logout</span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="ruta-main">
+    @if (error()) {
+      <div class="alert alert-error">
+        <span class="material-symbols-outlined">error</span>
+        {{ error() }}
+      </div>
+    }
+
+    @if (mensaje()) {
+      <div class="alert alert-ok">
+        <span class="material-symbols-outlined">check_circle</span>
+        {{ mensaje() }}
+      </div>
+    }
+
+    @if (cargandoRuta()) {
+      <div class="loading-card">
+        <span class="spinner"></span>
+        Cargando ruta asignada...
+      </div>
+    } @else if (!ruta()) {
+      <section class="empty-card">
+        <span class="material-symbols-outlined">inventory_2</span>
+        <h2>Sin ruta asignada para hoy</h2>
+        <p>Cuando logística publique una ruta para tu usuario, aparecerá aquí automáticamente.</p>
+        <div class="actions">
+          <button class="btn" (click)="recargar()">Reintentar</button>
+          <button class="btn btn-secondary" (click)="irEscaneo()">Ir a escaneo manual</button>
+        </div>
+      </section>
+    } @else {
+      <section class="ruta-resumen">
+        <div>
+          <h2>{{ ruta()!.codigo }}</h2>
+          <p>{{ ruta()!.oficinaOrigenNombre }} · {{ ruta()!.fechaReparto }} · Estado: {{ ruta()!.estado }}</p>
+        </div>
+        <div class="ruta-resumen-actions">
+          <button class="btn" (click)="recargar()" [disabled]="cargandoEntregas() || sincronizando() || procesandoRutaAccion()">
+            {{ cargandoEntregas() ? 'Actualizando...' : 'Actualizar ruta' }}
+          </button>
+
+          @if (ruta()!.estado === 'Planificada') {
+            <button class="btn" (click)="iniciarRuta()" [disabled]="procesandoRutaAccion()">
+              {{ procesandoRutaAccion() ? 'Procesando...' : 'Iniciar ruta' }}
+            </button>
+          }
+
+          @if (ruta()!.estado === 'EnCurso') {
+            <div class="finalizar-wrap">
+              <input
+                type="text"
+                [(ngModel)]="observacionesFinRuta"
+                placeholder="Observaciones de cierre (opcional)"
+              />
+              <button class="btn" (click)="finalizarRuta()" [disabled]="procesandoRutaAccion()">
+                {{ procesandoRutaAccion() ? 'Procesando...' : 'Finalizar ruta' }}
+              </button>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="metrics-grid">
+        <article class="metric-card">
+          <span>Total</span>
+          <strong>{{ resumen().total }}</strong>
+        </article>
+        <article class="metric-card">
+          <span>Completadas</span>
+          <strong>{{ resumen().completadas }}</strong>
+        </article>
+        <article class="metric-card">
+          <span>Pendientes</span>
+          <strong>{{ resumen().pendientes }}</strong>
+        </article>
+        <article class="metric-card">
+          <span>Fallidas</span>
+          <strong>{{ resumen().fallidas }}</strong>
+        </article>
+      </section>
+
+      <section class="progress-wrap">
+        <div class="progress-label">Progreso de ruta: {{ resumen().progreso }}%</div>
+        <div class="progress-track">
+          <div class="progress-bar" [style.width.%]="resumen().progreso"></div>
+        </div>
+      </section>
+
+      <section class="layout-grid">
+        <article class="entregas-list">
+          <header>
+            <h3>Paradas secuenciadas</h3>
+            <small>{{ entregas().length }} entregas</small>
+          </header>
+
+          @if (cargandoEntregas()) {
+            <div class="loading-inner">Cargando entregas...</div>
+          } @else {
+            <div class="items">
+              @for (entrega of entregas(); track entrega.id) {
+                <button class="item" [class.item-selected]="entregaSeleccionadaId() === entrega.id" (click)="seleccionarEntrega(entrega)">
+                  <div class="item-order">#{{ entrega.ordenEnRuta }}</div>
+                  <div class="item-body">
+                    <strong>{{ entrega.nombreDestinatario }}</strong>
+                    <span>{{ entrega.direccionEntrega }}</span>
+                    <span>{{ entrega.ciudad }} · {{ entrega.codigoPostal }}</span>
+                  </div>
+                  <span class="item-status" [ngClass]="estadoClase(entrega.estado)">{{ entrega.estado }}</span>
+                </button>
+              }
+            </div>
+          }
+        </article>
+
+        <article class="confirmacion-card">
+          <header>
+            <h3>Confirmación de entrega</h3>
+            @if (entregaSeleccionada(); as selected) {
+              <small>{{ selected.numeroExpedicion }}</small>
+            }
+          </header>
+
+          @if (!entregaSeleccionada()) {
+            <p class="empty-confirm">Selecciona una parada para registrar su resultado.</p>
+          } @else {
+            <div class="confirm-form">
+              <label>
+                Resultado
+                <select [(ngModel)]="estadoSeleccionado">
+                  @for (estado of estadosConfirmacion; track estado.valor) {
+                    <option [ngValue]="estado.valor">{{ estado.etiqueta }}</option>
+                  }
+                </select>
+              </label>
+
+              <label>
+                Receptor
+                <input type="text" [(ngModel)]="receptorNombre" placeholder="Nombre de quien recibe" />
+              </label>
+
+              <label>
+                DNI receptor
+                <input type="text" [(ngModel)]="receptorDni" placeholder="Opcional" />
+              </label>
+
+              <label>
+                Firma digital (texto)
+                <input type="text" [(ngModel)]="firmaDigital" placeholder="Ej: Firma de Juan Perez" />
+              </label>
+
+              <label>
+                Foto de prueba
+                <input type="file" accept="image/*" capture="environment" (change)="onFotoSeleccionada($event)" />
+              </label>
+
+              @if (fotoPreview()) {
+                <img class="foto-preview" [src]="fotoPreview()!" alt="Vista previa foto" />
+              }
+
+              <label>
+                Observaciones
+                <textarea rows="3" [(ngModel)]="observaciones" placeholder="Notas del intento/entrega"></textarea>
+              </label>
+
+              @if (ultimaUbicacion(); as gps) {
+                <p class="gps-info">
+                  Ubicación asociada: {{ gps.latitud | number:'1.5-5' }}, {{ gps.longitud | number:'1.5-5' }}
+                </p>
+              }
+
+              <button class="btn" (click)="confirmarEntrega()" [disabled]="enviandoConfirmacion()">
+                {{ enviandoConfirmacion() ? 'Enviando...' : 'Confirmar entrega' }}
+              </button>
+            </div>
+          }
+        </article>
+      </section>
+    }
+  </main>
+</div>

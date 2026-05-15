@@ -23,6 +23,7 @@ public class PagosController : ControllerBase
     private readonly IEmailService _emailService;
     private readonly ITrackingNumberGenerator _trackingGenerator;
     private readonly ILogisticaNotifierService _logisticaNotifier;
+    private readonly ITarifasService _tarifasService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PagosController> _logger;
 
@@ -34,6 +35,7 @@ public class PagosController : ControllerBase
         IEmailService emailService,
         ITrackingNumberGenerator trackingGenerator,
         ILogisticaNotifierService logisticaNotifier,
+        ITarifasService tarifasService,
         IConfiguration configuration,
         ILogger<PagosController> logger)
     {
@@ -44,6 +46,7 @@ public class PagosController : ControllerBase
         _emailService = emailService;
         _trackingGenerator = trackingGenerator;
         _logisticaNotifier = logisticaNotifier;
+        _tarifasService = tarifasService;
         _configuration = configuration;
         _logger = logger;
     }
@@ -64,6 +67,16 @@ public class PagosController : ControllerBase
         var userId = ObtenerUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized("Token inválido");
+
+        var dimensiones = _tarifasService.ParseDimensiones(dto.Dimensiones);
+        var tarifa = _tarifasService.Calcular(new TarifaCalculoInput(
+            dto.Peso,
+            dimensiones.Largo,
+            dimensiones.Ancho,
+            dimensiones.Alto,
+            dto.CodigoPostalOrigen,
+            dto.CodigoPostalDestino,
+            dto.TipoTarifa));
 
         // 1. Crear el envío en estado PendientePago
         var envio = new Envio
@@ -87,9 +100,9 @@ public class PagosController : ControllerBase
             TelefonoDestinatario = dto.TelefonoDestinatario,
             EmailDestinatario = dto.EmailDestinatario,
             DniDestinatario = dto.DniDestinatario,
-            TipoTarifa = dto.TipoTarifa,
-            TiempoEntregaEstimado = dto.TiempoEntregaEstimado,
-            CosteCalculado = Math.Round(dto.Coste, 2),
+            TipoTarifa = tarifa.TipoTarifa,
+            TiempoEntregaEstimado = tarifa.TiempoEntregaEstimado,
+            CosteCalculado = tarifa.PrecioTotal,
             EstadoActual = EstadoEnvio.PendientePago,
             EstadoInternoActual = EstadoInterno.PendientePago,
             Pagado = false,
@@ -297,7 +310,7 @@ public class PagosController : ControllerBase
 
         // 📡 Notificar al microservicio de logística (Intranet) para que
         // resuelva el CTA por código postal y notifique vía SignalR
-        var esUrgente = envio.TipoTarifa?.Contains("Express", StringComparison.OrdinalIgnoreCase) == true;
+        var esUrgente = envio.TipoTarifa?.Contains("Premium", StringComparison.OrdinalIgnoreCase) == true;
         var remitente = $"{envio.NombreRemitente} {envio.ApellidosRemitente}".Trim();
         var destinatario = $"{envio.NombreDestinatario} {envio.ApellidosDestinatario}".Trim();
 

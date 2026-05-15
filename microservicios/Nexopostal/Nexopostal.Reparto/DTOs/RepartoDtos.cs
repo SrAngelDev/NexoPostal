@@ -83,12 +83,18 @@ public class EntregaPaqueteDto
     public string CodigoPostal { get; set; } = string.Empty;
     public string Ciudad { get; set; } = string.Empty;
     public string NombreDestinatario { get; set; } = string.Empty;
+    public string? TelefonoDestinatario { get; set; }
     public int NumeroIntento { get; set; }
     public int OrdenEnRuta { get; set; }
     public string Estado { get; set; } = string.Empty;
     public DateTime? FechaIntento { get; set; }
     public string? ReceptorNombre { get; set; }
+    public string? ReceptorDni { get; set; }
     public string? Observaciones { get; set; }
+    public double? LatitudEntrega { get; set; }
+    public double? LongitudEntrega { get; set; }
+    public string? FirmaDigital { get; set; }
+    public string? FotoEntrega { get; set; }
 }
 
 public class AgregarEntregaDto
@@ -111,6 +117,7 @@ public class RegistrarEntregaDto
     public double? Latitud { get; set; }
     public double? Longitud { get; set; }
     public string? FirmaDigital { get; set; }
+    public string? FotoEntrega { get; set; }
 }
 
 // ─── Dashboard ───

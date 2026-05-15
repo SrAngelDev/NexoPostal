@@ -8,6 +8,11 @@ export const routes: Routes = [
     canActivate: [loginGuard]
   },
   {
+    path: 'ruta',
+    loadComponent: () => import('./pages/ruta/ruta.component').then(m => m.RutaComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'escaneo',
     loadComponent: () => import('./pages/escaneo/escaneo.component').then(m => m.EscaneoComponent),
     canActivate: [authGuard]

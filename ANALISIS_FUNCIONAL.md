@@ -1,8 +1,8 @@
 # Analisis funcional integral de NexoPostal
 
-Fecha: 2026-05-13
+Fecha: 2026-05-15
 
-Este documento resume el estado funcional del sistema (frontend, backend y operativa), detalla brechas y propone mejoras, con foco especial en la app de repartidores.
+Este documento resume el estado funcional del sistema (frontend, backend y operativa), detalla brechas y propone mejoras. Esta version incorpora los avances recientes en pricing, reparto y tracking en tiempo real.
 
 ## Alcance
 - Apps Angular: clientes-app, intranet-app, driver-app.
@@ -15,7 +15,8 @@ Nota: este documento no incluye credenciales ni secretos.
 ## Funcionalidad implementada
 
 ### Clientes (web)
-- Envio: wizard con datos de paquete, remitente/destinatario, tarifas locales y pago.
+- Envio: wizard con datos de paquete, remitente/destinatario y pago.
+- Tarifas: consumo del backend mediante endpoint unico (sin simulador local en cliente).
 - Tracking: consulta publica por numero de seguimiento + UI de estados.
 - Panel usuario: perfil, direcciones favoritas, listado de envios.
 - Oficinas: busqueda por CP o direccion, listado y detalles.
@@ -25,8 +26,9 @@ Nota: este documento no incluye credenciales ni secretos.
 - Documentos: etiqueta y factura en PDF.
 - Envios internos: detalle por expedicion, listado interno, actualizar estado interno.
 - Perfil: get/guardar perfil y agenda de direcciones.
-- Tarifas: consulta y calculo basico.
-- Tracking realtime: Hub + servicio de notificaciones.
+- Tarifas: motor unico (TarifasService) reutilizado en tarifas, envios y pagos.
+- Tracking realtime: Hub + servicio de notificaciones con soporte de latitud/longitud.
+- Integracion interna de reparto: endpoint POST /api/envios/interno/tracking/ubicacion para publicar ubicacion de reparto al tracking del cliente.
 
 ### Intranet (Logistica)
 - Admision de paquetes (incluye endpoint interno para inter-servicios).
@@ -36,102 +38,98 @@ Nota: este documento no incluye credenciales ni secretos.
 
 ### Reparto (API)
 - Repartidores: crear, listar, mi perfil.
-- Rutas: crear, listar, iniciar, finalizar, detalle.
-- Entregas: agregar a ruta, listar, confirmar/registrar.
+- Rutas: crear, listar, detalle, iniciar y finalizar.
+- Entregas: agregar a ruta, listar por ruta/seguimiento, confirmar y registrar.
+- Confirmaciones con evidencia: receptor, observaciones, firma/foto y coordenadas de entrega.
 - Dashboard de reparto.
-- Ubicacion: endpoint presente (pendiente de integracion en tiempo real).
+- Ubicacion: endpoint operativo e integrado con Ciudadano para tracking realtime (por numero de seguimiento o por ruta).
 
 ### Driver app (repartidores)
-- Login y dashboard basico.
-- Escaneo de codigo de barras (camara y entrada manual).
-- Consulta interna por numero de expedicion.
-- Actualizacion de estado interno del envio.
+- Login y dashboard operativo.
+- Ruta activa: carga de ruta asignada, listado/secuenciacion de paradas y resumen de progreso.
+- Ciclo de ruta: iniciar y finalizar ruta desde la app (incluye observaciones de cierre).
+- Entregas: confirmacion con estados (entregado, ausente, rechazado, etc.) y evidencia de entrega.
+- GPS: envio periodico de ubicacion al backend cuando la ruta esta en curso.
+- Offline: cola local de confirmaciones y ubicaciones con reintento automatico al reconectar.
+- Escaneo de codigo de barras (camara y entrada manual) + consulta interna por expedicion.
 
-## Faltantes y brechas
+## Estado de prioridades (actualizacion)
 
-### Reparto / Driver app (principal gap)
-- La app de repartidores no consume el microservicio Reparto (rutas/entregas). Solo actualiza estados internos de envios.
-- No hay vista de ruta asignada, listado de paradas o secuenciacion.
-- No hay flujo de confirmacion por entrega vinculado a una ruta.
-- Sin GPS en tiempo real (el endpoint de ubicacion esta sin integrar).
-- Sin prueba de entrega (firma/foto/ubicacion) asociada a la entrega.
-- Sin modo offline ni colas de reintentos para repartidores.
+### Prioridad 1: Repartidores
+- Estado: implementada en gran parte.
+- Hecho: integracion driver-app con Reparto, vista de ruta, confirmacion de entregas, inicio/fin de ruta, GPS y cola offline.
+- Pendiente: mejorar experiencia de mapa/navegacion y endurecer el seguimiento en segundo plano.
+
+### Prioridad 2: Tracking realtime
+- Estado: parcialmente implementada.
+- Hecho: publicacion de ubicacion de reparto hacia tracking del cliente via Ciudadano + SignalR.
+- Pendiente: cerrar sincronizacion completa de eventos de entrega con el estado publico del envio.
+
+### Prioridad 3: Pricing unico
+- Estado: implementada.
+- Hecho: motor unico de tarifas en backend y consumo de esa fuente desde la web.
+
+### Prioridad 4: Robustez
+- Estado: pendiente.
+- Incluye: refresh token real, observabilidad basica, hardening de seguridad interna y mas tests de integracion.
+
+## Faltantes y brechas actuales
+
+### Reparto / Driver app
+- Falta capa de mapa/navegacion real (actualmente hay secuencia y progreso, no guiado cartografico).
+- El tracking depende de la sesion activa de la app; no hay estrategia robusta de background para movilidad prolongada.
+- La evidencia de entrega requiere evolucion a almacenamiento/gestor documental centralizado.
 
 ### Tracking en tiempo real
-- Existe Hub y servicio de notificaciones, pero no se ve orquestacion clara desde cambios de estado interno.
-- Falta integrar eventos de reparto (entrega, ubicacion) con SignalR para el cliente.
+- Ubicacion de reparto ya integrada en realtime para cliente.
+- Falta consolidar una orquestacion unica para que todos los eventos operativos (entrega/fallo/devolucion) impacten de forma consistente en estado publico + realtime.
 
-### Tarifas y pricing
-- La web calcula tarifas localmente con logica simulada.
-- El backend tiene otra logica estatica.
-- Falta motor unico de tarifas con misma fuente para web y API.
-
-### Autenticacion
-- Endpoint de refresh token esta como placeholder.
+### Autenticacion y seguridad interna
+- Endpoint de refresh token continua como placeholder.
+- Pendiente reforzar autenticacion/autorizacion servicio a servicio en endpoints internos.
 
 ### Orquestacion operativa
 - No hay generacion automatica de rutas/entregas a partir de la admision.
-- Las piezas existen, pero el flujo end-to-end esta incompleto.
-
-## Mejoras priorizadas (resumen)
-
-### Prioridad 1: Repartidores
-- Integrar driver-app con Reparto: mi perfil, ruta activa, entregas, confirmar entrega.
-- Añadir vista de ruta (orden, mapa basico, checklist, tiempos).
-- Implementar GPS en background con envio periodico al backend.
-- Vincular confirmaciones de entrega con actualizacion de estados publicos.
-
-### Prioridad 2: Tracking realtime
-- Emitir eventos SignalR desde cambios de estado internos y reparto.
-- Publicar ubicacion del repartidor para el seguimiento del cliente.
-
-### Prioridad 3: Pricing unico
-- Mover calculo de tarifas al backend (endpoint unico).
-- Reemplazar logica simulada en la web.
-
-### Prioridad 4: Robustez
-- Refresh token real.
-- Observabilidad basica (logs estructurados, metricas, trazas).
-- Tests de integracion en endpoints criticos.
+- El flujo end-to-end existe por piezas, pero no esta totalmente automatizado.
 
 ## Detalle funcional por dominio
 
 ### Clientes
-- Implementado: altas de envio, pago, tracking, perfil y direcciones.
-- Falta: tarifas reales, reintentos de pago guiados, estado de pagos mas robusto, notificaciones push reales.
+- Implementado: altas de envio, pago, tracking, perfil, direcciones y tarifas consumidas desde backend.
+- Falta: resiliencia de pagos (reintentos guiados), push reales y mejoras UX de seguimiento.
 
 ### Intranet / Logistica
 - Implementado: admision, asignaciones, movimientos troncales, incidencias.
-- Falta: unificacion con reparto para cerrar el ciclo operativo (asignar rutas y entregas automaticamente).
+- Falta: automatizar el traspaso operativo hacia reparto para cerrar ciclo sin pasos manuales.
 
 ### Reparto
-- Implementado: API de rutas y entregas.
-- Falta: consumo real desde driver-app, evidencia de entrega, ubicacion realtime.
+- Implementado: API de rutas y entregas, evidencia, inicio/fin de ruta y ubicacion integrada con tracking cliente.
+- Falta: sincronizacion completa con estados publicos de Ciudadano en todos los resultados de entrega.
 
 ### Driver app
-- Implementado: login, dashboard y escaneo.
-- Falta: flujo de ruta y entregas, GPS, offline y evidencia.
+- Implementado: login, dashboard, escaneo, ruta activa, confirmacion de entregas, GPS y modo offline con reintentos.
+- Falta: navegacion en mapa y robustez de tracking en segundo plano.
 
-## Backlog propuesto (driver-app)
+## Backlog propuesto (foco actual)
 
-1) Ruta activa
-- Obtener mi perfil de repartidor.
-- Obtener ruta activa del dia.
-- Listar entregas de la ruta.
+1) Sincronizacion estado publico
+- Propagar automaticamente confirmaciones de Reparto a estado interno/publico en Ciudadano.
+- Unificar eventos realtime para entrega correcta, intento fallido, devolucion e incidencias.
 
-2) Entregas
-- Confirmar entrega con estados (entregado, ausente, rechazo, etc.).
-- Adjuntar evidencia (firma/foto) y ubicacion.
+2) Experiencia de ruta avanzada
+- Añadir mapa basico con paradas y progreso espacial.
+- Incorporar estimaciones ETA por parada y alertas de desvio.
 
-3) Seguimiento
-- Enviar ubicacion periodica al backend.
-- Mostrar progreso de ruta (entregas completadas vs pendientes).
+3) Tracking y offline de nivel produccion
+- Estrategia de background tracking (movil/PWA) y politicas de bateria.
+- Reintentos con backoff, deduplicacion y telemetria de colas.
 
-4) Offline
-- Cola local de confirmaciones.
-- Reintentos automaticos al recuperar conexion.
+4) Robustez transversal
+- Implementar refresh token real.
+- Añadir observabilidad (logs estructurados, metricas, trazas distribuidas).
+- Extender tests de integracion E2E en flujos criticos.
 
-## Mapa de endpoints (referencia)
+## Mapa de endpoints (referencia actualizada)
 
 Ciudadano:
 - POST /api/envios/cotizar
@@ -141,8 +139,10 @@ Ciudadano:
 - GET  /api/envios/factura/{numero}
 - GET  /api/envios/etiqueta/{numero}
 - GET  /api/envios/interno/{expedicion}
+- GET  /api/envios/interno/por-seguimiento/{numero}
 - GET  /api/envios/interno/listar
 - PUT  /api/envios/interno/{expedicion}/estado
+- POST /api/envios/interno/tracking/ubicacion
 - GET  /api/etiquetas/{numero}
 - GET  /api/perfil
 - POST /api/perfil
@@ -164,16 +164,26 @@ Intranet:
 Reparto:
 - GET  /api/reparto/mi-perfil
 - GET  /api/reparto/ruta
+- GET  /api/reparto/rutas
+- GET  /api/reparto/rutas/{id}
+- POST /api/reparto/rutas/{id}/iniciar
+- POST /api/reparto/rutas/{id}/finalizar
 - GET  /api/reparto/entregas?rutaId=
+- GET  /api/reparto/entregas?seguimiento=
 - POST /api/reparto/confirmar?entregaId=
-- POST /api/reparto/ubicacion   (pendiente de integrar con tracking)
+- PUT  /api/reparto/entregas/{entregaId}/registrar
+- POST /api/reparto/ubicacion
+
+Gateway (uso driver-app):
+- POST /api/nexopostal/reparto/ruta-iniciar/{id}/iniciar
+- POST /api/nexopostal/reparto/ruta-finalizar/{id}/finalizar
 
 ## Proximos pasos recomendados
 
-1) Definir el flujo end-to-end de reparto (admision -> ruta -> entrega -> tracking).
-2) Implementar la integracion driver-app con Reparto y GPS.
-3) Unificar tarifas en backend y actualizar clientes-app.
-4) Activar SignalR en cambios de estado para tracking realtime.
+1) Conectar confirmaciones de entrega de Reparto con actualizacion de estado interno/publico en Ciudadano de forma automatica.
+2) Añadir mapa operativo en driver-app y mejorar estrategia de tracking en segundo plano.
+3) Implementar refresh token y hardening de endpoints internos entre microservicios.
+4) Introducir observabilidad y pruebas E2E para flujos de reparto/tracking/pagos.
 
 ---
 Fin del documento.

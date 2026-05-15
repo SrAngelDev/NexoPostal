@@ -79,6 +79,18 @@ builder.Services.AddScoped<IOptimizacionRutasService, OptimizacionRutasService>(
 builder.Services.AddScoped<IReintentoEntregaService, ReintentoEntregaService>();
 builder.Services.AddScoped<IBalanceoCargaService, BalanceoCargaService>();
 
+var ciudadanoTrackingBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoTrackingSettings:BaseUrl"]);
+if (string.IsNullOrWhiteSpace(ciudadanoTrackingBaseUrl))
+{
+    ciudadanoTrackingBaseUrl = "http://modulo-ciudadano:80";
+}
+
+builder.Services.AddHttpClient<ICiudadanoTrackingNotifierService, CiudadanoTrackingNotifierService>(client =>
+{
+    client.BaseAddress = new Uri(ciudadanoTrackingBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 // 4. Configurar Controllers y JSON
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

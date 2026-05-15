@@ -324,6 +324,7 @@ public class RepartoService : IRepartoService
         entrega.LatitudEntrega = dto.Latitud;
         entrega.LongitudEntrega = dto.Longitud;
         entrega.FirmaDigital = dto.FirmaDigital;
+        entrega.FotoEntrega = dto.FotoEntrega;
 
         await _entregaRepo.UpdateAsync(entrega);
 
@@ -346,12 +347,18 @@ public class RepartoService : IRepartoService
             CodigoPostal = e.CodigoPostal,
             Ciudad = e.Ciudad,
             NombreDestinatario = e.NombreDestinatario,
+            TelefonoDestinatario = e.TelefonoDestinatario,
             NumeroIntento = e.NumeroIntento,
             OrdenEnRuta = e.OrdenEnRuta,
             Estado = e.Estado.ToString(),
             FechaIntento = e.FechaIntento,
             ReceptorNombre = e.ReceptorNombre,
-            Observaciones = e.Observaciones
+            ReceptorDni = e.ReceptorDni,
+            Observaciones = e.Observaciones,
+            LatitudEntrega = e.LatitudEntrega,
+            LongitudEntrega = e.LongitudEntrega,
+            FirmaDigital = e.FirmaDigital,
+            FotoEntrega = e.FotoEntrega
         }).ToList();
     }
 
@@ -368,12 +375,18 @@ public class RepartoService : IRepartoService
             CodigoPostal = e.CodigoPostal,
             Ciudad = e.Ciudad,
             NombreDestinatario = e.NombreDestinatario,
+            TelefonoDestinatario = e.TelefonoDestinatario,
             NumeroIntento = e.NumeroIntento,
             OrdenEnRuta = e.OrdenEnRuta,
             Estado = e.Estado.ToString(),
             FechaIntento = e.FechaIntento,
             ReceptorNombre = e.ReceptorNombre,
-            Observaciones = e.Observaciones
+            ReceptorDni = e.ReceptorDni,
+            Observaciones = e.Observaciones,
+            LatitudEntrega = e.LatitudEntrega,
+            LongitudEntrega = e.LongitudEntrega,
+            FirmaDigital = e.FirmaDigital,
+            FotoEntrega = e.FotoEntrega
         }).ToList();
     }
 
@@ -445,12 +458,18 @@ public class RepartoService : IRepartoService
                     CodigoPostal = e.CodigoPostal,
                     Ciudad = e.Ciudad,
                     NombreDestinatario = e.NombreDestinatario,
+                    TelefonoDestinatario = e.TelefonoDestinatario,
                     NumeroIntento = e.NumeroIntento,
                     OrdenEnRuta = e.OrdenEnRuta,
                     Estado = e.Estado.ToString(),
                     FechaIntento = e.FechaIntento,
                     ReceptorNombre = e.ReceptorNombre,
-                    Observaciones = e.Observaciones
+                    ReceptorDni = e.ReceptorDni,
+                    Observaciones = e.Observaciones,
+                    LatitudEntrega = e.LatitudEntrega,
+                    LongitudEntrega = e.LongitudEntrega,
+                    FirmaDigital = e.FirmaDigital,
+                    FotoEntrega = e.FotoEntrega
                 })
                 .ToList()
         };
@@ -467,12 +486,18 @@ public class RepartoService : IRepartoService
             CodigoPostal = e.CodigoPostal,
             Ciudad = e.Ciudad,
             NombreDestinatario = e.NombreDestinatario,
+            TelefonoDestinatario = e.TelefonoDestinatario,
             NumeroIntento = e.NumeroIntento,
             OrdenEnRuta = e.OrdenEnRuta,
             Estado = e.Estado.ToString(),
             FechaIntento = e.FechaIntento,
             ReceptorNombre = e.ReceptorNombre,
-            Observaciones = e.Observaciones
+            ReceptorDni = e.ReceptorDni,
+            Observaciones = e.Observaciones,
+            LatitudEntrega = e.LatitudEntrega,
+            LongitudEntrega = e.LongitudEntrega,
+            FirmaDigital = e.FirmaDigital,
+            FotoEntrega = e.FotoEntrega
         };
     }
 }

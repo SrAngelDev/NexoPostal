@@ -3,9 +3,11 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificacionService } from '../../services/notificacion.service';
+import { TarifasService } from '../../services/tarifas.service';
 
 interface TarifaCalculada {
   peso: number;
+  pesoFacturable: number;
   largo: number;
   ancho: number;
   alto: number;
@@ -13,7 +15,11 @@ interface TarifaCalculada {
   cpDestino: string;
   zona: string;
   tarifaEstandar: number;
-  tarifaUrgente: number;
+  tarifaPremium: number;
+  tiempoEstandar: string;
+  tiempoPremium: string;
+  aplicaRecargo: boolean;
+  recargoPorcentaje: number;
 }
 
 @Component({
@@ -36,7 +42,11 @@ export class CalculadoraTarifasComponent {
   tarifaCalculada = signal<TarifaCalculada | null>(null);
   isCalculating = signal(false);
 
-  constructor(private router: Router, private notificacion: NotificacionService) {}
+  constructor(
+    private router: Router,
+    private notificacion: NotificacionService,
+    private tarifasService: TarifasService
+  ) {}
 
   ngOnInit(): void {
     window.scrollTo(0, 0);
@@ -67,57 +77,63 @@ export class CalculadoraTarifasComponent {
       return;
     }
 
-    if (largo > 120) {
-      this.notificacion.aviso('Largo excedido', 'El largo máximo permitido es de 120 cm.');
+    if (largo > 170) {
+      this.notificacion.aviso('Largo excedido', 'El lado mayor máximo permitido es de 170 cm.');
       return;
     }
 
     const sumaDimensiones = largo + ancho + alto;
     if (sumaDimensiones > 210) {
-      this.notificacion.aviso('Dimensiones excedidas', `La suma del largo, ancho y alto no puede superar los 210 cm. Actualmente: ${sumaDimensiones} cm.`);
-      return;
+      this.notificacion.aviso(
+        'Dimensiones extra',
+        `La suma de dimensiones supera 210 cm. Se aplicará un recargo del 35%. (Actual: ${sumaDimensiones} cm)`
+      );
     }
 
     this.isCalculating.set(true);
 
-    // Simulación de cálculo
-    setTimeout(() => {
-      // Cálculo del peso volumétrico: (largo × ancho × alto) / 5000
-      const pesoVolumetrico = (largo * ancho * alto) / 5000;
-      const pesoFacturable = Math.max(peso, pesoVolumetrico);
-      
-      // Determinar zona según código postal destino
-      const cpDest = parseInt(this.cpDestino());
-      let zona = 'Península';
-      
-      if (cpDest >= 35000 && cpDest <= 35999) {
-        zona = 'Canarias';
-      } else if (cpDest >= 7000 && cpDest <= 7999) {
-        zona = 'Baleares';
-      } else if (cpDest >= 51000 && cpDest <= 52999) {
-        zona = 'Ceuta/Melilla';
+    this.tarifasService.consultarTarifas({
+      peso,
+      largo,
+      ancho,
+      alto,
+      codigoPostalOrigen: this.cpOrigen(),
+      codigoPostalDestino: this.cpDestino()
+    }).subscribe({
+      next: (response) => {
+        const estandar = response.tarifas.find(t => t.nombre.toLowerCase() === 'estandar');
+        const premium = response.tarifas.find(t => t.nombre.toLowerCase() === 'premium');
+
+        if (!estandar || !premium) {
+          this.notificacion.error('Tarifas no disponibles', 'No se pudieron cargar las tarifas.');
+          this.isCalculating.set(false);
+          return;
+        }
+
+        this.tarifaCalculada.set({
+          peso,
+          pesoFacturable: response.pesoFacturable,
+          largo,
+          ancho,
+          alto,
+          cpOrigen: this.cpOrigen(),
+          cpDestino: this.cpDestino(),
+          zona: response.zona,
+          tarifaEstandar: estandar.precioTotal,
+          tarifaPremium: premium.precioTotal,
+          tiempoEstandar: estandar.tiempoEntregaEstimado,
+          tiempoPremium: premium.tiempoEntregaEstimado,
+          aplicaRecargo: response.aplicaRecargo,
+          recargoPorcentaje: response.recargoPorcentaje
+        });
+
+        this.isCalculating.set(false);
+      },
+      error: (err) => {
+        this.isCalculating.set(false);
+        this.notificacion.errorHttp(err, 'No se pudieron calcular las tarifas');
       }
-
-      // Tarifa unificada basada solo en peso volumétrico
-      // Precio base + (peso facturable × tarifa por kg)
-      const basePrice = 5 + (pesoFacturable * 1.5);
-      const tarifaEstandar = basePrice;
-      const tarifaUrgente = tarifaEstandar * 1.8;
-
-      this.tarifaCalculada.set({
-        peso: peso,
-        largo: largo,
-        ancho: ancho,
-        alto: alto,
-        cpOrigen: this.cpOrigen(),
-        cpDestino: this.cpDestino(),
-        zona,
-        tarifaEstandar: parseFloat(tarifaEstandar.toFixed(2)),
-        tarifaUrgente: parseFloat(tarifaUrgente.toFixed(2))
-      });
-
-      this.isCalculating.set(false);
-    }, 800);
+    });
   }
 
   limpiar(): void {

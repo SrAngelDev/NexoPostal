@@ -26,7 +26,8 @@ public interface ITrackingNotificacionService
     /// Notifica que el paquete ha cambiado de ubicación física.
     /// </summary>
     Task NotificarCambioUbicacion(string numeroSeguimiento, string ubicacion,
-        string tipoUbicacion, string descripcion);
+        string tipoUbicacion, string descripcion, double? latitud = null,
+        double? longitud = null);
 
     /// <summary>
     /// Notifica que el paquete ha sido entregado exitosamente.
@@ -77,7 +78,8 @@ public class TrackingNotificacionService : ITrackingNotificacionService
 
     /// <inheritdoc />
     public async Task NotificarCambioUbicacion(string numeroSeguimiento, string ubicacion,
-        string tipoUbicacion, string descripcion)
+        string tipoUbicacion, string descripcion, double? latitud = null,
+        double? longitud = null)
     {
         var grupo = $"tracking-{numeroSeguimiento.ToUpper().Trim()}";
 
@@ -87,6 +89,8 @@ public class TrackingNotificacionService : ITrackingNotificacionService
             ubicacion,
             tipoUbicacion,
             descripcion,
+            latitud,
+            longitud,
             fechaHora = DateTime.UtcNow
         });
 

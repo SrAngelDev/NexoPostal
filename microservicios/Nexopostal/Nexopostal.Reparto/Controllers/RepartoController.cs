@@ -15,11 +15,16 @@ namespace Nexopostal.Reparto.Controllers;
 public class RepartoController : ControllerBase
 {
     private readonly IRepartoService _repartoService;
+    private readonly ICiudadanoTrackingNotifierService _ciudadanoTrackingNotifier;
     private readonly ILogger<RepartoController> _logger;
 
-    public RepartoController(IRepartoService repartoService, ILogger<RepartoController> logger)
+    public RepartoController(
+        IRepartoService repartoService,
+        ICiudadanoTrackingNotifierService ciudadanoTrackingNotifier,
+        ILogger<RepartoController> logger)
     {
         _repartoService = repartoService;
+        _ciudadanoTrackingNotifier = ciudadanoTrackingNotifier;
         _logger = logger;
     }
 
@@ -258,12 +263,46 @@ public class RepartoController : ControllerBase
     /// Registra la ubicación en tiempo real del repartidor (para tracking).
     /// </summary>
     [HttpPost("ubicacion")]
-    public IActionResult RegistrarUbicacion([FromBody] UbicacionRepartidorRequest request)
+    public async Task<IActionResult> RegistrarUbicacion([FromBody] UbicacionRepartidorRequest request)
     {
-        // TODO: Integrar con SignalR del módulo Ciudadano para actualizar tracking en tiempo real
         _logger.LogInformation("Ubicación recibida de repartidor: lat={Lat}, lng={Lng}",
             request.Latitud, request.Longitud);
-        return Ok(new { message = "Ubicación registrada" });
+
+        var seguimientos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrWhiteSpace(request.NumeroSeguimiento))
+        {
+            seguimientos.Add(request.NumeroSeguimiento.Trim().ToUpperInvariant());
+        }
+
+        if (request.RutaId.HasValue)
+        {
+            var entregas = await _repartoService.ObtenerEntregasPorRuta(request.RutaId.Value);
+            foreach (var entrega in entregas)
+            {
+                if (!string.IsNullOrWhiteSpace(entrega.NumeroSeguimiento))
+                {
+                    seguimientos.Add(entrega.NumeroSeguimiento.Trim().ToUpperInvariant());
+                }
+            }
+        }
+
+        foreach (var numeroSeguimiento in seguimientos)
+        {
+            await _ciudadanoTrackingNotifier.NotificarUbicacionAsync(
+                numeroSeguimiento,
+                request.Latitud,
+                request.Longitud,
+                request.TipoUbicacion,
+                request.Descripcion,
+                HttpContext.RequestAborted);
+        }
+
+        return Ok(new
+        {
+            message = "Ubicación registrada",
+            trackingNotificados = seguimientos.Count
+        });
     }
 }
 
@@ -279,4 +318,7 @@ public class UbicacionRepartidorRequest
     public double Latitud { get; set; }
     public double Longitud { get; set; }
     public int? RutaId { get; set; }
+    public string? NumeroSeguimiento { get; set; }
+    public string TipoUbicacion { get; set; } = "RepartidorEnRuta";
+    public string? Descripcion { get; set; }
 }

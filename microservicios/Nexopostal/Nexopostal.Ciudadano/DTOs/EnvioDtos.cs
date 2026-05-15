@@ -212,3 +212,29 @@ public class EnvioResumenInternoDto
     public string TipoTarifa { get; set; } = string.Empty;
     public bool Pagado { get; set; }
 }
+
+/// <summary>
+/// DTO interno para notificar ubicación del repartidor asociada a un envío.
+/// Se usa para emitir eventos SignalR al tracking público.
+/// </summary>
+public class TrackingUbicacionRepartoDto
+{
+    [Required]
+    [MaxLength(20)]
+    public string NumeroSeguimiento { get; set; } = string.Empty;
+
+    [Range(-90, 90)]
+    public double Latitud { get; set; }
+
+    [Range(-180, 180)]
+    public double Longitud { get; set; }
+
+    [MaxLength(120)]
+    public string TipoUbicacion { get; set; } = "RepartidorEnRuta";
+
+    [MaxLength(200)]
+    public string? Ubicacion { get; set; }
+
+    [MaxLength(300)]
+    public string? Descripcion { get; set; }
+}

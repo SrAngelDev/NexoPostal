@@ -8,8 +8,10 @@ import { OficinasService, Oficina } from '../../services/oficinas.service';
 import { PagosService, CrearSesionPagoRequest } from '../../services/pagos.service';
 import { AuthService } from '../../services/auth.service';
 import { PerfilService, DireccionFavoritaDto } from '../../services/perfil.service';
+import { TarifasService } from '../../services/tarifas.service';
 
 interface RateOption {
+  tipoTarifa: 'Estandar' | 'Premium';
   name: string;
   description: string;
   price: number;
@@ -102,7 +104,8 @@ export class EnvioPaqueteComponent {
     private oficinasService: OficinasService,
     private pagosService: PagosService,
     private authService: AuthService,
-    private perfilService: PerfilService
+    private perfilService: PerfilService,
+    private tarifasService: TarifasService
   ) {}
 
   ngOnInit(): void {
@@ -182,15 +185,17 @@ export class EnvioPaqueteComponent {
       return false;
     }
 
-    if (length > 120) {
-      this.notificacion.aviso('Largo excedido', 'El largo máximo permitido es de 120 cm.');
+    if (length > 170) {
+      this.notificacion.aviso('Largo excedido', 'El lado mayor máximo permitido es de 170 cm.');
       return false;
     }
 
     const sumaDimensiones = length + width + height;
     if (sumaDimensiones > 210) {
-      this.notificacion.aviso('Dimensiones excedidas', `La suma del largo, ancho y alto no puede superar los 210 cm. Actualmente: ${sumaDimensiones} cm.`);
-      return false;
+      this.notificacion.aviso(
+        'Dimensiones extra',
+        `La suma de dimensiones supera 210 cm. Se aplicará un recargo del 35%. (Actual: ${sumaDimensiones} cm)`
+      );
     }
 
     return true;
@@ -199,37 +204,36 @@ export class EnvioPaqueteComponent {
   calculateRates(): void {
     this.isCalculating.set(true);
     
-    // Cálculo del peso volumétrico
     const weight = this.weight() || 1;
     const length = this.length() || 0;
     const width = this.width() || 0;
     const height = this.height() || 0;
-    
-    // Peso volumétrico: (largo × ancho × alto) / 5000
-    const pesoVolumetrico = (length * width * height) / 5000;
-    const pesoFacturable = Math.max(weight, pesoVolumetrico);
-    
-    // Tarifa unificada basada en peso volumétrico (sin factores por zona)
-    const basePrice = 5 + (pesoFacturable * 1.5);
-    const expressPrice = basePrice * 1.8;
 
-    setTimeout(() => {
-      this.ratesOptions.set([
-        {
-          name: 'Envío Estándar',
-          description: 'Entrega sostenible en ruta agrupada',
-          deliveryTime: '48-72h',
-          price: parseFloat(basePrice.toFixed(2))
-        },
-        {
-          name: 'Envío Urgente',
-          description: 'Entrega prioritaria en transporte dedicado',
-          deliveryTime: '24h',
-          price: parseFloat(expressPrice.toFixed(2))
-        }
-      ]);
-      this.isCalculating.set(false);
-    }, 1000);
+    this.tarifasService.consultarTarifas({
+      peso: weight,
+      largo: length,
+      ancho: width,
+      alto: height,
+      codigoPostalOrigen: this.cpOrigin(),
+      codigoPostalDestino: this.cpDest()
+    }).subscribe({
+      next: (response) => {
+        this.ratesOptions.set(
+          response.tarifas.map(tarifa => ({
+            tipoTarifa: tarifa.nombre.toLowerCase() === 'premium' ? 'Premium' : 'Estandar',
+            name: `Envío ${tarifa.nombre}`,
+            description: tarifa.descripcion,
+            deliveryTime: tarifa.tiempoEntregaEstimado,
+            price: tarifa.precioTotal
+          }))
+        );
+        this.isCalculating.set(false);
+      },
+      error: (err) => {
+        this.isCalculating.set(false);
+        this.notificacion.errorHttp(err, 'No se pudieron calcular las tarifas');
+      }
+    });
   }
 
   selectRate(rate: RateOption): void {
@@ -383,7 +387,7 @@ export class EnvioPaqueteComponent {
       dimensiones: `${this.length()}x${this.width()}x${this.height()} cm`,
       codigoPostalOrigen: this.cpOrigin(),
       codigoPostalDestino: this.cpDest(),
-      tipoTarifa: rate.name.includes('Urgente') ? 'Urgente' : 'Estandar',
+      tipoTarifa: rate.tipoTarifa,
       coste: rate.price,
       tiempoEntregaEstimado: rate.deliveryTime,
       nombreRemitente: rem.nombre,

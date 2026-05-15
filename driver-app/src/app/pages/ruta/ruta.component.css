@@ -1,0 +1,485 @@
+.ruta-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #f0fdfa;
+}
+
+.ruta-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: 64px;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #064e3b, #065f46);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.nav-left,
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.nav-left h1 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sub {
+  margin: 0;
+  font-size: 0.74rem;
+  opacity: 0.86;
+}
+
+.brand-icon {
+  color: #ffc107;
+}
+
+.icon-btn {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: rgba(34, 197, 94, 0.2);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.badge-offline {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.32);
+}
+
+.badge-gps {
+  background: rgba(59, 130, 246, 0.2);
+  color: #bfdbfe;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.badge-queue {
+  cursor: pointer;
+}
+
+.ruta-main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.alert {
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.alert-error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.alert-ok {
+  background: #ecfdf5;
+  color: #166534;
+  border: 1px solid #a7f3d0;
+}
+
+.loading-card,
+.empty-card,
+.ruta-resumen,
+.metric-card,
+.progress-wrap,
+.entregas-list,
+.confirmacion-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.loading-card,
+.empty-card {
+  padding: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.empty-card {
+  flex-direction: column;
+  text-align: center;
+}
+
+.empty-card .material-symbols-outlined {
+  font-size: 2rem;
+  color: #64748b;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ruta-resumen {
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.ruta-resumen-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.finalizar-wrap {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.finalizar-wrap input {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.82rem;
+  min-width: 240px;
+}
+
+.ruta-resumen h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.ruta-resumen p {
+  margin: 0.3rem 0 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.metric-card {
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.metric-card span {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.metric-card strong {
+  color: #0f172a;
+  font-size: 1.25rem;
+}
+
+.progress-wrap {
+  padding: 0.9rem;
+}
+
+.progress-label {
+  margin-bottom: 0.45rem;
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.88rem;
+}
+
+.progress-track {
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #059669, #10b981);
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.entregas-list header,
+.confirmacion-card header {
+  padding: 0.9rem 0.9rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.entregas-list h3,
+.confirmacion-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.entregas-list small,
+.confirmacion-card small {
+  color: #64748b;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  max-height: 560px;
+  overflow: auto;
+}
+
+.item {
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+  text-align: left;
+  padding: 0.75rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.65rem;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: #f8fafc;
+}
+
+.item-selected {
+  background: #ecfdf5;
+}
+
+.item-order {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #065f46;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.item-body strong {
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.item-body span {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.item-status {
+  align-self: center;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.estado-ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.estado-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.estado-info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.estado-pendiente {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.confirm-form {
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.confirm-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.confirm-form input,
+.confirm-form select,
+.confirm-form textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 0.58rem 0.65rem;
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.confirm-form input:focus,
+.confirm-form select:focus,
+.confirm-form textarea:focus {
+  border-color: #059669;
+}
+
+.foto-preview {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  max-height: 220px;
+  object-fit: cover;
+}
+
+.gps-info {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.empty-confirm {
+  padding: 1rem;
+  margin: 0;
+  color: #64748b;
+}
+
+.btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.62rem 0.9rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.loading-inner {
+  padding: 1rem;
+  color: #64748b;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(15, 23, 42, 0.15);
+  border-top-color: #0f172a;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 980px) {
+  .ruta-resumen {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ruta-resumen-actions {
+    align-items: stretch;
+  }
+
+  .finalizar-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .finalizar-wrap input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .layout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .ruta-nav {
+    height: auto;
+    padding: 0.55rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .nav-right {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}

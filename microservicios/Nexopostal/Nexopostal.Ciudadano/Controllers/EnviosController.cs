@@ -22,6 +22,8 @@ public class EnviosController : ControllerBase
     private readonly ITrackingNumberGenerator _trackingGenerator;
     private readonly IFacturaPdfService _facturaPdfService;
     private readonly IEtiquetaPdfService _etiquetaPdfService;
+    private readonly ITarifasService _tarifasService;
+    private readonly ITrackingNotificacionService _trackingNotificacionService;
     private readonly ILogger<EnviosController> _logger;
 
     public EnviosController(
@@ -29,12 +31,16 @@ public class EnviosController : ControllerBase
         ITrackingNumberGenerator trackingGenerator,
         IFacturaPdfService facturaPdfService,
         IEtiquetaPdfService etiquetaPdfService,
+        ITarifasService tarifasService,
+        ITrackingNotificacionService trackingNotificacionService,
         ILogger<EnviosController> logger)
     {
         _envioRepo = envioRepo;
         _trackingGenerator = trackingGenerator;
         _facturaPdfService = facturaPdfService;
         _etiquetaPdfService = etiquetaPdfService;
+        _tarifasService = tarifasService;
+        _trackingNotificacionService = trackingNotificacionService;
         _logger = logger;
     }
 
@@ -51,35 +57,31 @@ public class EnviosController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // ===== LÓGICA DE NEGOCIO DEL COTIZADOR =====
-        
-        decimal precioBase = 5.0m; // Precio base 5€
-        decimal precioPorKg = 2.0m; // 2€ por kg
-
-        // Cálculo del precio por peso
-        decimal precioTotal = precioBase + (dto.Peso * precioPorKg);
-
-        // Ajuste por tamaño (si se proporcionan dimensiones)
-        if (!string.IsNullOrEmpty(dto.Dimensiones))
-        {
-            // Simulación: si tiene dimensiones, asumimos volumen mayor
-            precioTotal += 1.5m;
-        }
-
-        // Estimación de días según distancia entre códigos postales
-        int tiempoEstimado = CalcularTiempoEstimado(dto.CodigoPostalOrigen, dto.CodigoPostalDestino);
+        var dimensiones = _tarifasService.ParseDimensiones(dto.Dimensiones);
+        var tarifa = _tarifasService.Calcular(new TarifaCalculoInput(
+            dto.Peso,
+            dimensiones.Largo,
+            dimensiones.Ancho,
+            dimensiones.Alto,
+            dto.CodigoPostalOrigen,
+            dto.CodigoPostalDestino,
+            "Estandar"));
 
         var resultado = new CotizacionResultadoDto
         {
-            Precio = Math.Round(precioTotal, 2),
+            Precio = tarifa.PrecioTotal,
             Moneda = "EUR",
-            TiempoEstimadoDias = tiempoEstimado,
-            Observaciones = tiempoEstimado <= 2 
-                ? "Entrega rápida disponible" 
+            TiempoEstimadoDias = tarifa.TiempoEstimadoDias,
+            Observaciones = tarifa.TiempoEstimadoDias <= 2
+                ? "Entrega rápida disponible"
                 : "Entrega estándar"
         };
 
-        _logger.LogInformation("Cotización realizada: {Peso}kg, Precio: {Precio}€", dto.Peso, resultado.Precio);
+        _logger.LogInformation(
+            "Cotización realizada: {Peso}kg, Zona={Zona}, Precio={Precio}€",
+            tarifa.PesoFacturable,
+            tarifa.Zona,
+            resultado.Precio);
 
         return Ok(resultado);
     }
@@ -110,15 +112,15 @@ public class EnviosController : ControllerBase
             return Unauthorized("Token inválido");
         }
 
-        // Calculamos el coste (reutilizamos la lógica del cotizador)
-        decimal precioBase = 5.0m;
-        decimal precioPorKg = 2.0m;
-        decimal costeCalculado = precioBase + (dto.Peso * precioPorKg);
-
-        if (!string.IsNullOrEmpty(dto.Dimensiones))
-        {
-            costeCalculado += 1.5m;
-        }
+        var dimensiones = _tarifasService.ParseDimensiones(dto.Dimensiones);
+        var tarifa = _tarifasService.Calcular(new TarifaCalculoInput(
+            dto.Peso,
+            dimensiones.Largo,
+            dimensiones.Ancho,
+            dimensiones.Alto,
+            dto.CodigoPostalOrigen,
+            dto.CodigoPostalDestino,
+            "Estandar"));
 
         // Creamos el envío
         var envio = new Envio
@@ -130,11 +132,14 @@ public class EnviosController : ControllerBase
             Dimensiones = dto.Dimensiones,
             Origen = dto.Origen,
             Destino = dto.Destino,
+            CodigoPostalOrigen = dto.CodigoPostalOrigen,
             CodigoPostalDestino = dto.CodigoPostalDestino,
             EstadoActual = EstadoEnvio.Admitido,
             EstadoInternoActual = EstadoInterno.PendienteRecogida,
             FechaCreacion = DateTime.UtcNow,
-            CosteCalculado = Math.Round(costeCalculado, 2),
+            CosteCalculado = tarifa.PrecioTotal,
+            TipoTarifa = tarifa.TipoTarifa,
+            TiempoEntregaEstimado = tarifa.TiempoEntregaEstimado,
             Pagado = false,
             Observaciones = dto.Observaciones
         };
@@ -405,6 +410,47 @@ public class EnviosController : ControllerBase
             expedicion, nuevoEstado, envio.EstadoActual);
 
         return Ok(MapToInternoDetallado(envio));
+    }
+
+    /// <summary>
+    /// Endpoint interno para publicar ubicación de reparto en el tracking público (SignalR).
+    /// Consumido por el microservicio de Reparto.
+    /// </summary>
+    [HttpPost("interno/tracking/ubicacion")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> NotificarUbicacionReparto([FromBody] TrackingUbicacionRepartoDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var envio = await _envioRepo.GetByTrackingAsync(dto.NumeroSeguimiento);
+        if (envio == null)
+            return NotFound(new { mensaje = "Envío no encontrado" });
+
+        var ubicacion = string.IsNullOrWhiteSpace(dto.Ubicacion)
+            ? $"Lat {dto.Latitud:F5}, Lng {dto.Longitud:F5}"
+            : dto.Ubicacion;
+
+        var descripcion = string.IsNullOrWhiteSpace(dto.Descripcion)
+            ? "El repartidor está en camino con tu envío"
+            : dto.Descripcion;
+
+        await _trackingNotificacionService.NotificarCambioUbicacion(
+            dto.NumeroSeguimiento,
+            ubicacion,
+            dto.TipoUbicacion,
+            descripcion,
+            dto.Latitud,
+            dto.Longitud);
+
+        _logger.LogInformation(
+            "Tracking ubicación emitido para {Seguimiento} ({Lat}, {Lng})",
+            dto.NumeroSeguimiento,
+            dto.Latitud,
+            dto.Longitud);
+
+        return Accepted(new { mensaje = "Ubicación de tracking publicada" });
     }
 
     // ===== MÉTODOS AUXILIARES =====

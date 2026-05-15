@@ -149,7 +149,7 @@ public class Envio
     public string CodigoPostalOrigen { get; set; } = string.Empty;
 
     /// <summary>
-    /// Tipo de tarifa seleccionada (Estandar / Urgente)
+    /// Tipo de tarifa seleccionada (Estandar / Premium)
     /// </summary>
     [MaxLength(20)]
     public string TipoTarifa { get; set; } = "Estandar";

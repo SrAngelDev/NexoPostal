@@ -87,11 +87,11 @@
               type="number" 
               [(ngModel)]="largo"
               min="10"
-              max="120"
+              max="170"
               placeholder="30" 
               class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
             />
-            <span class="text-xs text-gray-500">Máximo: 120 cm</span>
+            <span class="text-xs text-gray-500">Máximo: 170 cm</span>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-semibold text-gray-700">Ancho (cm)</label>
@@ -120,8 +120,8 @@
         <!-- Información adicional -->
         <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <p class="text-[10px] md:text-xs text-gray-700">
-            <strong class="text-[#1A237E]">Restricciones:</strong> Dimensiones mínimas 10x15 cm. Largo máximo 120 cm. 
-            Suma total máximo 210 cm.
+            <strong class="text-[#1A237E]">Restricciones:</strong> Dimensiones mínimas 10x15 cm. Lado mayor máximo 170 cm.
+            Suma total 210 cm (si se supera, se aplica recargo).
           </p>
         </div>
 
@@ -224,7 +224,7 @@
                   <h4 class="text-lg font-bold text-[#1A237E]">Envío Estándar</h4>
                   <span class="text-3xl font-bold text-[#1A237E]">{{ tarifaCalculada()!.tarifaEstandar }} €</span>
                 </div>
-                <p class="text-gray-600 text-sm mb-3">Entrega en 48-72 horas laborables</p>
+                <p class="text-gray-600 text-sm mb-3">Entrega en {{ tarifaCalculada()!.tiempoEstandar }}</p>
                 <ul class="text-sm text-gray-600 space-y-1">
                   <li>✓ Seguimiento online</li>
                   <li>✓ Seguro básico incluido</li>
@@ -237,11 +237,11 @@
                 <div class="flex items-center justify-between mb-3">
                   <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined">electric_bolt</span>
-                    <h4 class="text-lg font-bold">Envío Urgente</h4>
+                    <h4 class="text-lg font-bold">Envío Premium</h4>
                   </div>
-                  <span class="text-3xl font-bold">{{ tarifaCalculada()!.tarifaUrgente }} €</span>
+                  <span class="text-3xl font-bold">{{ tarifaCalculada()!.tarifaPremium }} €</span>
                 </div>
-                <p class="text-sm mb-3 font-medium">Entrega en 24 horas laborables</p>
+                <p class="text-sm mb-3 font-medium">Entrega en {{ tarifaCalculada()!.tiempoPremium }}</p>
                 <ul class="text-sm space-y-1">
                   <li>✓ Prioridad máxima</li>
                   <li>✓ Seguimiento en tiempo real</li>
@@ -249,6 +249,12 @@
                   <li>✓ Atención preferente</li>
                 </ul>
               </div>
+
+              @if (tarifaCalculada()!.aplicaRecargo) {
+                <div class="bg-amber-50 border border-amber-300 p-4 rounded-lg text-amber-800 text-xs">
+                  Se aplica un recargo del {{ tarifaCalculada()!.recargoPorcentaje * 100 }}% por exceso de dimensiones.
+                </div>
+              }
             </div>
 
             <!-- Botón contratar -->
