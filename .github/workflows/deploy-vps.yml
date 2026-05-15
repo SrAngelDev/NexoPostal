@@ -3,21 +3,32 @@ name: CI/CD NexoPostal - Deploy to VPS
 on:
   push:
     branches: [master, dev]
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
   pull_request:
     branches: [master]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: nexopostal-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   DOTNET_VERSION: '10.0.x'
   NODE_VERSION: '22'
   VPS_HOST: ${{ secrets.VPS_HOST }}
   VPS_USER: ${{ secrets.VPS_USER || 'deploy' }}
+  GHCR_NAMESPACE: srangeldev
 
 jobs:
-  # ═══════════════════════════════════════
-  # BUILD - Backend (.NET)
-  # ═══════════════════════════════════════
+  # Keep validation for PR and dev, but skip it on master deploy path.
   build-backend:
     name: Build Backend .NET
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,13 +53,12 @@ jobs:
           dotnet build Nexopostal.Reparto/Nexopostal.Reparto.csproj --no-restore
           dotnet build Nexopostal.Gateway/Nexopostal.Gateway.csproj --no-restore
 
-  # ═══════════════════════════════════════
-  # BUILD - Frontend (Angular)
-  # ═══════════════════════════════════════
   build-frontend:
     name: Build Frontend Angular
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         app: [clientes-app, intranet-app, driver-app]
 
@@ -64,28 +74,18 @@ jobs:
 
       - name: Install dependencies
         working-directory: ${{ matrix.app }}
-        run: npm ci
+        run: npm ci --no-audit --prefer-offline
 
       - name: Build
         working-directory: ${{ matrix.app }}
         run: npm run build -- --configuration production
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.app }}-dist
-          path: ${{ matrix.app }}/dist/
-
-  # ═══════════════════════════════════════
-  # DOCKER BUILD (paralelo por imagen)
-  # ═══════════════════════════════════════
-  docker-build:
-    name: Build ${{ matrix.service.name }}
-    needs: [build-backend, build-frontend]
+  docker-build-push:
+    name: Build and Push ${{ matrix.service.name }}
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev')
     strategy:
-      fail-fast: false   # si una imagen falla, las demás siguen construyéndose
+      fail-fast: false
       matrix:
         service:
           - name: modulo-seguridad
@@ -119,21 +119,30 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build ${{ matrix.service.name }}
-        run: |
-          docker build \
-            -t nexopostal-${{ matrix.service.name }}:latest \
-            -f ${{ matrix.service.dockerfile }} \
-            ${{ matrix.service.context }}
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  # ═══════════════════════════════════════
-  # DEPLOY TO VPS
-  # ═══════════════════════════════════════
+      - name: Build and push ${{ matrix.service.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/${{ env.GHCR_NAMESPACE }}/nexopostal-${{ matrix.service.name }}:${{ github.sha }}
+            ghcr.io/${{ env.GHCR_NAMESPACE }}/nexopostal-${{ matrix.service.name }}:${{ github.ref == 'refs/heads/master' && 'latest' || 'dev-latest' }}
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
+
   deploy-vps:
     name: Deploy to VPS DigitalOcean
-    needs: docker-build
+    needs: docker-build-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     environment: production
 
     steps:
@@ -141,10 +150,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup SSH agent
-        # Carga la clave PEM tal cual en un agente ssh, sin codificación base64
-        # ni manipulaciones de saltos de línea. El secreto VPS_SSH_PRIVATE_KEY
-        # debe pegarse íntegro (con cabecera -----BEGIN ... ----- y final
-        # -----END ... -----) en GitHub Secrets.
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
@@ -156,15 +161,14 @@ jobs:
           ssh-keyscan -H "${{ env.VPS_HOST }}" >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Deploy and Inject .env to VPS
+      - name: Deploy via image pull and compose up
         run: |
           set -euo pipefail
 
-          # ── 1. Construir .env de producción desde secrets individuales ──────────
-          # Cada variable sensible es un secreto de GitHub independiente.
-          # De esta forma NUNCA hay credenciales en el código ni en la imagen Docker.
           cat > .env <<EOF
           ASPNETCORE_ENVIRONMENT=Production
+          IMAGE_TAG=${{ github.sha }}
+          GHCR_NAMESPACE=${{ env.GHCR_NAMESPACE }}
 
           JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
           JWT_ISSUER=${{ secrets.JWT_ISSUER }}
@@ -219,36 +223,46 @@ jobs:
           NGINX_HTTPS_PORT=443
           EOF
 
-          # ── 2. Transferir código + .env al VPS (sin .git ni node_modules) ──────
-          # Excluimos nginx/certs para no sobreescribir los certificados
-          # Let's Encrypt que viven en el VPS.
-          rsync -avz \
-            --exclude '.git' \
-            --exclude 'node_modules' \
-            --exclude 'nginx/certs' \
-            . ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:~/nexopostal
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "mkdir -p ~/nexopostal/nginx ~/nexopostal/nginx/certs"
+          rsync -az docker-compose.production.yml ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:~/nexopostal/
+          rsync -az nginx/nginx.production.conf ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:~/nexopostal/nginx/
+          rsync -az .env ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:~/nexopostal/.env
 
-          # ── 3. Levantar la infraestructura en el VPS ─────────────────────────
           ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} << 'ENDSSH'
           set -euo pipefail
           cd ~/nexopostal
+
+          mkdir -p nginx/certs
+          if [ ! -f nginx/certs/nexopostal.crt ] || [ ! -f nginx/certs/nexopostal.key ]; then
+            echo "[WARN] SSL certs no encontrados. Generando certificado temporal autofirmado."
+            openssl req -x509 -nodes -newkey rsa:2048 \
+              -keyout nginx/certs/nexopostal.key \
+              -out nginx/certs/nexopostal.crt \
+              -days 365 \
+              -subj "/C=ES/ST=Madrid/L=Madrid/O=NexoPostal/CN=nexopostal.es"
+          fi
+
           if command -v docker-compose >/dev/null 2>&1; then
             DC="docker-compose"
           else
             DC="docker compose"
           fi
-          $DC --env-file ./.env -f docker-compose.production.yml down
-          $DC --env-file ./.env -f docker-compose.production.yml build --no-cache
-          $DC --env-file ./.env -f docker-compose.production.yml up -d
+
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          $DC --env-file ./.env -f docker-compose.production.yml pull
+          $DC --env-file ./.env -f docker-compose.production.yml up -d --no-build --remove-orphans
+          docker image prune -f --filter "until=168h" || true
           ENDSSH
 
       - name: Verify deployment
         run: |
-          sleep 10
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "docker ps"
+          sleep 8
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
 
       - name: Health check
         run: |
-          curl -f https://nexopostal.es/ || exit 0
-          curl -f https://intranet.nexopostal.es/ || exit 0
-          curl -f https://driver.nexopostal.es/ || exit 0
+          set -euo pipefail
+          curl -fsS --max-time 20 "http://${{ env.VPS_HOST }}/"
+          curl -kfsS --max-time 20 "https://${{ env.VPS_HOST }}/" -H "Host: nexopostal.es"
+          curl -kfsS --max-time 20 "https://${{ env.VPS_HOST }}/" -H "Host: intranet.nexopostal.es"
+          curl -kfsS --max-time 20 "https://${{ env.VPS_HOST }}/" -H "Host: driver.nexopostal.es"

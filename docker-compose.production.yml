@@ -1,12 +1,13 @@
 # ============================================
 # NEXOPOSTAL - PRODUCCIÓN
 # ============================================
-# Uso: docker compose --env-file ./.env -f docker-compose.production.yml up -d --build
+# Uso: docker compose --env-file ./.env -f docker-compose.production.yml pull && docker compose --env-file ./.env -f docker-compose.production.yml up -d --no-build
 #
 # Características:
 # - Con SSL (nginx con certificados)
 # - Solo puertos 80/443 expuestos
 # - Sin puertos de BD expuestos (red interna)
+# - Deploy basado en imagenes (GHCR) para evitar build en VPS
 # - Variables sensibles vienen 100% del .env (inyectado por GitHub Actions)
 #
 # IMPORTANTE:
@@ -34,16 +35,14 @@ services:
       - nexopostal-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      test: ["CMD-SHELL", "wget -q --spider --no-check-certificate https://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3
 
   # --- API GATEWAY ---
   api-gateway:
-    build:
-      context: ./microservicios/Nexopostal
-      dockerfile: Nexopostal.Gateway/Dockerfile
+    image: ghcr.io/${GHCR_NAMESPACE:-srangeldev}/nexopostal-api-gateway:${IMAGE_TAG:-latest}
     env_file:
       - ./.env
     environment:
@@ -69,7 +68,7 @@ services:
 
   # --- FRONTENDS (SPA Angular: usan paths relativos, nada que inyectar) ---
   clientes-app:
-    build: ./clientes-app
+    image: ghcr.io/${GHCR_NAMESPACE:-srangeldev}/nexopostal-clientes-app:${IMAGE_TAG:-latest}
     networks:
       - nexopostal-net
     restart: unless-stopped
@@ -80,7 +79,7 @@ services:
           memory: 128M
 
   intranet-app:
-    build: ./intranet-app
+    image: ghcr.io/${GHCR_NAMESPACE:-srangeldev}/nexopostal-intranet-app:${IMAGE_TAG:-latest}
     networks:
       - nexopostal-net
     restart: unless-stopped
@@ -91,7 +90,7 @@ services:
           memory: 128M
 
   driver-app:
-    build: ./driver-app
+    image: ghcr.io/${GHCR_NAMESPACE:-srangeldev}/nexopostal-driver-app:${IMAGE_TAG:-latest}
     networks:
       - nexopostal-net
     restart: unless-stopped
@@ -103,9 +102,7 @@ services:
 
   # --- MICROSERVICIOS ---
   modulo-seguridad:
-    build:
-      context: ./microservicios/Nexopostal
-      dockerfile: Nexopostal.Auth/Dockerfile
+    image: ghcr.io/${GHCR_NAMESPACE:-srangeldev}/nexopostal-modulo-seguridad:${IMAGE_TAG:-latest}
     env_file:
       - ./.env
     environment:
@@ -124,9 +121,7 @@ services:
           memory: 256M
 
   modulo-ciudadano:
-    build:
-      context: ./microservicios/Nexopostal
-      dockerfile: Nexopostal.Ciudadano/Dockerfile
+    image: ghcr.io/${GHCR_NAMESPACE:-srangeldev}/nexopostal-modulo-ciudadano:${IMAGE_TAG:-latest}
     env_file:
       - ./.env
     environment:
@@ -145,9 +140,7 @@ services:
           memory: 512M
 
   modulo-logistica:
-    build:
-      context: ./microservicios/Nexopostal
-      dockerfile: Nexopostal.Intranet/Dockerfile
+    image: ghcr.io/${GHCR_NAMESPACE:-srangeldev}/nexopostal-modulo-logistica:${IMAGE_TAG:-latest}
     env_file:
       - ./.env
     environment:
@@ -166,9 +159,7 @@ services:
           memory: 512M
 
   modulo-reparto:
-    build:
-      context: ./microservicios/Nexopostal
-      dockerfile: Nexopostal.Reparto/Dockerfile
+    image: ghcr.io/${GHCR_NAMESPACE:-srangeldev}/nexopostal-modulo-reparto:${IMAGE_TAG:-latest}
     env_file:
       - ./.env
     environment:
