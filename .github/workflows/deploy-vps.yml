@@ -251,6 +251,7 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           $DC --env-file ./.env -f docker-compose.production.yml pull
           $DC --env-file ./.env -f docker-compose.production.yml up -d --no-build --remove-orphans
+          $DC --env-file ./.env -f docker-compose.production.yml restart reverse-proxy
           docker image prune -f --filter "until=168h" || true
           ENDSSH
 
