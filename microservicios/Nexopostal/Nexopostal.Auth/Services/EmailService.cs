@@ -59,7 +59,8 @@ public class SmtpEmailService : IEmailService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al enviar email de recuperación a {Email}", toEmail);
-            throw;
+            // No relanzamos la excepción: el endpoint siempre responde 200 OK
+            // para no revelar si el email está registrado ni exponer errores SMTP.
         }
     }
 
