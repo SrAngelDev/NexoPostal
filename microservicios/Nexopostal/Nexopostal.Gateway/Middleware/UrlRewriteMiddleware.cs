@@ -31,6 +31,25 @@ public class UrlRewriteMiddleware
         "/api/nexopostal/oficinas/"
     ];
 
+    // Compatibilidad para endpoints raíz /api/{apiKey} sin routeKey explícito.
+    private static readonly IReadOnlyDictionary<string, string> DefaultGetRouteKeys =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ctas"] = "listar-ctas",
+            ["oficinas"] = "listar",
+            ["oficinaspostales"] = "listar"
+        };
+
+    private static readonly IReadOnlyDictionary<string, string> DefaultPostRouteKeys =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["asignaciones"] = "crear",
+            ["movimientos"] = "crear",
+            ["incidencias"] = "crear",
+            ["operarios"] = "operario-crear",
+            ["historial"] = "registrar"
+        };
+
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value;
@@ -70,17 +89,48 @@ public class UrlRewriteMiddleware
         var relativePath = workingPath[ApiPrefix.Length..];
         var segments = relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-        if (segments.Length < 2) return;
+        if (segments.Length == 0) return;
+
+        if (segments.Length == 1)
+        {
+            var apiKeyOnly = segments[0];
+            string? defaultRoute = null;
+
+            if (string.Equals(context.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
+            {
+                DefaultGetRouteKeys.TryGetValue(apiKeyOnly, out defaultRoute);
+            }
+            else if (string.Equals(context.Request.Method, "POST", StringComparison.OrdinalIgnoreCase))
+            {
+                DefaultPostRouteKeys.TryGetValue(apiKeyOnly, out defaultRoute);
+            }
+
+            if (!string.IsNullOrWhiteSpace(defaultRoute))
+            {
+                context.Request.Path = $"{GatewayPrefix}{apiKeyOnly}/{defaultRoute}";
+            }
+
+            return;
+        }
 
         var apiKey = segments[0];
         string routeKey;
         string? extra;
 
+        // Patrón /api/{apiKey}/{numericId}
+        // ej: /api/asignaciones/123 (GET) -> routeKey="detalle", parameters="123"
+        //     /api/incidencias/55 (PUT) -> routeKey="actualizar", parameters="55"
+        if (segments.Length == 2 && int.TryParse(segments[1], out _))
+        {
+            routeKey = ResolveNumericIdRouteKey(context.Request.Method);
+            extra = segments[1];
+        }
+
         // Patrón /api/{apiKey}/{numericId}/{action}
         // ej: /api/ctas/1/dashboard → routeKey="dashboard", parameters="1/dashboard"
         // Esto permite que RouteInfo { Path = "api/ctas/" } + parameters "1/dashboard"
         // resulte en upstream: api/ctas/1/dashboard
-        if (segments.Length == 3 && int.TryParse(segments[1], out _))
+        else if (segments.Length == 3 && int.TryParse(segments[1], out _))
         {
             routeKey = segments[2];
             extra    = $"{segments[1]}/{segments[2]}";
@@ -97,6 +147,18 @@ public class UrlRewriteMiddleware
         {
             context.Request.QueryString = context.Request.QueryString.Add("parameters", extra);
         }
+    }
+
+    private static string ResolveNumericIdRouteKey(string method)
+    {
+        if (string.Equals(method, "PUT", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(method, "PATCH", StringComparison.OrdinalIgnoreCase))
+            return "actualizar";
+
+        if (string.Equals(method, "DELETE", StringComparison.OrdinalIgnoreCase))
+            return "eliminar";
+
+        return "detalle";
     }
 }
 

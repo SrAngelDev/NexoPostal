@@ -156,7 +156,7 @@ export class IntranetApiService {
 
   /** Crea una nueva asignación de tarea */
   crearAsignacion(dto: CrearAsignacionRequest): Observable<AsignacionDetalle> {
-    return this.http.post<AsignacionDetalle>('/api/asignaciones', dto);
+    return this.http.post<AsignacionDetalle>('/api/asignaciones/crear', dto);
   }
 
   /** Obtiene asignaciones de un CTA */

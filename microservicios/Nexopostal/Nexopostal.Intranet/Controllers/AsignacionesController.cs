@@ -37,6 +37,7 @@ public class AsignacionesController : ControllerBase
     /// Solo el OperarioLogistico puede asignar paquetes a operarios de su CTA.
     /// </summary>
     [HttpPost]
+    [HttpPost("crear")]
     [Authorize(Roles = "Admin,OperarioLogistico")]
     [ProducesResponseType(typeof(AsignacionDetalleDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
