@@ -50,6 +50,32 @@ public class UrlRewriteMiddleware
             ["historial"] = "registrar"
         };
 
+    // Aliases por API para mantener URLs estables mientras las route keys internas son globalmente únicas.
+    private static readonly IReadOnlyDictionary<string, string> RouteKeyAliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["admision|interno"] = "admision-interno",
+            ["asignaciones|crear"] = "asignaciones-crear",
+            ["movimientos|crear"] = "movimientos-crear",
+            ["incidencias|crear"] = "incidencias-crear",
+            ["movimientos|cta"] = "movimientos-cta",
+            ["incidencias|cta"] = "incidencias-cta",
+            ["operarios|cta"] = "operarios-cta",
+            ["movimientos|detalle"] = "movimientos-detalle",
+            ["incidencias|detalle"] = "incidencias-detalle",
+            ["operarios|detalle"] = "operarios-detalle",
+            ["ctas|detalle"] = "ctas-detalle",
+            ["oficinaspostales|detalle"] = "oficinaspostales-detalle",
+            ["ctas|dashboard"] = "ctas-dashboard",
+            ["movimientos|cancelar"] = "movimientos-cancelar",
+            ["movimientos|paquete"] = "movimientos-paquete",
+            ["incidencias|paquete"] = "incidencias-paquete",
+            ["historial|interno"] = "historial-interno",
+            ["oficinaspostales|listar"] = "oficinaspostales-listar",
+            ["oficinaspostales|buscar"] = "oficinaspostales-buscar",
+            ["oficinaspostales|resolver"] = "oficinaspostales-resolver"
+        };
+
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value;
@@ -107,7 +133,8 @@ public class UrlRewriteMiddleware
 
             if (!string.IsNullOrWhiteSpace(defaultRoute))
             {
-                context.Request.Path = $"{GatewayPrefix}{apiKeyOnly}/{defaultRoute}";
+                var resolvedDefaultRoute = ResolveRouteKeyAlias(apiKeyOnly, defaultRoute);
+                context.Request.Path = $"{GatewayPrefix}{apiKeyOnly}/{resolvedDefaultRoute}";
             }
 
             return;
@@ -141,12 +168,21 @@ public class UrlRewriteMiddleware
             extra = segments.Length > 2 ? string.Join("/", segments.Skip(2)) : null;
         }
 
+        routeKey = ResolveRouteKeyAlias(apiKey, routeKey);
+
         context.Request.Path = $"{GatewayPrefix}{apiKey}/{routeKey}";
 
         if (extra != null)
         {
             context.Request.QueryString = context.Request.QueryString.Add("parameters", extra);
         }
+    }
+
+    private static string ResolveRouteKeyAlias(string apiKey, string routeKey)
+    {
+        return RouteKeyAliases.TryGetValue($"{apiKey}|{routeKey}", out var alias)
+            ? alias
+            : routeKey;
     }
 
     private static string ResolveNumericIdRouteKey(string method)

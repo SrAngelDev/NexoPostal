@@ -88,7 +88,7 @@ Estas cuentas se crean automaticamente en el seed del modulo Auth.
 
 ### Desarrollo local
 ```bash
-docker-compose -f docker-compose.local.yml up -d
+docker compose up -d --build
 ```
 
 ### Produccion (VPS)
@@ -102,14 +102,14 @@ docker-compose -f docker-compose.local.yml up -d
 
 ```bash
 # Desarrollo
-docker-compose -f docker-compose.local.yml up -d
-docker-compose -f docker-compose.local.yml logs -f
-docker-compose -f docker-compose.local.yml down
+docker compose up -d --build
+docker compose logs -f
+docker compose down
 
 # Produccion (manual)
-docker-compose -f docker-compose.production.yml up -d
-docker-compose -f docker-compose.production.yml logs -f
-docker-compose -f docker-compose.production.yml down
+docker compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml logs -f
+docker compose -f docker-compose.production.yml down
 ```
 
 ---
