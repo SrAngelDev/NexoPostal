@@ -20,7 +20,7 @@ namespace Nexopostal.Intranet.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico")]
+[Authorize(Roles = "Admin,OperarioCTA")]
 public class MovimientosController : ControllerBase
 {
     private readonly IMovimientoService _movimientoService;

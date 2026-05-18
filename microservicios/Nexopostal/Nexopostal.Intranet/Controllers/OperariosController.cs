@@ -16,7 +16,7 @@ namespace Nexopostal.Intranet.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico,OperarioOficina")]
+[Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
 public class OperariosController : ControllerBase
 {
     private readonly IOperarioService _operarioService;
@@ -143,10 +143,10 @@ public class OperariosController : ControllerBase
 
     /// <summary>
     /// Crea un nuevo operario y lo asigna a un CTA.
-    /// Solo Admin y OperarioJefe pueden crear operarios.
+    /// Solo Admin y Supervisor pueden crear operarios.
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Admin,OperarioJefe")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(typeof(OperarioResumenDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<OperarioResumenDto>> Crear([FromBody] CrearOperarioDto dto)
@@ -164,10 +164,10 @@ public class OperariosController : ControllerBase
 
     /// <summary>
     /// Desactiva un operario (soft delete).
-    /// Solo Admin y OperarioJefe pueden desactivar operarios.
+    /// Solo Admin y Supervisor pueden desactivar operarios.
     /// </summary>
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin,OperarioJefe")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Desactivar(int id)

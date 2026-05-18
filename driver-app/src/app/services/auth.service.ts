@@ -32,7 +32,7 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
-  private readonly ROLES_PERMITIDOS = ['Repartidor', 'RepartidorLogistico', 'RepartidorJefe'];
+  private readonly ROLES_PERMITIDOS = ['Repartidor', 'JefeReparto'];
 
   /**
    * Inicia sesión con email y contraseña
@@ -75,15 +75,11 @@ export class AuthService {
 
   isRepartidor(): boolean {
     const rol = this.getRol();
-    return rol === 'Repartidor' || rol === 'RepartidorLogistico' || rol === 'RepartidorJefe';
+    return rol === 'Repartidor' || rol === 'JefeReparto';
   }
 
-  isRepartidorLogistico(): boolean {
-    return this.getRol() === 'RepartidorLogistico';
-  }
-
-  isRepartidorJefe(): boolean {
-    return this.getRol() === 'RepartidorJefe';
+  isJefeReparto(): boolean {
+    return this.getRol() === 'JefeReparto';
   }
 
   private storeAuthData(response: AuthResponse): void {

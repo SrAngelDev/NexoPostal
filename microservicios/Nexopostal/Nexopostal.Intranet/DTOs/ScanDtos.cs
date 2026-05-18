@@ -42,6 +42,23 @@ public static class ModosEscaneo
         SalidaAReparto
     ];
 
+    /// <summary>Modos exclusivos de oficina postal (OperarioOficina)</summary>
+    public static readonly string[] ModosOficina =
+    [
+        RecepcionOficina,
+        EntregaOficinaDestino,
+        SalidaAReparto
+    ];
+
+    /// <summary>Modos exclusivos de CTA / nave logística (OperarioCTA)</summary>
+    public static readonly string[] ModosCta =
+    [
+        RecepcionCta,
+        Clasificacion,
+        DespachoTroncal,
+        RecepcionTroncal
+    ];
+
     public static bool EsValido(string modo) => Todos.Contains(modo);
 }
 

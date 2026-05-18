@@ -26,3 +26,21 @@ export const loginGuard: CanActivateFn = () => {
   router.navigate(['/']);
   return false;
 };
+
+export const jefeRepartoGuard: CanActivateFn = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.isAuthenticated()) {
+    router.navigate(['/login']);
+    return false;
+  }
+
+  if (authService.isJefeReparto()) {
+    return true;
+  }
+
+  // No es JefeReparto, redirigir al dashboard
+  router.navigate(['/']);
+  return false;
+};

@@ -25,8 +25,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Role checks
   isAdmin = false;
   isOperarioOficina = false;
-  isOperarioLogistico = false;
-  isOperarioJefe = false;
+  isOperarioCTA = false;
+  isSupervisor = false;
 
   constructor(
     private authService: AuthService,
@@ -38,8 +38,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.userRole = user?.rol ?? '';
     this.isAdmin = this.authService.isAdmin();
     this.isOperarioOficina = this.authService.isOperarioOficina();
-    this.isOperarioLogistico = this.authService.isOperarioLogistico();
-    this.isOperarioJefe = this.authService.isOperarioJefe();
+    this.isOperarioCTA = this.authService.isOperarioCTA();
+    this.isSupervisor = this.authService.isSupervisor();
     this.userRoleLabel = this.getRoleLabel();
   }
 
@@ -54,8 +54,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private getRoleLabel(): string {
     switch (this.userRole) {
       case 'OperarioOficina': return 'Operario de Oficina';
-      case 'OperarioLogistico': return 'Operario Logístico';
-      case 'OperarioJefe': return 'Operario Jefe';
+      case 'OperarioCTA': return 'Operario CTA';
+      case 'Supervisor': return 'Supervisor';
       case 'Admin': return 'Administrador';
       default: return this.userRole;
     }

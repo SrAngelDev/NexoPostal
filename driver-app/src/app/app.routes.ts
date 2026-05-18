@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, loginGuard } from './guards/auth.guard';
+import { authGuard, loginGuard, jefeRepartoGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -16,6 +16,16 @@ export const routes: Routes = [
     path: 'escaneo',
     loadComponent: () => import('./pages/escaneo/escaneo.component').then(m => m.EscaneoComponent),
     canActivate: [authGuard]
+  },
+  {
+    path: 'gestion-rutas',
+    loadComponent: () => import('./pages/gestion-rutas/gestion-rutas.component').then(m => m.GestionRutasComponent),
+    canActivate: [jefeRepartoGuard]
+  },
+  {
+    path: 'dashboard-jefe',
+    loadComponent: () => import('./pages/dashboard-jefe/dashboard-jefe.component').then(m => m.DashboardJefeComponent),
+    canActivate: [jefeRepartoGuard]
   },
   {
     path: '',

@@ -36,22 +36,22 @@ public static class SeedData
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
         {
             Id = "operario-logistico-pedro-martinez-seed-id",
-            UserName = "operario.logistico@nexopostal.es",
-            Email = "operario.logistico@nexopostal.es",
+            UserName = "operario.cta@nexopostal.es",
+            Email = "operario.cta@nexopostal.es",
             NombreCompleto = "Pedro Martínez Ruiz",
             CodigoEmpleado = "OPL001",
-            Rol = Rol.OperarioLogistico,
+            Rol = Rol.OperarioCTA,
             EmailConfirmed = true
         }, "Operario123!");
 
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
         {
             Id = "operario-jefe-laura-fernandez-seed-id",
-            UserName = "operario.jefe@nexopostal.es",
-            Email = "operario.jefe@nexopostal.es",
+            UserName = "supervisor@nexopostal.es",
+            Email = "supervisor@nexopostal.es",
             NombreCompleto = "Laura Fernández Díaz",
             CodigoEmpleado = "OPJ001",
-            Rol = Rol.OperarioJefe,
+            Rol = Rol.Supervisor,
             EmailConfirmed = true
         }, "Operario123!");
 
@@ -69,23 +69,23 @@ public static class SeedData
 
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
         {
-            Id = "repartidor-logistico-sofia-navarro-seed-id",
-            UserName = "repartidor.logistico@nexopostal.es",
-            Email = "repartidor.logistico@nexopostal.es",
+            Id = "repartidor-sofia-navarro-seed-id",
+            UserName = "repartidor2@nexopostal.es",
+            Email = "repartidor2@nexopostal.es",
             NombreCompleto = "Sofía Navarro Gil",
             CodigoEmpleado = "RPL001",
-            Rol = Rol.RepartidorLogistico,
+            Rol = Rol.Repartidor,
             EmailConfirmed = true
         }, "Repartidor123!");
 
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
         {
             Id = "repartidor-jefe-javier-torres-seed-id",
-            UserName = "repartidor.jefe@nexopostal.es",
-            Email = "repartidor.jefe@nexopostal.es",
+            UserName = "jefe.reparto@nexopostal.es",
+            Email = "jefe.reparto@nexopostal.es",
             NombreCompleto = "Javier Torres Moreno",
             CodigoEmpleado = "RPJ001",
-            Rol = Rol.RepartidorJefe,
+            Rol = Rol.JefeReparto,
             EmailConfirmed = true
         }, "Repartidor123!");
 

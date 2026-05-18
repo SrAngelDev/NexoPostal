@@ -10,7 +10,7 @@ namespace Nexopostal.Intranet.Controllers;
 /// <summary>
 /// Controlador para la gestión de incidencias en CTAs.
 /// 
-/// Solo el OperarioJefe puede:
+/// Solo el Supervisor puede:
 ///   - Reportar nuevas incidencias (paquetes dañados, extraviados, etc.)
 ///   - Actualizar su estado (Abierta → EnRevision → Resuelta → Cerrada)
 ///   - Registrar la resolución aplicada
@@ -19,7 +19,7 @@ namespace Nexopostal.Intranet.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,OperarioJefe")]
+[Authorize(Roles = "Admin,Supervisor")]
 public class IncidenciasController : ControllerBase
 {
     private readonly IIncidenciaService _incidenciaService;
@@ -42,7 +42,7 @@ public class IncidenciasController : ControllerBase
         var operario = await ObtenerOperarioActual();
         if (operario == null) return Forbid();
 
-        if (operario.Rol != RolOperario.OperarioJefe && !User.IsInRole("Admin"))
+        if (operario.Rol != RolOperario.Supervisor && !User.IsInRole("Admin"))
             return Forbid();
 
         try

@@ -1,0 +1,63 @@
+<div class="page-container">
+  <nav class="page-nav">
+    <button class="btn-back" (click)="volver()">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+    <h2 class="page-title">Métricas del Equipo</h2>
+    <button class="btn-refresh" (click)="cargarDashboard()">
+      <span class="material-symbols-outlined">refresh</span>
+    </button>
+  </nav>
+
+  @if (cargando()) {
+    <div class="loading">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+      Cargando métricas...
+    </div>
+  } @else if (error()) {
+    <div class="error-msg">
+      <span class="material-symbols-outlined">error</span>
+      {{ error() }}
+    </div>
+  } @else if (stats(); as s) {
+    <div class="stats-grid">
+
+      <div class="stat-card stat-blue">
+        <span class="material-symbols-outlined">group</span>
+        <div class="stat-value">{{ s.totalRepartidores }}</div>
+        <div class="stat-label">Repartidores activos</div>
+      </div>
+
+      <div class="stat-card stat-orange">
+        <span class="material-symbols-outlined">route</span>
+        <div class="stat-value">{{ s.rutasEnCurso }}</div>
+        <div class="stat-label">Rutas en curso</div>
+      </div>
+
+      <div class="stat-card stat-green">
+        <span class="material-symbols-outlined">check_circle</span>
+        <div class="stat-value">{{ s.rutasCompletadas }}</div>
+        <div class="stat-label">Rutas completadas</div>
+      </div>
+
+      <div class="stat-card stat-purple">
+        <span class="material-symbols-outlined">inventory_2</span>
+        <div class="stat-value">{{ porcentajeEntregas() }}%</div>
+        <div class="stat-label">Entregas realizadas</div>
+      </div>
+
+      <div class="stat-card stat-red">
+        <span class="material-symbols-outlined">warning</span>
+        <div class="stat-value">{{ s.entregasIncidencia }}</div>
+        <div class="stat-label">Con incidencias</div>
+      </div>
+
+      <div class="stat-card stat-gray">
+        <span class="material-symbols-outlined">schedule</span>
+        <div class="stat-value">{{ s.entregasPendientes }}</div>
+        <div class="stat-label">Pendientes</div>
+      </div>
+
+    </div>
+  }
+</div>

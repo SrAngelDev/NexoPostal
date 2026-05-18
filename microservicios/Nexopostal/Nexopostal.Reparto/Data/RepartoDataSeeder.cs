@@ -11,8 +11,8 @@ public static class RepartoDataSeeder
 {
     // IDs de Auth.SeedData — deben coincidir exactamente
     private const string RepartidorSeedId = "repartidor-carlos-rodriguez-seed-id";
-    private const string RepartidorLogisticoSeedId = "repartidor-logistico-sofia-navarro-seed-id";
-    private const string RepartidorJefeSeedId = "repartidor-jefe-javier-torres-seed-id";
+    private const string RepartidorSeedId2 = "repartidor-sofia-navarro-seed-id";
+    private const string JefeRepartoSeedId = "repartidor-jefe-javier-torres-seed-id";
 
     // Oficinas JSON de Madrid (del oficinas.json de Correos)
     private const int OficinaMoncloa = 1001;
@@ -50,9 +50,9 @@ public static class RepartoDataSeeder
             },
             new()
             {
-                IdentityUserId = RepartidorLogisticoSeedId,
+                IdentityUserId = RepartidorSeedId2,
                 NombreCompleto = "Sofía Navarro Gil",
-                CodigoEmpleado = "RPL001",
+                CodigoEmpleado = "REP002",
                 Telefono = "620333444",
                 OficinaJsonId = OficinaMoncloa,
                 OficinaNombre = OficinaMoncloanNombre,
@@ -61,9 +61,9 @@ public static class RepartoDataSeeder
             },
             new()
             {
-                IdentityUserId = RepartidorJefeSeedId,
+                IdentityUserId = JefeRepartoSeedId,
                 NombreCompleto = "Javier Torres Moreno",
-                CodigoEmpleado = "RPJ001",
+                CodigoEmpleado = "JRP001",
                 Telefono = "620555666",
                 OficinaJsonId = OficinaChamberí,
                 OficinaNombre = OficinaChamberíNombre,

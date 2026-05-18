@@ -10,22 +10,22 @@ namespace Nexopostal.Intranet.Data;
 /// Siembra:
 ///   - 17 CTAs distribuidos en las 7 Áreas Zonales de España
 ///   - 52 rutas de enrutamiento (prefijos CP → CTA)
-///   - 3 usuarios asignados a CTAs (Admin, OperarioLogístico, OperarioJefe)
-///   - 2 usuarios asignados a TODAS las oficinas del JSON (OperarioOficina, OperarioJefe)
+///   - 3 usuarios asignados a CTAs (Admin, OperarioCTA, Supervisor)
+///   - 2 usuarios asignados a TODAS las oficinas del JSON (OperarioOficina, Supervisor)
 /// 
 /// Roles:
 ///   - Admin: control total del sistema
 ///   - OperarioOficina (María): mueve paquetes en las oficinas postales
-///   - OperarioLogístico (Pedro): trabaja en los CTAs (clasificación, carga)
-///   - OperarioJefe (Laura): gestiona zona completa (oficinas + CTAs + incidencias)
+///   - OperarioCTA (Pedro): trabaja en los CTAs (clasificación, carga, movimientos troncales)
+///   - Supervisor (Laura): gestiona incidencias, altas de personal y métricas del CTA
 /// </summary>
 public static class IntranetDataSeeder
 {
     // IDs fijos que coinciden con los del SeedData de Nexopostal.Auth
     private const string AdminSeedId = "admin-seed-id";
     private const string OperarioOficinaSeedId = "operario-maria-garcia-seed-id";
-    private const string OperarioLogisticoSeedId = "operario-logistico-pedro-martinez-seed-id";
-    private const string OperarioJefeSeedId = "operario-jefe-laura-fernandez-seed-id";
+    private const string OperarioCtaSeedId = "operario-logistico-pedro-martinez-seed-id";
+    private const string SupervisorSeedId = "operario-jefe-laura-fernandez-seed-id";
 
     public static async Task SeedAsync(IntranetDbContext context, ILogger logger, OficinasJsonService oficinasService)
     {
@@ -58,7 +58,7 @@ public static class IntranetDataSeeder
             operariosCta.Count, ctas.Count);
 
         // 4. Asignar operarios de oficina a TODAS las oficinas del JSON
-        //    María García (OperarioOficina) y Laura Fernández (OperarioJefe)
+        //    María García (OperarioOficina) y Laura Fernández (Supervisor)
         //    se asignan a todas las oficinas para poder probar el flujo completo.
         var todasLasOficinas = oficinasService.ObtenerTodas();
         var operariosOficina = CrearOperariosOficina(todasLasOficinas);
@@ -380,9 +380,9 @@ public static class IntranetDataSeeder
     /// Asigna los operarios de CTA a TODOS los CTAs.
     /// 
     /// Usuarios CTA:
-    ///   - Admin (admin@nexopostal.es) → OperarioJefe en todos los CTAs
-    ///   - Pedro Martínez (operario.logistico@nexopostal.es) → OperarioLogistico en todos los CTAs
-    ///   - Laura Fernández (operario.jefe@nexopostal.es) → OperarioJefe en todos los CTAs
+    ///   - Admin (admin@nexopostal.es) → Supervisor en todos los CTAs
+    ///   - Pedro Martínez (operario.cta@nexopostal.es) → OperarioCTA en todos los CTAs
+    ///   - Laura Fernández (supervisor@nexopostal.es) → Supervisor en todos los CTAs
     ///
     /// María García NO se asigna a CTAs: ella es OperarioOficina y trabaja en oficinas.
     /// </summary>
@@ -392,9 +392,9 @@ public static class IntranetDataSeeder
 
         var usuariosCta = new[]
         {
-            new { IdentityUserId = AdminSeedId, Nombre = "Administrador del Sistema", Codigo = "ADM001", Rol = RolOperario.OperarioJefe },
-            new { IdentityUserId = OperarioLogisticoSeedId, Nombre = "Pedro Martínez Ruiz", Codigo = "OPL001", Rol = RolOperario.OperarioLogistico },
-            new { IdentityUserId = OperarioJefeSeedId, Nombre = "Laura Fernández Díaz", Codigo = "OPJ001", Rol = RolOperario.OperarioJefe },
+            new { IdentityUserId = AdminSeedId, Nombre = "Administrador del Sistema", Codigo = "ADM001", Rol = RolOperario.Supervisor },
+            new { IdentityUserId = OperarioCtaSeedId, Nombre = "Pedro Martínez Ruiz", Codigo = "OPL001", Rol = RolOperario.OperarioCTA },
+            new { IdentityUserId = SupervisorSeedId, Nombre = "Laura Fernández Díaz", Codigo = "OPJ001", Rol = RolOperario.Supervisor },
         };
 
         foreach (var usuario in usuariosCta)
@@ -420,7 +420,7 @@ public static class IntranetDataSeeder
     /// 
     /// Usuarios oficina:
     ///   - María García (operario@nexopostal.es) → OperarioOficina en TODAS las oficinas
-    ///   - Laura Fernández (operario.jefe@nexopostal.es) → OperarioJefe en TODAS las oficinas
+    ///   - Laura Fernández (supervisor@nexopostal.es) → Supervisor en TODAS las oficinas
     ///
     /// Esto permite probar el flujo completo oficina → CTA → CTA → oficina
     /// desde cualquier oficina de España.
@@ -432,7 +432,7 @@ public static class IntranetDataSeeder
         var usuariosOficina = new[]
         {
             new { IdentityUserId = OperarioOficinaSeedId, Nombre = "María García López", Codigo = "OPE001", Rol = RolOperario.OperarioOficina },
-            new { IdentityUserId = OperarioJefeSeedId, Nombre = "Laura Fernández Díaz", Codigo = "OPJ001", Rol = RolOperario.OperarioJefe },
+            new { IdentityUserId = SupervisorSeedId, Nombre = "Laura Fernández Díaz", Codigo = "OPJ001", Rol = RolOperario.Supervisor },
         };
 
         foreach (var usuario in usuariosOficina)

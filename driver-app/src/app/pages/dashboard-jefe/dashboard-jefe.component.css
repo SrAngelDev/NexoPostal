@@ -1,0 +1,23 @@
+.page-container { display: flex; flex-direction: column; min-height: 100vh; background: #f5f5f5; }
+.page-nav { display: flex; align-items: center; gap: 12px; padding: 16px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.08); }
+.page-title { flex: 1; margin: 0; font-size: 1.2rem; font-weight: 600; }
+.btn-back, .btn-refresh { background: none; border: none; cursor: pointer; padding: 6px; border-radius: 50%; display: flex; align-items: center; color: #555; }
+.btn-back:hover, .btn-refresh:hover { background: #f0f0f0; }
+
+.loading, .error-msg { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 48px; color: #888; font-size: 0.95rem; }
+.error-msg { color: #c62828; }
+.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 16px; }
+.stat-card { background: #fff; border-radius: 14px; padding: 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.stat-card .material-symbols-outlined { font-size: 2rem; }
+.stat-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+.stat-label { font-size: 0.8rem; color: #666; text-align: center; }
+
+.stat-blue  { border-top: 4px solid #1565c0; } .stat-blue  .material-symbols-outlined, .stat-blue  .stat-value { color: #1565c0; }
+.stat-orange { border-top: 4px solid #f57f17; } .stat-orange .material-symbols-outlined, .stat-orange .stat-value { color: #f57f17; }
+.stat-green { border-top: 4px solid #2e7d32; } .stat-green .material-symbols-outlined, .stat-green .stat-value { color: #2e7d32; }
+.stat-purple { border-top: 4px solid #6a1b9a; } .stat-purple .material-symbols-outlined, .stat-purple .stat-value { color: #6a1b9a; }
+.stat-red   { border-top: 4px solid #c62828; } .stat-red   .material-symbols-outlined, .stat-red   .stat-value { color: #c62828; }
+.stat-gray  { border-top: 4px solid #757575; } .stat-gray  .material-symbols-outlined, .stat-gray  .stat-value { color: #757575; }

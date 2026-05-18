@@ -23,7 +23,7 @@ namespace Nexopostal.Intranet.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico")]
+[Authorize(Roles = "Admin,OperarioCTA")]
 public class AdmisionController : ControllerBase
 {
     private readonly IAdmisionService _admisionService;

@@ -30,19 +30,18 @@ public enum AreaZonal
 }
 
 /// <summary>
-/// Rol del operario dentro de un Centro de Tratamiento Automatizado (CTA).
-/// Cada CTA tiene al menos un operario de cada rol.
+/// Rol del operario dentro de un Centro de Tratamiento Automatizado (CTA) u oficina postal.
 /// </summary>
 public enum RolOperario
 {
-    /// <summary>Operario de oficina: ejecuta tareas físicas en oficinas postales (recepción, entrega)</summary>
+    /// <summary>Operario de oficina: atiende ventanilla, escanea recepciones y salidas a reparto</summary>
     OperarioOficina = 0,
 
-    /// <summary>Operario logístico: asigna paquetes a operarios y gestiona el flujo</summary>
-    OperarioLogistico = 1,
+    /// <summary>Operario CTA: trabaja en la nave, consolida paquetes y gestiona movimientos troncales</summary>
+    OperarioCTA = 1,
 
-    /// <summary>Operario jefe: gestiona exclusivamente las incidencias del CTA</summary>
-    OperarioJefe = 2
+    /// <summary>Supervisor: gestiona incidencias, altas/bajas de personal y revisa métricas. No opera paquetes directamente</summary>
+    Supervisor = 2
 }
 
 /// <summary>

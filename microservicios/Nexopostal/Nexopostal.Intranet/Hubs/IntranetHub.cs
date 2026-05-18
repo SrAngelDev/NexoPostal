@@ -11,8 +11,8 @@ namespace Nexopostal.Intranet.Hubs;
 /// 
 /// Grupos:
 ///   - "cta-{ctaId}" → Todos los operarios de un CTA (reciben notificaciones generales)
-///   - "cta-{ctaId}-logistico" → Solo OperarioLogisticos del CTA (paquetes pendientes de asignar)
-///   - "cta-{ctaId}-jefe" → Solo OperarioJefes del CTA (incidencias)
+///   - "cta-{ctaId}-cta" → Solo OperariosCTA del CTA (paquetes pendientes de asignar)
+///   - "cta-{ctaId}-supervisor" → Solo Supervisores del CTA (incidencias)
 ///   - "operario-{operarioId}" → Operario individual (tareas asignadas personalmente)
 /// 
 /// Eventos que emite el servidor:
@@ -27,7 +27,7 @@ namespace Nexopostal.Intranet.Hubs;
 ///   - "IncidenciaActualizada" → Una incidencia ha cambiado de estado
 ///   - "NotificacionGeneral" → Mensaje genérico para todo el CTA
 /// </summary>
-[Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico,OperarioOficina")]
+[Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
 public class IntranetHub : Hub
 {
     private readonly IOperarioService _operarioService;
@@ -65,8 +65,8 @@ public class IntranetHub : Hub
             foreach (var cta in todasCtas)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}");
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-logistico");
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-jefe");
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-cta");
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-supervisor");
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-operarios");
             }
 
@@ -114,11 +114,11 @@ public class IntranetHub : Hub
             // Grupo específico del rol dentro del CTA
             switch (operario.Rol)
             {
-                case RolOperario.OperarioLogistico:
-                    await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{ctaId}-logistico");
+                case RolOperario.OperarioCTA:
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{ctaId}-cta");
                     break;
-                case RolOperario.OperarioJefe:
-                    await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{ctaId}-jefe");
+                case RolOperario.Supervisor:
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{ctaId}-supervisor");
                     break;
                 case RolOperario.OperarioOficina:
                     await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{ctaId}-operarios");

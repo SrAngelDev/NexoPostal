@@ -14,7 +14,7 @@ namespace Nexopostal.Intranet.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico,OperarioOficina")]
+[Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
 public class CtasController : ControllerBase
 {
     private readonly IClasificacionService _clasificacionService;
@@ -68,7 +68,7 @@ public class CtasController : ControllerBase
     /// Incluye: tareas pendientes, en progreso, urgentes, movimientos, incidencias.
     /// </summary>
     [HttpGet("{id:int}/dashboard")]
-    [Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico")]
+    [Authorize(Roles = "Admin,Supervisor,OperarioCTA")]
     [ProducesResponseType(typeof(DashboardCtaDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DashboardCtaDto>> ObtenerDashboard(int id)

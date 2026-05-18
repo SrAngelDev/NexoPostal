@@ -6,7 +6,7 @@ namespace Nexopostal.Intranet.Services;
 
 /// <summary>
 /// Servicio para gestionar las incidencias de un CTA.
-/// Solo el OperarioJefe puede crear, actualizar y resolver incidencias.
+/// Solo el Supervisor puede crear, actualizar y resolver incidencias.
 /// </summary>
 public interface IIncidenciaService
 {
@@ -70,7 +70,7 @@ public class IncidenciaService : IIncidenciaService
 
         // 📡 Notificar a todo el CTA de la nueva incidencia
         var jefe = await _operarioRepo.GetWithCtaAsync(operarioJefeId)
-            ?? throw new InvalidOperationException("Operario jefe no encontrado");
+            ?? throw new InvalidOperationException("Supervisor no encontrado");
         await _notificacionService.NotificarIncidenciaCreada(
             ctaId,
             jefe.CentroTratamiento.Codigo,
