@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -23,12 +24,30 @@ public class SmtpEmailService : IEmailService
     public async Task SendPasswordResetEmailAsync(string toEmail, string toName, string resetLink)
     {
         var emailSettings = _config.GetSection("Email");
-        var host = emailSettings["SmtpHost"] ?? string.Empty;
-        var port = int.TryParse(emailSettings["SmtpPort"], out var p) ? p : 587;
-        var user = emailSettings["SmtpUser"] ?? string.Empty;
-        var pass = emailSettings["SmtpPass"] ?? string.Empty;
-        var from = emailSettings["From"] ?? "noreply@nexopostal.com";
-        var fromName = emailSettings["FromName"] ?? "NexoPostal";
+      var host = ResolveConfigValue(emailSettings["SmtpHost"]);
+      var rawPort = ResolveConfigValue(emailSettings["SmtpPort"]);
+      var user = ResolveConfigValue(emailSettings["SmtpUser"]);
+      var pass = ResolveConfigValue(emailSettings["SmtpPass"]);
+      var from = ResolveConfigValue(emailSettings["From"]);
+      var fromName = ResolveConfigValue(emailSettings["FromName"]);
+
+      // Compatibilidad con nombres de entorno legacy en producción.
+      if (string.IsNullOrWhiteSpace(user))
+        user = Environment.GetEnvironmentVariable("SMTP_USERNAME") ?? string.Empty;
+      if (string.IsNullOrWhiteSpace(pass))
+        pass = Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? string.Empty;
+      if (string.IsNullOrWhiteSpace(from))
+        from = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? "noreply@nexopostal.com";
+      if (string.IsNullOrWhiteSpace(fromName))
+        fromName = Environment.GetEnvironmentVariable("SMTP_FROM_NAME") ?? "NexoPostal";
+
+      var port = int.TryParse(rawPort, out var p) ? p : 587;
+
+      if (string.IsNullOrWhiteSpace(host) || host.Contains("${", StringComparison.Ordinal))
+      {
+        _logger.LogWarning("SMTP host no válido; se omite el envío de recuperación para {Email}", toEmail);
+        return;
+      }
 
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(fromName, from));
@@ -46,15 +65,26 @@ public class SmtpEmailService : IEmailService
         try
         {
             using var client = new SmtpClient();
-            await client.ConnectAsync(host, port, SecureSocketOptions.StartTlsWhenAvailable);
+          using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+          client.Timeout = 12000;
+
+          await client.ConnectAsync(host, port, SecureSocketOptions.StartTlsWhenAvailable, timeoutCts.Token);
 
             if (!string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(pass))
-                await client.AuthenticateAsync(user, pass);
+            await client.AuthenticateAsync(user, pass, timeoutCts.Token);
 
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+          await client.SendAsync(message, timeoutCts.Token);
+          await client.DisconnectAsync(true, timeoutCts.Token);
 
             _logger.LogInformation("Email de recuperación enviado a {Email}", toEmail);
+        }
+        catch (OperationCanceledException ex)
+        {
+          _logger.LogError(ex,
+            "Timeout SMTP ({Host}:{Port}) al enviar email de recuperación a {Email}",
+            host,
+            port,
+            toEmail);
         }
         catch (Exception ex)
         {
@@ -63,6 +93,15 @@ public class SmtpEmailService : IEmailService
             // para no revelar si el email está registrado ni exponer errores SMTP.
         }
     }
+
+      private static string ResolveConfigValue(string? value)
+      {
+        if (string.IsNullOrWhiteSpace(value))
+          return string.Empty;
+
+        return Regex.Replace(value, @"\$\{([^}]+)\}", match =>
+          Environment.GetEnvironmentVariable(match.Groups[1].Value) ?? string.Empty);
+      }
 
     private static string BuildHtmlBody(string nombre, string enlace) => $"""
         <!DOCTYPE html>
