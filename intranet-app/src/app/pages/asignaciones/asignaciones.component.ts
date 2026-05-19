@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -48,6 +48,16 @@ export class AsignacionesComponent implements OnInit {
 
   // Acciones
   accionLoading = signal<number | null>(null);
+  private ultimoEventoProcesado = '';
+
+  private readonly eventosConRefresco = new Set([
+    'PaqueteRecibidoEnCta',
+    'TareaAsignada',
+    'TareaIniciada',
+    'TareaCompletada',
+    'TareaCancelada',
+    'MovimientoRecibido'
+  ]);
 
   tiposTarea = [
     { valor: 'Recepcion', etiqueta: 'Recepción' },
@@ -66,6 +76,21 @@ export class AsignacionesComponent implements OnInit {
     const user = this.authService.getCurrentUser();
     this.userName = user?.user ?? '';
     this.userRole = user?.rol ?? '';
+
+    effect(() => {
+      const ultima = this.signalr.ultimaNotificacion();
+      const cta = this.ctaSeleccionado();
+
+      if (!ultima || !cta) return;
+      if (ultima.ctaId !== cta.ctaId) return;
+      if (!this.eventosConRefresco.has(ultima.tipo)) return;
+
+      const claveEvento = `${ultima.tipo}|${ultima.numeroExpedicion ?? ''}|${ultima.fechaHora}`;
+      if (claveEvento === this.ultimoEventoProcesado) return;
+
+      this.ultimoEventoProcesado = claveEvento;
+      this.cargarAsignaciones(cta.ctaId);
+    });
   }
 
   ngOnInit(): void {

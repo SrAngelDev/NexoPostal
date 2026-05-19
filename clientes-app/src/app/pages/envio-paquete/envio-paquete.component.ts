@@ -210,6 +210,15 @@ export class EnvioPaqueteComponent {
     return true;
   }
 
+  invalidateRatesSelection(): void {
+    if (this.ratesOptions().length === 0 && !this.selectedRate()) {
+      return;
+    }
+
+    this.ratesOptions.set([]);
+    this.selectedRate.set(null);
+  }
+
   calculateRates(): void {
     if (!this.validateDimensiones()) return;
     this.isCalculating.set(true);
@@ -240,6 +249,7 @@ export class EnvioPaqueteComponent {
             price: tarifa.precioTotal
           }))
         );
+        this.selectedRate.set(null);
         this.isCalculating.set(false);
       },
       error: (err) => {
@@ -413,8 +423,6 @@ export class EnvioPaqueteComponent {
       codigoPostalOrigen: this.getCpOrigen(),
       codigoPostalDestino: this.getCpDestino(),
       tipoTarifa: rate.tipoTarifa,
-      coste: rate.price,
-      tiempoEntregaEstimado: rate.deliveryTime,
       nombreRemitente: rem.nombre,
       apellidosRemitente: rem.apellidos,
       telefonoRemitente: rem.telefono,

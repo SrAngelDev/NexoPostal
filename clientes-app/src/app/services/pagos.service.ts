@@ -12,8 +12,6 @@ export interface CrearSesionPagoRequest {
   codigoPostalDestino: string;
   // Tarifa
   tipoTarifa: string;
-  coste: number;
-  tiempoEntregaEstimado: string;
   // Remitente
   nombreRemitente: string;
   apellidosRemitente: string;

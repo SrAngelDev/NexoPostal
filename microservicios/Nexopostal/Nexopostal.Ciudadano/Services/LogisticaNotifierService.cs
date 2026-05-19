@@ -94,20 +94,31 @@ public class LogisticaNotifierService : ILogisticaNotifierService
             };
             request.Headers.Add("X-Service-Key", serviceKey);
 
+            _logger.LogInformation(
+                "Iniciando notificación de admisión interna · Expedicion={Expedicion} · Seguimiento={Seguimiento} · CpDestino={CpDestino}",
+                numeroExpedicion,
+                numeroSeguimiento,
+                codigoPostalDestino);
+
             var response = await _httpClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation(
-                    "✅ Notificación logística enviada · {Expedicion} → CP {CpDestino} (urgente: {Urgente})",
-                    numeroExpedicion, codigoPostalDestino, esUrgente);
+                    "✅ Notificación logística confirmada · Expedicion={Expedicion} · CpDestino={CpDestino} · Urgente={Urgente} · Status={StatusCode}",
+                    numeroExpedicion,
+                    codigoPostalDestino,
+                    esUrgente,
+                    (int)response.StatusCode);
             }
             else
             {
                 var body = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning(
-                    "⚠️ Intranet respondió {StatusCode} al admitir {Expedicion}: {Body}",
-                    (int)response.StatusCode, numeroExpedicion, body);
+                    "⚠️ Intranet respondió error en admisión interna · Expedicion={Expedicion} · Status={StatusCode} · Body={Body}",
+                    numeroExpedicion,
+                    (int)response.StatusCode,
+                    body);
             }
         }
         catch (Exception ex)

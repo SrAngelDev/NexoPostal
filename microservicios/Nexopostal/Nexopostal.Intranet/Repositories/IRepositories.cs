@@ -58,6 +58,7 @@ public interface IAsignacionPaqueteRepository
     Task<AsignacionPaquete?> GetDetailAsync(int id);
     Task<List<AsignacionPaquete>> GetByOperarioAsync(int operarioId, EstadoTarea estado);
     Task<List<AsignacionPaquete>> GetByCtaAsync(int ctaId, EstadoTarea? filtroEstado = null);
+    Task<AsignacionPaquete?> GetByExpedicionTipoCtaAsync(string numeroExpedicion, TipoTarea tipoTarea, int ctaId, bool incluirCanceladas = false);
     Task<AsignacionPaquete> CreateAsync(AsignacionPaquete asignacion);
     Task UpdateAsync(AsignacionPaquete asignacion);
     Task<int> CountByCtaAndEstadoAsync(int ctaId, EstadoTarea estado);

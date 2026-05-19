@@ -413,24 +413,28 @@
               <div class="flex flex-col gap-1.5">
                 <label class="text-sm font-semibold text-gray-700">Peso (kg)</label>
                 <input type="number" [(ngModel)]="weight" step="0.1" min="0.1" max="30" placeholder="Ej: 1.5"
+                  (ngModelChange)="invalidateRatesSelection()"
                   class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors" />
                 <span class="text-xs text-gray-500">Máx: 30kg</span>
               </div>
               <div class="flex flex-col gap-1.5">
                 <label class="text-sm font-semibold text-gray-700">Largo (cm)</label>
                 <input type="number" [(ngModel)]="length" min="10" max="170" placeholder="30"
+                  (ngModelChange)="invalidateRatesSelection()"
                   class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors" />
                 <span class="text-xs text-gray-500">Máx: 170cm</span>
               </div>
               <div class="flex flex-col gap-1.5">
                 <label class="text-sm font-semibold text-gray-700">Ancho (cm)</label>
                 <input type="number" [(ngModel)]="width" min="10" placeholder="20"
+                  (ngModelChange)="invalidateRatesSelection()"
                   class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors" />
                 <span class="text-xs text-gray-500">Mín: 10cm</span>
               </div>
               <div class="flex flex-col gap-1.5">
                 <label class="text-sm font-semibold text-gray-700">Alto (cm)</label>
                 <input type="number" [(ngModel)]="height" min="10" placeholder="10"
+                  (ngModelChange)="invalidateRatesSelection()"
                   class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors" />
                 <span class="text-xs text-gray-500">Mín: 10cm</span>
               </div>

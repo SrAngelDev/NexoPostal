@@ -32,14 +32,6 @@ public class CrearSesionPagoDto
     [MaxLength(20)]
     public string TipoTarifa { get; set; } = string.Empty;
 
-    [Required]
-    [Range(0.01, 9999)]
-    public decimal Coste { get; set; }
-
-    [Required]
-    [MaxLength(20)]
-    public string TiempoEntregaEstimado { get; set; } = string.Empty;
-
     // ===== REMITENTE =====
 
     [Required]
