@@ -133,14 +133,20 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // appsettings.json usa el placeholder "${FRONTEND_URL}" que .NET no resuelve
-        // automáticamente. Lo sustituimos aquí igual que hace EmailService.
-        var rawUrl = _config["AppSettings:FrontendUrl"] ?? string.Empty;
-        var frontendUrl = Regex.Replace(
-            rawUrl,
-            @"\$\{([^}]+)\}",
-            m => Environment.GetEnvironmentVariable(m.Groups[1].Value) ?? m.Value);
+        // Prioridad 1: URL que envía el propio frontend (siempre correcta sea local o producción)
+        var frontendUrl = dto.FrontendUrl?.Trim().TrimEnd('/');
 
+        // Prioridad 2: variable de entorno / appsettings (resolviendo placeholder ${VAR})
+        if (string.IsNullOrWhiteSpace(frontendUrl))
+        {
+            var rawUrl = _config["AppSettings:FrontendUrl"] ?? string.Empty;
+            frontendUrl = Regex.Replace(
+                rawUrl,
+                @"\$\{([^}]+)\}",
+                m => Environment.GetEnvironmentVariable(m.Groups[1].Value) ?? m.Value);
+        }
+
+        // Fallback final
         if (string.IsNullOrWhiteSpace(frontendUrl) || frontendUrl.Contains("${"))
             frontendUrl = "http://localhost:4200";
 

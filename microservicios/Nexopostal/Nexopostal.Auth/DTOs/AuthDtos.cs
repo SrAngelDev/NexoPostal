@@ -93,6 +93,13 @@ public class SolicitarResetPasswordDto
     [Required(ErrorMessage = "El email es obligatorio")]
     [EmailAddress(ErrorMessage = "El formato del email no es válido")]
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// URL base del frontend que envía la solicitud (p.ej. "https://nexopostal.es").
+    /// El backend la usa para construir el enlace de recuperación en el email.
+    /// Si no se proporciona, se usa la configuración de servidor como fallback.
+    /// </summary>
+    public string? FrontendUrl { get; set; }
 }
 
 /// <summary>
