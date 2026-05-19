@@ -96,7 +96,7 @@
   transition: opacity 0.2s;
 }
 .btn-icon:hover { opacity: 0.8; }
-.btn-icon .material-icons { font-size: 18px; }
+.btn-icon .material-symbols-outlined { font-size: 18px; }
 
 .btn-danger  { background: #fee2e2; color: #dc2626; }
 .btn-success { background: #d1fae5; color: #059669; }
@@ -172,8 +172,8 @@
   color: #9ca3af;
   font-size: 1rem;
 }
-.loading-state .material-icons,
-.empty-state .material-icons { font-size: 48px; }
+.loading-state .material-symbols-outlined,
+.empty-state .material-symbols-outlined { font-size: 48px; }
 
 .spinning {
   animation: spin 1s linear infinite;
@@ -277,7 +277,7 @@
   font-size: 0.78rem;
   font-weight: 600;
 }
-.status-badge .material-icons { font-size: 14px; }
+.status-badge .material-symbols-outlined { font-size: 14px; }
 .status-active  { background: #d1fae5; color: #065f46; }
 .status-blocked { background: #fee2e2; color: #991b1b; }
 
@@ -338,7 +338,7 @@
   color: #1a1a2e;
 }
 
-.modal-header h2 .material-icons { color: #2563eb; }
+.modal-header h2 .material-symbols-outlined { color: #2563eb; }
 
 .modal-form {
   padding: 20px 24px;

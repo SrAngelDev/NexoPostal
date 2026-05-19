@@ -3,14 +3,14 @@
   <!-- Barra superior -->
   <div class="page-header">
     <button class="btn-back" (click)="volver()">
-      <span class="material-icons">arrow_back</span>
+      <span class="material-symbols-outlined">arrow_back</span>
     </button>
     <h1 class="page-title">
-      <span class="material-icons title-icon">manage_accounts</span>
+      <span class="material-symbols-outlined title-icon">manage_accounts</span>
       Gestión de Usuarios
     </h1>
     <button class="btn-primary" (click)="abrirModalCrear()">
-      <span class="material-icons">person_add</span>
+      <span class="material-symbols-outlined">person_add</span>
       Nuevo empleado
     </button>
   </div>
@@ -18,7 +18,7 @@
   <!-- Error de acción -->
   @if (actionError()) {
     <div class="alert alert-error">
-      <span class="material-icons">error_outline</span>
+      <span class="material-symbols-outlined">error_outline</span>
       {{ actionError() }}
     </div>
   }
@@ -61,21 +61,21 @@
     </div>
 
     <button class="btn-secondary" (click)="cargar()" title="Actualizar">
-      <span class="material-icons">refresh</span>
+      <span class="material-symbols-outlined">refresh</span>
     </button>
   </div>
 
   <!-- Tabla de usuarios -->
   @if (loading()) {
     <div class="loading-state">
-      <span class="material-icons spinning">sync</span>
+      <span class="material-symbols-outlined spinning">sync</span>
       Cargando usuarios...
     </div>
   } @else if (error()) {
     <div class="alert alert-error">{{ error() }}</div>
   } @else if (usuarios().length === 0) {
     <div class="empty-state">
-      <span class="material-icons">search_off</span>
+      <span class="material-symbols-outlined">search_off</span>
       <p>No se encontraron usuarios con los filtros actuales.</p>
     </div>
   } @else {
@@ -105,12 +105,12 @@
               <td>
                 @if (u.bloqueado) {
                   <span class="status-badge status-blocked">
-                    <span class="material-icons">block</span>
+                    <span class="material-symbols-outlined">block</span>
                     Bloqueado
                   </span>
                 } @else {
                   <span class="status-badge status-active">
-                    <span class="material-icons">check_circle</span>
+                    <span class="material-symbols-outlined">check_circle</span>
                     Activo
                   </span>
                 }
@@ -138,7 +138,7 @@
                     (click)="bloquear(u)"
                     title="Bloquear acceso"
                   >
-                    <span class="material-icons">block</span>
+                    <span class="material-symbols-outlined">block</span>
                   </button>
                 } @else {
                   <button
@@ -146,7 +146,7 @@
                     (click)="desbloquear(u)"
                     title="Desbloquear acceso"
                   >
-                    <span class="material-icons">lock_open</span>
+                    <span class="material-symbols-outlined">lock_open</span>
                   </button>
                 }
 
@@ -156,7 +156,7 @@
                   (click)="abrirModalReset(u)"
                   title="Restablecer contraseña"
                 >
-                  <span class="material-icons">key</span>
+                  <span class="material-symbols-outlined">key</span>
                 </button>
               </td>
             </tr>
@@ -175,11 +175,11 @@
     <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h2>
-          <span class="material-icons">person_add</span>
+          <span class="material-symbols-outlined">person_add</span>
           Nuevo empleado
         </h2>
         <button class="btn-close" (click)="cerrarModalCrear()">
-          <span class="material-icons">close</span>
+          <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
@@ -247,7 +247,7 @@
 
         @if (formCrearOk()) {
           <div class="alert alert-success">
-            <span class="material-icons">check_circle</span>
+            <span class="material-symbols-outlined">check_circle</span>
             Empleado creado correctamente.
           </div>
         }
@@ -255,7 +255,7 @@
         <div class="modal-footer">
           <button type="button" class="btn-secondary" (click)="cerrarModalCrear()">Cancelar</button>
           <button type="submit" class="btn-primary" [disabled]="formCrearRef.invalid">
-            <span class="material-icons">save</span>
+            <span class="material-symbols-outlined">save</span>
             Crear empleado
           </button>
         </div>
@@ -270,11 +270,11 @@
     <div class="modal-card modal-small" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h2>
-          <span class="material-icons">key</span>
+          <span class="material-symbols-outlined">key</span>
           Restablecer contraseña
         </h2>
         <button class="btn-close" (click)="cerrarModalReset()">
-          <span class="material-icons">close</span>
+          <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
@@ -295,7 +295,7 @@
 
         @if (resetOk()) {
           <div class="alert alert-success">
-            <span class="material-icons">check_circle</span>
+            <span class="material-symbols-outlined">check_circle</span>
             Contraseña restablecida correctamente.
           </div>
         }
@@ -307,7 +307,7 @@
             (click)="confirmarReset()"
             [disabled]="nuevaPassword.length < 6"
           >
-            <span class="material-icons">lock_reset</span>
+            <span class="material-symbols-outlined">lock_reset</span>
             Confirmar
           </button>
         </div>

@@ -375,6 +375,7 @@ La intranet tiene un enfoque completamente distinto. No prima la contratacion o 
 - Seguimiento interno, donde se busca un envio por numero de expedicion o seguimiento y se puede modificar su estado interno.
 - Escaneo logistico, pensado para procesar codigos individuales o lotes con distintos modos de operacion.
 - Panel de administracion, reservado a perfiles de mayor privilegio.
+- Gestion de usuarios, exclusiva del rol Admin: listado con filtros, alta de empleados, cambio de rol, bloqueo/desbloqueo de acceso y restablecimiento de contrasena. Esta funcionalidad evita tener que acceder directamente a la base de datos para operaciones habituales de soporte y alta de personal.
 
 La pantalla de escaneo es especialmente representativa del enfoque operativo del sistema. Se han definido varios modos de escaneo, como recepcion en CTA, clasificacion, despacho troncal, recepcion troncal, recepcion en oficina, entrega a oficina destino y salida a reparto. Esto permite que la misma herramienta se adapte a momentos distintos del circuito logístico. Ademas, se ha incluido modo batch para procesar varios codigos de una sola vez y se mantiene un historial de escaneos durante la sesion.
 

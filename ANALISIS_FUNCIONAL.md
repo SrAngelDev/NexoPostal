@@ -39,6 +39,15 @@ Nota: este documento no incluye credenciales ni secretos.
 - Incidencias (alta y ciclo de vida).
 - Orquestacion automatica hacia Reparto tras admision (cuando llega payload con datos de ultima milla), con respuesta operacional embebida en la admision.
 
+### Auth (Gestion de usuarios Admin)
+- Panel de gestion de empleados reservado al rol Admin.
+- Listado con filtros por rol, estado de bloqueo y busqueda libre por nombre/email/codigo.
+- Bloqueo/desbloqueo de acceso mediante Identity lockout (sin migracion de esquema).
+- Cambio de rol inline desde la tabla; el admin no puede modificar su propio rol.
+- Restablecimiento de contrasena directo (flujo admin, sin email).
+- Alta de nuevos empleados con nombre, email, codigo, rol y contrasena inicial; rol Cliente no admitido.
+- Login bloquea acceso a usuarios con lockout activo antes de emitir tokens.
+
 ### Reparto (API)
 - Repartidores: crear, listar, mi perfil.
 - Rutas: crear, listar, detalle, iniciar y finalizar.
@@ -117,6 +126,7 @@ Nota: este documento no incluye credenciales ni secretos.
 ### Intranet / Logistica
 - Implementado: admision, asignaciones, movimientos troncales, incidencias.
 - Implementado: automatizacion de traspaso operativo hacia reparto al admitir paquetes con datos de entrega (seguimiento, direccion, destinatario, telefono).
+- Implementado: gestion de usuarios empleados reservada al rol Admin (listado, bloqueo/desbloqueo, cambio de rol, reset de contrasena, alta de empleados).
 - Falta: reglas de asignacion mas avanzadas (SLA, carga, zona) y politicas de reintento transaccional.
 
 ### Reparto
@@ -173,6 +183,13 @@ Auth:
 - POST /api/auth/register
 - POST /api/auth/refresh
 - GET  /api/auth/me
+- GET  /api/admin-usuarios
+- GET  /api/admin-usuarios/{id}
+- PUT  /api/admin-usuarios/{id}/rol
+- PUT  /api/admin-usuarios/{id}/bloquear
+- PUT  /api/admin-usuarios/{id}/desbloquear
+- POST /api/admin-usuarios/{id}/reset-password
+- POST /api/admin-usuarios
 
 Intranet:
 - POST /api/admision/paquete
