@@ -12,6 +12,34 @@ export interface ConsultarTarifasRequest {
   tipoServicio?: string;
 }
 
+/** Petición al endpoint POST /calcular — misma ruta de cálculo que usa CrearSesionPago */
+export interface CalcularTarifaRequest {
+  peso: number;
+  largo?: number;
+  ancho?: number;
+  alto?: number;
+  codigoPostalOrigen: string;
+  codigoPostalDestino: string;
+  tipoTarifa?: string;
+}
+
+/** Respuesta del endpoint POST /calcular */
+export interface CalculoPrecioResponse {
+  precioBase: number;
+  recargo: number;
+  iva: number;
+  precioTotal: number;
+  moneda: string;
+  tiempoEntregaEstimado: string;
+  tiempoEstimadoDias: number;
+  tipoTarifa: string;
+  zona: string;
+  pesoFacturable: number;
+  pesoVolumetrico: number;
+  aplicaRecargo: boolean;
+  recargoPorcentaje: number;
+}
+
 export interface TarifaDetalle {
   id: number;
   nombre: string;
@@ -58,5 +86,14 @@ export class TarifasService {
     if (request.tipoServicio) params.tipoServicio = request.tipoServicio;
 
     return this.http.get<TarifasResponse>(`${this.API_URL}/consultar`, { params });
+  }
+
+  /**
+   * Calcula el precio exacto para una tarifa concreta usando POST /calcular.
+   * Usa exactamente la misma lógica que CrearSesionPago, garantizando
+   * que el precio mostrado al usuario coincide con lo que Stripe cobrará.
+   */
+  calcularTarifa(request: CalcularTarifaRequest): Observable<CalculoPrecioResponse> {
+    return this.http.post<CalculoPrecioResponse>(`${this.API_URL}/calcular`, request);
   }
 }

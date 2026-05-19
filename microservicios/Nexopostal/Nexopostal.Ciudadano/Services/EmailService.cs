@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -32,8 +33,10 @@ public class EmailService : IEmailService
     public async Task EnviarConfirmacionEnvio(Envio envio, byte[] facturaPdf, byte[] etiquetaPdf)
     {
         var smtpSettings = _configuration.GetSection("SmtpSettings");
-        var fromName = smtpSettings["FromName"] ?? "NexoPostal";
-        var fromEmail = smtpSettings["FromEmail"] ?? "no-reply@nexopostal.es";
+        var fromName = Resolve(smtpSettings["FromName"]);
+        var fromEmail = Resolve(smtpSettings["FromEmail"]);
+        if (string.IsNullOrWhiteSpace(fromName)) fromName = "NexoPostal";
+        if (string.IsNullOrWhiteSpace(fromEmail)) fromEmail = "no-reply@nexopostal.es";
 
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(fromName, fromEmail));
@@ -64,23 +67,40 @@ public class EmailService : IEmailService
         try
         {
             using var client = new SmtpClient();
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            client.Timeout = 15000;
 
-            var host = smtpSettings["Host"] ?? "localhost";
-            var port = int.Parse(smtpSettings["Port"] ?? "587");
-            var useSsl = bool.Parse(smtpSettings["UseSsl"] ?? "true");
-            var username = smtpSettings["Username"] ?? "";
-            var password = smtpSettings["Password"] ?? "";
+            var host = Resolve(smtpSettings["Host"]);
+            var rawPort = Resolve(smtpSettings["Port"]);
+            var rawSsl = Resolve(smtpSettings["UseSsl"]);
+            var username = Resolve(smtpSettings["Username"]);
+            var password = Resolve(smtpSettings["Password"]);
 
-            var secureOption = useSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None;
-            await client.ConnectAsync(host, port, secureOption);
+            // Fallback a env vars directas por compatibilidad
+            if (string.IsNullOrWhiteSpace(username))
+                username = Environment.GetEnvironmentVariable("SMTP_USERNAME") ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(password))
+                password = Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? string.Empty;
 
-            if (!string.IsNullOrEmpty(username))
+            if (string.IsNullOrWhiteSpace(host) || host.Contains("${", StringComparison.Ordinal))
             {
-                await client.AuthenticateAsync(username, password);
+                _logger.LogWarning(
+                    "SMTP host no configurado; se omite el envío de confirmación para {Email}",
+                    envio.EmailRemitente);
+                return;
             }
 
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            var port = int.TryParse(rawPort, out var p) ? p : 587;
+            var useSsl = !string.Equals(rawSsl, "false", StringComparison.OrdinalIgnoreCase);
+
+            var secureOption = useSsl ? SecureSocketOptions.StartTlsWhenAvailable : SecureSocketOptions.None;
+            await client.ConnectAsync(host, port, secureOption, cts.Token);
+
+            if (!string.IsNullOrEmpty(username))
+                await client.AuthenticateAsync(username, password, cts.Token);
+
+            await client.SendAsync(message, cts.Token);
+            await client.DisconnectAsync(true, cts.Token);
 
             _logger.LogInformation(
                 "Email de confirmación enviado a {Email} para envío {NumeroSeguimiento}",
@@ -93,6 +113,13 @@ public class EmailService : IEmailService
                 envio.EmailRemitente, envio.NumeroSeguimiento);
             // No lanzamos excepción para que el flujo de pago no falle por un error de email
         }
+    }
+
+    private static string Resolve(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        return Regex.Replace(value, @"\$\{([^}]+)\}",
+            m => Environment.GetEnvironmentVariable(m.Groups[1].Value) ?? string.Empty);
     }
 
     private static string GenerarHtmlEmail(Envio envio)

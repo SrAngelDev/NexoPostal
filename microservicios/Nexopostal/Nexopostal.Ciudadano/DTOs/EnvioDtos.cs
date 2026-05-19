@@ -107,9 +107,59 @@ public class EnvioTrackingDto
 {
     public string NumeroSeguimiento { get; set; } = string.Empty;
     public string EstadoActual { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Estado interno detallado (nombre del enum EstadoInterno).
+    /// Necesario en la barra de progreso del frontend (8 pasos).
+    /// </summary>
+    public string EstadoInterno { get; set; } = string.Empty;
+
     public string Descripcion { get; set; } = string.Empty;
     public DateTime FechaCreacion { get; set; }
+
+    /// <summary>
+    /// Fecha de entrega cuando EstadoActual == Entregado. Null en otro caso.
+    /// </summary>
+    public DateTime? FechaEntrega { get; set; }
+
     public int NumeroBultos { get; set; } = 1;
+
+    /// <summary>
+    /// Historial cronológico de eventos. Vacío por ahora (P0 — futuras versiones lo poblarán).
+    /// </summary>
+    public List<object> Eventos { get; set; } = new();
+}
+
+/// <summary>
+/// DTO usado por Intranet para sincronizar cambios de estado interno
+/// hacia Ciudadano (escaneos manuales y simulación de transporte).
+/// </summary>
+public class TrackingScanEstadoDto
+{
+    /// <summary>
+    /// Número de seguimiento público (NXP-...). Opcional si se proporciona NumeroExpedicion.
+    /// </summary>
+    [MaxLength(40)]
+    public string? NumeroSeguimiento { get; set; }
+
+    /// <summary>
+    /// Número de expedición interno (NXI-...). Opcional si se proporciona NumeroSeguimiento.
+    /// </summary>
+    [MaxLength(40)]
+    public string? NumeroExpedicion { get; set; }
+
+    /// <summary>
+    /// Nuevo estado interno (nombre exacto del enum EstadoInterno).
+    /// </summary>
+    [Required]
+    [MaxLength(60)]
+    public string EstadoInterno { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Descripción operativa del cambio (se incluirá en el evento SignalR).
+    /// </summary>
+    [MaxLength(300)]
+    public string? Descripcion { get; set; }
 }
 
 /// <summary>

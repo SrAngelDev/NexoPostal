@@ -93,7 +93,7 @@ public class OperarioCtaRepository : IOperarioCtaRepository
 
     public async Task<bool> ExistsByIdentityUserIdAndCtaAsync(string identityUserId, int ctaId)
         => await _context.OperariosCta.AnyAsync(o =>
-            o.IdentityUserId == identityUserId && o.CentroTratamientoId == ctaId);
+            o.IdentityUserId == identityUserId && o.CentroTratamientoId == ctaId && o.Activo);
 }
 
 public class OperarioOficinaRepository : IOperarioOficinaRepository

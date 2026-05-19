@@ -28,11 +28,11 @@ public class SimulacionTransporteService : BackgroundService
     //  Ajustar para demo rápida o más realista
     // ═══════════════════════════════════════════
     private const int IntervaloComprobacion = 10;   // Cada cuántos segundos comprueba
-    private const int DemoraOficinaACta = 20;       // Oficina → CTA origen
-    private const int DemoraClasificacion = 10;     // Clasificación automática
-    private const int DemoraDespachoTroncal = 10;   // Preparar despacho
-    private const int DemoraTransito = 30;          // Tránsito CTA → CTA
-    private const int DemoraCtaAOficina = 20;       // CTA destino → Oficina destino
+    private const int DemoraOficinaACta = 5;        // Oficina → CTA origen
+    private const int DemoraClasificacion = 3;      // Clasificación automática
+    private const int DemoraDespachoTroncal = 3;    // Preparar despacho
+    private const int DemoraTransito = 10;          // Tránsito CTA → CTA
+    private const int DemoraCtaAOficina = 5;        // CTA destino → Oficina destino
 
     public SimulacionTransporteService(
         IServiceScopeFactory scopeFactory,
@@ -62,13 +62,14 @@ public class SimulacionTransporteService : BackgroundService
                 var movimientoService = scope.ServiceProvider.GetRequiredService<IMovimientoService>();
                 var clasificacionService = scope.ServiceProvider.GetRequiredService<IClasificacionService>();
                 var oficinasService = scope.ServiceProvider.GetRequiredService<OficinasJsonService>();
+                var ciudadanoNotifier = scope.ServiceProvider.GetRequiredService<ICiudadanoEstadoNotifierService>();
 
                 // Ejecutar todas las fases de simulación
-                await SimularOficinaACta(historialRepo, ctaRepo, rutaRepo, historialService, oficinasService);
-                await SimularClasificacion(historialRepo, historialService, clasificacionService);
-                await SimularDespachoTroncal(historialRepo, movimientoRepo, historialService, movimientoService);
-                await SimularTransitoCta(movimientoRepo, historialService, movimientoService);
-                await SimularCtaAOficina(historialRepo, ctaRepo, historialService, oficinasService);
+                await SimularOficinaACta(historialRepo, ctaRepo, rutaRepo, historialService, oficinasService, ciudadanoNotifier);
+                await SimularClasificacion(historialRepo, historialService, clasificacionService, ciudadanoNotifier);
+                await SimularDespachoTroncal(historialRepo, movimientoRepo, historialService, movimientoService, ciudadanoNotifier);
+                await SimularTransitoCta(movimientoRepo, historialService, movimientoService, ciudadanoNotifier);
+                await SimularCtaAOficina(historialRepo, ctaRepo, historialService, oficinasService, ciudadanoNotifier);
             }
             catch (Exception ex)
             {
@@ -95,7 +96,8 @@ public class SimulacionTransporteService : BackgroundService
         ICentroTratamientoRepository ctaRepo,
         IRutaCtaRepository rutaRepo,
         IHistorialService historialService,
-        OficinasJsonService oficinasService)
+        OficinasJsonService oficinasService,
+        ICiudadanoEstadoNotifierService ciudadanoNotifier)
     {
         var umbral = DateTime.UtcNow.AddSeconds(-DemoraOficinaACta);
 
@@ -138,6 +140,12 @@ public class SimulacionTransporteService : BackgroundService
                 VisibleParaCliente = true
             });
 
+            await ciudadanoNotifier.NotificarEstadoAsync(
+                evento.NumeroSeguimiento,
+                evento.NumeroExpedicion,
+                "RecibidoEnCentroOrigen",
+                $"Paquete recibido en {ctaOrigen.Nombre}");
+
             _logger.LogInformation(
                 "🚛 Simulación: {Exp} → Oficina → {Cta} (RecibidoEnCentroOrigen)",
                 evento.NumeroExpedicion, ctaOrigen.Codigo);
@@ -157,7 +165,8 @@ public class SimulacionTransporteService : BackgroundService
     private async Task SimularClasificacion(
         IHistorialEstadoRepository historialRepo,
         IHistorialService historialService,
-        IClasificacionService clasificacionService)
+        IClasificacionService clasificacionService,
+        ICiudadanoEstadoNotifierService ciudadanoNotifier)
     {
         var umbral = DateTime.UtcNow.AddSeconds(-DemoraClasificacion);
 
@@ -181,6 +190,12 @@ public class SimulacionTransporteService : BackgroundService
                 VisibleParaCliente = true
             });
 
+            await ciudadanoNotifier.NotificarEstadoAsync(
+                evento.NumeroSeguimiento,
+                evento.NumeroExpedicion,
+                "ClasificadoParaExpedicion",
+                $"Paquete clasificado en {evento.UbicacionNombre}");
+
             _logger.LogInformation(
                 "📋 Simulación: {Exp} clasificado en {Cta}",
                 evento.NumeroExpedicion, evento.UbicacionNombre);
@@ -200,7 +215,8 @@ public class SimulacionTransporteService : BackgroundService
         IHistorialEstadoRepository historialRepo,
         IMovimientoPaqueteRepository movimientoRepo,
         IHistorialService historialService,
-        IMovimientoService movimientoService)
+        IMovimientoService movimientoService,
+        ICiudadanoEstadoNotifierService ciudadanoNotifier)
     {
         var umbral = DateTime.UtcNow.AddSeconds(-DemoraDespachoTroncal);
 
@@ -232,6 +248,12 @@ public class SimulacionTransporteService : BackgroundService
                     VisibleParaCliente = true
                 });
 
+                await ciudadanoNotifier.NotificarEstadoAsync(
+                    evento.NumeroSeguimiento,
+                    evento.NumeroExpedicion,
+                    "RecibidoEnCentroDestino",
+                    $"Paquete recibido en {evento.UbicacionNombre}");
+
                 _logger.LogInformation(
                     "📦 Simulación: {Exp} es local en {Cta}, sin troncal necesario",
                     evento.NumeroExpedicion, evento.UbicacionNombre);
@@ -258,6 +280,12 @@ public class SimulacionTransporteService : BackgroundService
                 VisibleParaCliente = true
             });
 
+            await ciudadanoNotifier.NotificarEstadoAsync(
+                evento.NumeroSeguimiento,
+                evento.NumeroExpedicion,
+                "EnTransitoHaciaCentroDestino",
+                $"Paquete en tránsito hacia {movimiento.CtaDestino.Codigo}");
+
             _logger.LogInformation(
                 "🚚 Simulación: {Exp} despachado {Origen} → {Destino}",
                 evento.NumeroExpedicion, movimiento.CtaOrigen.Codigo, movimiento.CtaDestino.Codigo);
@@ -276,7 +304,8 @@ public class SimulacionTransporteService : BackgroundService
     private async Task SimularTransitoCta(
         IMovimientoPaqueteRepository movimientoRepo,
         IHistorialService historialService,
-        IMovimientoService movimientoService)
+        IMovimientoService movimientoService,
+        ICiudadanoEstadoNotifierService ciudadanoNotifier)
     {
         var umbral = DateTime.UtcNow.AddSeconds(-DemoraTransito);
 
@@ -303,6 +332,13 @@ public class SimulacionTransporteService : BackgroundService
                 VisibleParaCliente = true
             });
 
+            // MovimientoPaquete solo tiene NumeroExpedicion — Ciudadano busca por expedicion
+            await ciudadanoNotifier.NotificarEstadoAsync(
+                null,
+                movimiento.NumeroExpedicion,
+                "RecibidoEnCentroDestino",
+                $"Paquete recibido en {movimiento.CtaDestino.Nombre}");
+
             _logger.LogInformation(
                 "📬 Simulación: {Exp} llegó a {CtaDestino} desde {CtaOrigen}",
                 movimiento.NumeroExpedicion, movimiento.CtaDestino.Codigo, movimiento.CtaOrigen.Codigo);
@@ -322,7 +358,8 @@ public class SimulacionTransporteService : BackgroundService
         IHistorialEstadoRepository historialRepo,
         ICentroTratamientoRepository ctaRepo,
         IHistorialService historialService,
-        OficinasJsonService oficinasService)
+        OficinasJsonService oficinasService,
+        ICiudadanoEstadoNotifierService ciudadanoNotifier)
     {
         var umbral = DateTime.UtcNow.AddSeconds(-DemoraCtaAOficina);
 
@@ -364,6 +401,12 @@ public class SimulacionTransporteService : BackgroundService
                 Observaciones = "Entrega a oficina destino simulada automáticamente",
                 VisibleParaCliente = true
             });
+
+            await ciudadanoNotifier.NotificarEstadoAsync(
+                evento.NumeroSeguimiento,
+                evento.NumeroExpedicion,
+                "DepositadoEnOficina",
+                $"Paquete disponible en {oficinaDestino.Nombre}");
 
             _logger.LogInformation(
                 "🏤 Simulación: {Exp} depositado en oficina {Oficina}",

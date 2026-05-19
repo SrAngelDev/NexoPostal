@@ -27,6 +27,7 @@ public class ScanProcessorService : IScanProcessorService
     private readonly IClasificacionService _clasificacionService;
     private readonly IMovimientoService _movimientoService;
     private readonly INotificacionService _notificacionService;
+    private readonly ICiudadanoEstadoNotifierService _ciudadanoNotifier;
     private readonly ILogger<ScanProcessorService> _logger;
 
     // Mapeo modo → descripción legible
@@ -49,7 +50,7 @@ public class ScanProcessorService : IScanProcessorService
         [ModosEscaneo.Clasificacion] = "ClasificadoParaExpedicion",
         [ModosEscaneo.DespachoTroncal] = "EnTransitoHaciaCentroDestino",
         [ModosEscaneo.RecepcionTroncal] = "RecibidoEnCentroDestino",
-        [ModosEscaneo.EntregaOficinaDestino] = "DepositivoEnOficina",
+        [ModosEscaneo.EntregaOficinaDestino] = "DepositadoEnOficina",
         [ModosEscaneo.SalidaAReparto] = "EnReparto"
     };
 
@@ -59,6 +60,7 @@ public class ScanProcessorService : IScanProcessorService
         IClasificacionService clasificacionService,
         IMovimientoService movimientoService,
         INotificacionService notificacionService,
+        ICiudadanoEstadoNotifierService ciudadanoNotifier,
         ILogger<ScanProcessorService> logger)
     {
         _movimientoRepo = movimientoRepo;
@@ -66,6 +68,7 @@ public class ScanProcessorService : IScanProcessorService
         _clasificacionService = clasificacionService;
         _movimientoService = movimientoService;
         _notificacionService = notificacionService;
+        _ciudadanoNotifier = ciudadanoNotifier;
         _logger = logger;
     }
 
@@ -149,7 +152,7 @@ public class ScanProcessorService : IScanProcessorService
         if (!req.OficinaJsonId.HasValue)
             return Error(req, "Se requiere la oficina para recepción");
 
-        var historial = await RegistrarHistorial(expedicion, new CrearHistorialEventoDto
+        await RegistrarHistorial(expedicion, new CrearHistorialEventoDto
         {
             NumeroExpedicion = expedicion,
             Estado = "RecogidoEnOrigen",
@@ -161,6 +164,10 @@ public class ScanProcessorService : IScanProcessorService
             Observaciones = req.Observaciones,
             VisibleParaCliente = true
         });
+
+        await _ciudadanoNotifier.NotificarEstadoAsync(
+            null, expedicion, "RecogidoEnOrigen",
+            $"Paquete recibido en {req.OficinaNombre}");
 
         return Exito(req, expedicion, "RecogidoEnOrigen",
             $"Paquete recibido en {req.OficinaNombre}",
@@ -221,10 +228,15 @@ public class ScanProcessorService : IScanProcessorService
             VisibleParaCliente = true
         });
 
-        // Notificar al CTA
+        // Notificar al CTA (SignalR interno)
         await _notificacionService.NotificarPaqueteRecibidoEnCta(
             req.CtaId.Value, req.CtaCodigo ?? "", expedicion,
             req.EsUrgente, "", req.Observaciones);
+
+        // Notificar a Ciudadano (tracking público)
+        await _ciudadanoNotifier.NotificarEstadoAsync(
+            null, expedicion, "RecibidoEnCentroOrigen",
+            $"Paquete admitido en {req.CtaCodigo}");
 
         var result = Exito(req, expedicion, "RecibidoEnCentroOrigen",
             $"Paquete admitido en {req.CtaCodigo}",
@@ -269,6 +281,10 @@ public class ScanProcessorService : IScanProcessorService
             Observaciones = req.Observaciones,
             VisibleParaCliente = true
         });
+
+        await _ciudadanoNotifier.NotificarEstadoAsync(
+            null, expedicion, "ClasificadoParaExpedicion",
+            $"Clasificado para expedición en {req.CtaCodigo}");
 
         var result = Exito(req, expedicion, "ClasificadoParaExpedicion",
             $"Clasificado para expedición en {req.CtaCodigo}",
@@ -315,6 +331,10 @@ public class ScanProcessorService : IScanProcessorService
             VisibleParaCliente = true
         });
 
+        await _ciudadanoNotifier.NotificarEstadoAsync(
+            null, expedicion, "EnTransitoHaciaCentroDestino",
+            $"Paquete despachado desde {req.CtaCodigo}");
+
         var result = Exito(req, expedicion, "EnTransitoHaciaCentroDestino",
             $"Despachado desde {req.CtaCodigo}",
             req.CtaCodigo);
@@ -358,10 +378,15 @@ public class ScanProcessorService : IScanProcessorService
             VisibleParaCliente = true
         });
 
-        // Notificar al CTA destino
+        // Notificar al CTA destino (SignalR interno)
         await _notificacionService.NotificarPaqueteRecibidoEnCta(
             req.CtaId.Value, req.CtaCodigo ?? "", expedicion,
             req.EsUrgente, "", "Recibido tras movimiento troncal");
+
+        // Notificar a Ciudadano (tracking público)
+        await _ciudadanoNotifier.NotificarEstadoAsync(
+            null, expedicion, "RecibidoEnCentroDestino",
+            $"Recibido en CTA destino {req.CtaCodigo}");
 
         var result = Exito(req, expedicion, "RecibidoEnCentroDestino",
             $"Recibido en CTA destino {req.CtaCodigo}",
@@ -373,7 +398,7 @@ public class ScanProcessorService : IScanProcessorService
 
     /// <summary>
     /// Paquete entregado a la oficina de destino para recogida o reparto.
-    /// → Estado: DepositivoEnOficina
+    /// → Estado: DepositadoEnOficina
     /// </summary>
     private async Task<ScanResultDto> ProcesarEntregaOficinaDestino(ScanRequestDto req, string expedicion)
     {
@@ -383,7 +408,7 @@ public class ScanProcessorService : IScanProcessorService
         await RegistrarHistorial(expedicion, new CrearHistorialEventoDto
         {
             NumeroExpedicion = expedicion,
-            Estado = "DepositivoEnOficina",
+            Estado = "DepositadoEnOficina",
             TipoUbicacion = TipoUbicacion.Oficina.ToString(),
             UbicacionId = req.OficinaJsonId,
             UbicacionNombre = req.OficinaNombre,
@@ -393,7 +418,11 @@ public class ScanProcessorService : IScanProcessorService
             VisibleParaCliente = true
         });
 
-        return Exito(req, expedicion, "DepositivoEnOficina",
+        await _ciudadanoNotifier.NotificarEstadoAsync(
+            null, expedicion, "DepositadoEnOficina",
+            $"Paquete disponible en {req.OficinaNombre}");
+
+        return Exito(req, expedicion, "DepositadoEnOficina",
             $"Depositado en oficina {req.OficinaNombre}",
             req.OficinaNombre);
     }
@@ -419,6 +448,10 @@ public class ScanProcessorService : IScanProcessorService
             Observaciones = req.Observaciones,
             VisibleParaCliente = true
         });
+
+        await _ciudadanoNotifier.NotificarEstadoAsync(
+            null, expedicion, "EnReparto",
+            $"En reparto desde {req.OficinaNombre}");
 
         return Exito(req, expedicion, "EnReparto",
             $"En reparto desde {req.OficinaNombre}",

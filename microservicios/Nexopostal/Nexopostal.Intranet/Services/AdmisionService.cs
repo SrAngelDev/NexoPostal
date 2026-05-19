@@ -204,14 +204,15 @@ public class AdmisionService : IAdmisionService
 
             var operariosActivosCta = await _operarioRepo.GetByCtaIdAsync(ctaDestino.CtaId, soloActivos: true);
 
-            var operariosOficina = operariosActivosCta
-                .Where(o => o.Rol == RolOperario.OperarioOficina)
+            // Buscar primero OperarioCTA; si no hay, usar Supervisor como fallback
+            var operariosAsignables = operariosActivosCta
+                .Where(o => o.Rol == RolOperario.OperarioCTA || o.Rol == RolOperario.Supervisor)
                 .ToList();
 
-            if (operariosOficina.Count == 0)
+            if (operariosAsignables.Count == 0)
             {
                 _logger.LogWarning(
-                    "Autoasignación CTA omitida para {Expedicion}: no hay OperarioOficina activo en {Cta}",
+                    "Autoasignación CTA omitida para {Expedicion}: no hay OperarioCTA ni Supervisor activo en {Cta}",
                     dto.NumeroExpedicion,
                     ctaDestino.CtaCodigo);
 
@@ -219,11 +220,11 @@ public class AdmisionService : IAdmisionService
                 {
                     Attempted = true,
                     Success = false,
-                    Message = "No hay operarios de oficina activos para autoasignar la clasificación en este CTA."
+                    Message = "No hay operarios CTA activos para autoasignar la clasificación en este CTA."
                 };
             }
 
-            var operarioAsignado = await SeleccionarOperarioConMenorCargaAsync(operariosOficina);
+            var operarioAsignado = await SeleccionarOperarioConMenorCargaAsync(operariosAsignables);
 
             var asignador = operariosActivosCta.FirstOrDefault(o => o.Rol == RolOperario.OperarioCTA)
                 ?? operariosActivosCta.FirstOrDefault(o => o.Rol == RolOperario.Supervisor)

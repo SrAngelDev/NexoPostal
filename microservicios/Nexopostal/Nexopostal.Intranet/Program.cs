@@ -122,6 +122,18 @@ builder.Services.AddHttpClient<IRepartoOrquestacionService, RepartoOrquestacionS
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+var ciudadanoBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoSettings:BaseUrl"]);
+if (string.IsNullOrWhiteSpace(ciudadanoBaseUrl) || ciudadanoBaseUrl.Contains("${"))
+{
+    ciudadanoBaseUrl = "http://localhost:5100";
+}
+
+builder.Services.AddHttpClient<ICiudadanoEstadoNotifierService, CiudadanoEstadoNotifierService>(client =>
+{
+    client.BaseAddress = new Uri(ciudadanoBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 // 4.1 Servicios de automatización
 builder.Services.AddScoped<IClasificacionAutomaticaService, ClasificacionAutomaticaService>();
 builder.Services.AddScoped<INotificacionAutomaticaService, NotificacionAutomaticaService>();

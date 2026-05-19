@@ -61,18 +61,25 @@ public class TrackingNotificacionService : ITrackingNotificacionService
     {
         var grupo = $"tracking-{numeroSeguimiento.ToUpper().Trim()}";
 
+        // El frontend (TrackingEstadoEvento) espera los campos:
+        //   estado, estadoAnterior, fecha, ubicacion, descripcion
+        // Enviamos `estadoInterno` como `estado` porque la barra de progreso
+        // (8 pasos detallados) se construye sobre el enum EstadoInterno.
         await _hubContext.Clients.Group(grupo).SendAsync("EstadoActualizado", new
         {
             numeroSeguimiento,
+            estado = estadoInterno,
+            estadoAnterior = string.Empty,
             estadoPublico,
             estadoInterno,
             descripcion,
             ubicacion,
-            fechaHora = DateTime.UtcNow
+            fecha = DateTime.UtcNow,
+            visibleParaCliente = true
         });
 
         _logger.LogInformation(
-            "📡 Tracking → EstadoActualizado · {Seguimiento}: {EstadoPrevio} → {Estado}",
+            "📡 Tracking → EstadoActualizado · {Seguimiento}: {EstadoInterno} (público: {EstadoPublico})",
             numeroSeguimiento, estadoInterno, estadoPublico);
     }
 
@@ -91,7 +98,7 @@ public class TrackingNotificacionService : ITrackingNotificacionService
             descripcion,
             latitud,
             longitud,
-            fechaHora = DateTime.UtcNow
+            fecha = DateTime.UtcNow
         });
 
         _logger.LogInformation(
@@ -110,7 +117,8 @@ public class TrackingNotificacionService : ITrackingNotificacionService
             numeroSeguimiento,
             tipoEntrega,
             descripcion,
-            fechaHora = DateTime.UtcNow
+            fechaEntrega = DateTime.UtcNow,
+            fecha = DateTime.UtcNow
         });
 
         _logger.LogInformation(
@@ -128,8 +136,9 @@ public class TrackingNotificacionService : ITrackingNotificacionService
         {
             numeroSeguimiento,
             tipoIncidencia,
+            tipo = tipoIncidencia,
             descripcion,
-            fechaHora = DateTime.UtcNow
+            fecha = DateTime.UtcNow
         });
 
         _logger.LogInformation(

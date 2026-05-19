@@ -2,6 +2,7 @@ import { Component, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { NotificacionService } from '../../services/notificacion.service';
 import { ConfirmacionService } from '../../services/confirmacion.service';
 import { OficinasService, Oficina } from '../../services/oficinas.service';
@@ -224,33 +225,51 @@ export class EnvioPaqueteComponent {
   calculateRates(): void {
     if (!this.validateDimensiones()) return;
     this.isCalculating.set(true);
-    
-    const weight = this.weight() || 1;
-    const length = this.length() || 0;
-    const width = this.width() || 0;
-    const height = this.height() || 0;
 
-    this.tarifasService.consultarTarifas({
-      peso: weight,
-      largo: length,
-      ancho: width,
-      alto: height,
+    const peso  = this.weight() as number;
+    const largo = this.length() as number;
+    const ancho = this.width()  as number;
+    const alto  = this.height() as number;
+
+    const base = {
+      peso,
+      largo,
+      ancho,
+      alto,
       codigoPostalOrigen: this.getCpOrigen(),
       codigoPostalDestino: this.getCpDestino()
+    };
+
+    // Usamos POST /calcular (misma lógica exacta que CrearSesionPago) en lugar de
+    // GET /consultar para garantizar que los precios mostrados coinciden con lo que
+    // Stripe cobrará al usuario.
+    forkJoin({
+      estandar: this.tarifasService.calcularTarifa({ ...base, tipoTarifa: 'Estandar' }),
+      premium:  this.tarifasService.calcularTarifa({ ...base, tipoTarifa: 'Premium' })
     }).subscribe({
-      next: (response) => {
-        this.ratesOptions.set(
-          response.tarifas.map(tarifa => ({
-            tipoTarifa: tarifa.nombre.toLowerCase() === 'premium' ? 'Premium' : 'Estandar',
-            name: `Envío ${tarifa.nombre}`,
-            description: tarifa.descripcion,
-            deliveryTime: tarifa.tiempoEntregaEstimado,
-            precioBase: tarifa.precioBase,
-            recargo: tarifa.recargo,
-            iva: tarifa.iva,
-            price: tarifa.precioTotal
-          }))
-        );
+      next: ({ estandar, premium }) => {
+        this.ratesOptions.set([
+          {
+            tipoTarifa: 'Estandar',
+            name: 'Envío Estandar',
+            description: 'Entrega estándar económica',
+            deliveryTime: estandar.tiempoEntregaEstimado,
+            precioBase: estandar.precioBase,
+            recargo:    estandar.recargo,
+            iva:        estandar.iva,
+            price:      estandar.precioTotal
+          },
+          {
+            tipoTarifa: 'Premium',
+            name: 'Envío Premium',
+            description: 'Entrega premium prioritaria',
+            deliveryTime: premium.tiempoEntregaEstimado,
+            precioBase: premium.precioBase,
+            recargo:    premium.recargo,
+            iva:        premium.iva,
+            price:      premium.precioTotal
+          }
+        ]);
         this.selectedRate.set(null);
         this.isCalculating.set(false);
       },

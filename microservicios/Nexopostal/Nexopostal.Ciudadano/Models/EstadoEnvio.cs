@@ -46,7 +46,7 @@ public enum EstadoInterno
     EnReparto = 40,               // El repartidor lo lleva en su ruta
     PrimerIntentoFallido = 41,    // Primer intento de entrega fallido (ausente)
     SegundoIntentoFallido = 42,   // Segundo intento fallido
-    DepositivoEnOficina = 43,     // Depositado en oficina para recogida del destinatario
+    DepositadoEnOficina = 43,     // Depositado en oficina para recogida del destinatario
 
     // --- Fase de entrega ---
     EntregadoEnDomicilio = 50,    // Entregado en el domicilio del destinatario
