@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { NotificacionService } from '../../services/notificacion.service';
 import { ConfirmacionService } from '../../services/confirmacion.service';
 import { OficinasService, Oficina } from '../../services/oficinas.service';
-import { PagosService, CrearSesionPagoRequest } from '../../services/pagos.service';
+import { PagosService, CrearSesionPagoRequest, SesionPagoCreadaResponse } from '../../services/pagos.service';
 import { AuthService } from '../../services/auth.service';
 import { PerfilService, DireccionFavoritaDto } from '../../services/perfil.service';
 import { TarifasService } from '../../services/tarifas.service';
@@ -61,6 +61,8 @@ export class EnvioPaqueteComponent {
   selectedRate = signal<RateOption | null>(null);
   isCalculating = signal(false);
   procesandoPago = signal(false);
+  /** Sesión de Stripe pendiente de confirmación explícita por el usuario */
+  sesionPendiente = signal<SesionPagoCreadaResponse | null>(null);
   
   // Datos de remitente
   remitente = signal<DatosPersona>({
@@ -418,7 +420,7 @@ export class EnvioPaqueteComponent {
     }
 
     const request: CrearSesionPagoRequest = {
-      peso: this.weight() || 0,
+      peso: this.weight() || 1,
       dimensiones: `${this.length()}x${this.width()}x${this.height()} cm`,
       codigoPostalOrigen: this.getCpOrigen(),
       codigoPostalDestino: this.getCpDestino(),
@@ -442,14 +444,28 @@ export class EnvioPaqueteComponent {
 
     this.pagosService.crearSesionPago(request).subscribe({
       next: (res) => {
-        // Redirigir a Stripe Checkout
-        window.location.href = res.sessionUrl;
+        this.procesandoPago.set(false);
+        // Mostrar modal de confirmación con el precio exacto calculado por el servidor
+        // antes de redirigir al usuario a Stripe
+        this.sesionPendiente.set(res);
       },
       error: (err) => {
         this.procesandoPago.set(false);
         this.notificacion.errorHttp(err, 'Error al iniciar el pago');
       }
     });
+  }
+
+  /** Redirige a Stripe una vez que el usuario ha confirmado el precio exacto */
+  confirmarPago(): void {
+    const sesion = this.sesionPendiente();
+    if (!sesion) return;
+    window.location.href = sesion.sessionUrl;
+  }
+
+  /** Cancela la sesión pendiente sin redirigir (el envío queda en PendientePago y el usuario puede reintentar) */
+  cancelarSesionPendiente(): void {
+    this.sesionPendiente.set(null);
   }
 
   async cancelShipment(): Promise<void> {

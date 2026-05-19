@@ -130,7 +130,11 @@ public class PagosController : ControllerBase
         {
             SessionUrl = sessionUrl,
             SessionId = sessionId,
-            NumeroSeguimiento = envio.NumeroSeguimiento
+            NumeroSeguimiento = envio.NumeroSeguimiento,
+            PrecioCalculado = tarifa.PrecioTotal,
+            TiempoEntregaEstimado = tarifa.TiempoEntregaEstimado,
+            Zona = tarifa.Zona,
+            TipoTarifa = tarifa.TipoTarifa
         });
     }
 
@@ -219,7 +223,11 @@ public class PagosController : ControllerBase
         {
             SessionUrl = sessionUrl,
             SessionId = sessionId,
-            NumeroSeguimiento = envio.NumeroSeguimiento
+            NumeroSeguimiento = envio.NumeroSeguimiento,
+            PrecioCalculado = envio.CosteCalculado,
+            TiempoEntregaEstimado = envio.TiempoEntregaEstimado,
+            Zona = string.Empty,
+            TipoTarifa = envio.TipoTarifa ?? string.Empty
         });
     }
 

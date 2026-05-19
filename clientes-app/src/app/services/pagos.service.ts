@@ -34,6 +34,11 @@ export interface SesionPagoCreadaResponse {
   sessionUrl: string;
   sessionId: string;
   numeroSeguimiento: string;
+  /** Precio final calculado por el servidor (con IVA). Coincide exactamente con lo que Stripe cobrará. */
+  precioCalculado: number;
+  tiempoEntregaEstimado: string;
+  zona: string;
+  tipoTarifa: string;
 }
 
 export interface VerificarPagoResponse {

@@ -95,6 +95,11 @@ public class SesionPagoCreadaDto
     public string SessionUrl { get; set; } = string.Empty;
     public string SessionId { get; set; } = string.Empty;
     public string NumeroSeguimiento { get; set; } = string.Empty;
+    /// <summary>Precio final calculado por el servidor (con IVA). Coincide exactamente con lo que Stripe cobrará.</summary>
+    public decimal PrecioCalculado { get; set; }
+    public string TiempoEntregaEstimado { get; set; } = string.Empty;
+    public string Zona { get; set; } = string.Empty;
+    public string TipoTarifa { get; set; } = string.Empty;
 }
 
 /// <summary>

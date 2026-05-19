@@ -57,8 +57,12 @@ public class StripeService : IStripeService
             return "Dimensiones no informadas";
         }
 
-        var normalizado = Regex.Replace(dimensiones.Trim(), @"(\s*cm)+\s*$", string.Empty, RegexOptions.IgnoreCase);
-        return $"{normalizado} cm";
+        // Eliminar todos los sufijos "cm" consecutivos (con espacios opcionales) que pueda tener la cadena
+        var s = dimensiones.Trim();
+        while (s.EndsWith("cm", StringComparison.OrdinalIgnoreCase))
+            s = s[..^2].TrimEnd();
+
+        return $"{s} cm";
     }
 
     public async Task<(string SessionUrl, string SessionId)> CrearSesionCheckout(
