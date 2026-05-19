@@ -238,6 +238,14 @@
 
 .data-table tr:last-child td { border-bottom: none; }
 
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover td {
+  background: #f5f9ff;
+}
+
 .row-blocked td { opacity: 0.6; background: #fafafa; }
 
 .cell-email { color: #6b7280; font-size: 0.85rem; }

@@ -26,9 +26,21 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto model)
     {
-        var result = await _authService.LoginAsync(model);
+        var (result, bloqueado) = await _authService.LoginWithStatusAsync(model);
         if (result == null)
-            return Unauthorized(new { error = "Credenciales incorrectas" });
+        {
+            if (bloqueado)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    error = "Usuario bloqueado",
+                    message = "Tu cuenta esta bloqueada. Contacta con soporte para mas informacion.",
+                    code = "USER_BLOCKED"
+                });
+            }
+
+            return Unauthorized(new { error = "Credenciales incorrectas", code = "INVALID_CREDENTIALS" });
+        }
 
         return Ok(result);
     }

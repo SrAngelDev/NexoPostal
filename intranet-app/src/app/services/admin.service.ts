@@ -55,6 +55,34 @@ export interface AdminCrearEmpleadoDto {
   password: string;
 }
 
+export interface CtaResumenDto {
+  id: number;
+  codigo: string;
+  nombre: string;
+  area: string;
+}
+
+export interface AdminOperarioCtaAsignacionDto {
+  operarioCtaId: number;
+  ctaId: number;
+  ctaCodigo: string;
+  ctaNombre: string;
+  area: string;
+  rolOperativo: string;
+  activo: boolean;
+  fechaAsignacion: string;
+  tareasPendientes: number;
+  tareasEnProgreso: number;
+  tareasCompletadasHoy: number;
+}
+
+export interface AdminOperarioDetalleDto {
+  identityUserId: string;
+  nombreCompleto: string;
+  codigoEmpleado: string;
+  asignacionesCta: AdminOperarioCtaAsignacionDto[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -68,8 +96,8 @@ export class AdminService {
     return this.http.get<DashboardAdminDto>(`${this.API_URL}/dashboard-global`);
   }
 
-  obtenerCtas(): Observable<any[]> {
-    return this.http.get<any[]>(this.API_URL);
+  obtenerCtas(): Observable<CtaResumenDto[]> {
+    return this.http.get<CtaResumenDto[]>(this.API_URL);
   }
 
   obtenerDashboardCta(ctaId: number): Observable<DashboardCtaDto> {
@@ -108,6 +136,16 @@ export class AdminService {
 
   resetPasswordUsuario(id: string, nuevaPassword: string): Observable<void> {
     return this.http.post<void>(`${this.USUARIOS_URL}/${id}/reset-password`, { nuevaPassword });
+  }
+
+  obtenerDetalleOperativoUsuario(id: string): Observable<AdminOperarioDetalleDto> {
+    return this.http.get<AdminOperarioDetalleDto>(`${this.USUARIOS_URL}/${id}/detalle-operativo`);
+  }
+
+  moverCtaUsuario(id: string, nuevoCtaId: number, operarioCtaId?: number): Observable<void> {
+    const payload: { nuevoCtaId: number; operarioCtaId?: number } = { nuevoCtaId };
+    if (operarioCtaId !== undefined) payload.operarioCtaId = operarioCtaId;
+    return this.http.put<void>(`${this.USUARIOS_URL}/${id}/cta`, payload);
   }
 }
 

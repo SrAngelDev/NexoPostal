@@ -94,7 +94,7 @@
         </thead>
         <tbody>
           @for (u of usuarios(); track u.id) {
-            <tr [class.row-blocked]="u.bloqueado">
+            <tr class="clickable-row" [class.row-blocked]="u.bloqueado" (click)="verDetalle(u)">
               <td class="cell-nombre">{{ u.nombreCompleto }}</td>
               <td class="cell-email">{{ u.email }}</td>
               <td class="cell-codigo">{{ u.codigoEmpleado || '—' }}</td>
@@ -120,6 +120,7 @@
                 <select
                   [ngModel]="u.rol"
                   (ngModelChange)="cambiarRol(u, $event)"
+                  (click)="$event.stopPropagation()"
                   class="select-rol"
                   title="Cambiar rol"
                 >
@@ -135,7 +136,7 @@
                 @if (!u.bloqueado) {
                   <button
                     class="btn-icon btn-danger"
-                    (click)="bloquear(u)"
+                    (click)="$event.stopPropagation(); bloquear(u)"
                     title="Bloquear acceso"
                   >
                     <span class="material-symbols-outlined">block</span>
@@ -143,7 +144,7 @@
                 } @else {
                   <button
                     class="btn-icon btn-success"
-                    (click)="desbloquear(u)"
+                    (click)="$event.stopPropagation(); desbloquear(u)"
                     title="Desbloquear acceso"
                   >
                     <span class="material-symbols-outlined">lock_open</span>
@@ -153,7 +154,7 @@
                 <!-- Reset password -->
                 <button
                   class="btn-icon btn-warning"
-                  (click)="abrirModalReset(u)"
+                  (click)="$event.stopPropagation(); abrirModalReset(u)"
                   title="Restablecer contraseña"
                 >
                   <span class="material-symbols-outlined">key</span>

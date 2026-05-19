@@ -1,9 +1,11 @@
 using System.Security.Cryptography;
+using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
 using AspNetCore.ApiGateway;
 using AspNetCore.ApiGateway.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Nexopostal.Gateway.Services;
 
@@ -66,6 +68,15 @@ public static class ServiceCollectionExtensions
         var key = GetJwtKeyBytes(secretKey);
         var issuer = ResolveConfigValue(jwtSettings["Issuer"]);
         var audience = ResolveConfigValue(jwtSettings["Audience"]);
+        var authBaseUrl = ResolveConfigValue(config["Microservices:Auth"]);
+        if (string.IsNullOrWhiteSpace(authBaseUrl))
+            authBaseUrl = "http://modulo-seguridad:80";
+
+        services.AddHttpClient<IUserSessionValidationService, UserSessionValidationService>(client =>
+        {
+            client.BaseAddress = new Uri($"{authBaseUrl.TrimEnd('/')}/");
+            client.Timeout = TimeSpan.FromSeconds(3);
+        });
 
         services.AddAuthentication(options =>
         {
@@ -86,6 +97,34 @@ public static class ServiceCollectionExtensions
                 ValidAudience = audience,
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
+            };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnTokenValidated = async context =>
+                {
+                    var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                                 ?? context.Principal?.FindFirst("sub")?.Value;
+
+                    if (string.IsNullOrWhiteSpace(userId))
+                    {
+                        context.HttpContext.Items["GatewayAuthErrorCode"] = "INVALID_TOKEN";
+                        context.Fail("Token invalido: no incluye identificador de usuario.");
+                        return;
+                    }
+
+                    var sessionValidator = context.HttpContext.RequestServices
+                        .GetRequiredService<IUserSessionValidationService>();
+                    var validationStatus = await sessionValidator.ValidateAsync(
+                        userId,
+                        context.HttpContext.RequestAborted);
+
+                    if (validationStatus == SessionValidationStatus.Blocked)
+                    {
+                        context.HttpContext.Items["GatewayAuthErrorCode"] = "USER_BLOCKED";
+                        context.Fail("La cuenta esta bloqueada.");
+                    }
+                }
             };
         });
 

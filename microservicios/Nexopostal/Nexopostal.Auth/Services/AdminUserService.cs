@@ -17,6 +17,10 @@ public interface IAdminUserService
 
 public class AdminUserService : IAdminUserService
 {
+    private const string TokenProvider = "NexoPostal";
+    private const string RefreshTokenHashName = "RefreshTokenHash";
+    private const string RefreshTokenExpiryName = "RefreshTokenExpiryUtc";
+
     private readonly IUserRepository _userRepository;
 
     public AdminUserService(IUserRepository userRepository)
@@ -75,9 +79,13 @@ public class AdminUserService : IAdminUserService
             return (false, "Usuario no encontrado.");
 
         var result = await _userRepository.SetLockoutAsync(user, bloquear: true);
-        return result.Succeeded
-            ? (true, null)
-            : (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+        if (!result.Succeeded)
+            return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+
+        await _userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenHashName);
+        await _userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenExpiryName);
+
+        return (true, null);
     }
 
     public async Task<(bool Ok, string? Error)> DesbloquearAsync(string id)

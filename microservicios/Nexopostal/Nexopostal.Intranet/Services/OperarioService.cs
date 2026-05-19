@@ -27,6 +27,12 @@ public interface IOperarioService
     /// <summary>Obtiene el detalle de un operario</summary>
     Task<OperarioDetalleDto?> ObtenerDetalle(int operarioId);
 
+    /// <summary>Obtiene el detalle operativo de un usuario por IdentityUserId (vista admin).</summary>
+    Task<AdminOperarioDetalleDto?> ObtenerDetalleAdminPorIdentityUserId(string identityUserId);
+
+    /// <summary>Mueve una asignación de CTA de un usuario (vista admin).</summary>
+    Task<(bool Ok, string? Error, bool Conflict)> ActualizarCtaAdmin(string identityUserId, AdminActualizarCtaDto dto);
+
     /// <summary>Crea un nuevo operario y lo asigna a un CTA</summary>
     Task<OperarioResumenDto> CrearOperario(CrearOperarioDto dto);
 
@@ -148,6 +154,101 @@ public class OperarioService : IOperarioService
             TareasEnProgreso = await _asignacionRepo.CountByOperarioAndEstadoAsync(operarioId, EstadoTarea.EnProgreso),
             TareasCompletadasHoy = await _asignacionRepo.CountCompletadasHoyByOperarioAsync(operarioId)
         };
+    }
+
+    /// <inheritdoc />
+    public async Task<AdminOperarioDetalleDto?> ObtenerDetalleAdminPorIdentityUserId(string identityUserId)
+    {
+        var asignaciones = await _operarioRepo.GetAllByIdentityUserIdAsync(identityUserId);
+        if (asignaciones.Count == 0)
+            return null;
+
+        var primero = asignaciones.First();
+        var detalle = new AdminOperarioDetalleDto
+        {
+            IdentityUserId = identityUserId,
+            NombreCompleto = primero.NombreCompleto,
+            CodigoEmpleado = primero.CodigoEmpleado
+        };
+
+        foreach (var operario in asignaciones
+            .OrderByDescending(o => o.Activo)
+            .ThenBy(o => o.CentroTratamiento.Codigo))
+        {
+            detalle.AsignacionesCta.Add(new AdminOperarioCtaAsignacionDto
+            {
+                OperarioCtaId = operario.Id,
+                CtaId = operario.CentroTratamientoId,
+                CtaCodigo = operario.CentroTratamiento.Codigo,
+                CtaNombre = operario.CentroTratamiento.Nombre,
+                Area = operario.CentroTratamiento.Area.ToString(),
+                RolOperativo = operario.Rol.ToString(),
+                Activo = operario.Activo,
+                FechaAsignacion = operario.FechaAsignacion,
+                TareasPendientes = await _asignacionRepo.CountByOperarioAndEstadoAsync(operario.Id, EstadoTarea.Pendiente),
+                TareasEnProgreso = await _asignacionRepo.CountByOperarioAndEstadoAsync(operario.Id, EstadoTarea.EnProgreso),
+                TareasCompletadasHoy = await _asignacionRepo.CountCompletadasHoyByOperarioAsync(operario.Id)
+            });
+        }
+
+        return detalle;
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Ok, string? Error, bool Conflict)> ActualizarCtaAdmin(string identityUserId, AdminActualizarCtaDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(identityUserId))
+            return (false, "IdentityUserId no válido.", false);
+
+        var asignaciones = await _operarioRepo.GetAllByIdentityUserIdAsync(identityUserId);
+        if (asignaciones.Count == 0)
+            return (false, "No hay asignaciones CTA para este usuario.", false);
+
+        OperarioCta? asignacion = null;
+        if (dto.OperarioCtaId.HasValue)
+        {
+            asignacion = asignaciones.FirstOrDefault(o => o.Id == dto.OperarioCtaId.Value);
+            if (asignacion == null)
+                return (false, "La asignación indicada no existe para este usuario.", false);
+        }
+        else if (asignaciones.Count == 1)
+        {
+            asignacion = asignaciones[0];
+        }
+        else
+        {
+            return (false, "Debes indicar OperarioCtaId cuando el usuario tenga múltiples asignaciones.", false);
+        }
+
+        if (asignacion.CentroTratamientoId == dto.NuevoCtaId)
+            return (true, null, false);
+
+        var ctaDestino = await _ctaRepo.GetByIdAsync(dto.NuevoCtaId);
+        if (ctaDestino == null)
+            return (false, $"CTA con ID {dto.NuevoCtaId} no encontrado.", false);
+
+        var yaExiste = await _operarioRepo.ExistsByIdentityUserIdAndCtaAsync(identityUserId, dto.NuevoCtaId);
+        if (yaExiste)
+            return (false, "Este usuario ya está asignado al CTA destino.", true);
+
+        var tareasPendientes = await _asignacionRepo.CountByOperarioAndEstadoAsync(asignacion.Id, EstadoTarea.Pendiente);
+        var tareasEnProgreso = await _asignacionRepo.CountByOperarioAndEstadoAsync(asignacion.Id, EstadoTarea.EnProgreso);
+        if (tareasPendientes > 0 || tareasEnProgreso > 0)
+            return (false, "No se puede mover de CTA mientras tenga tareas pendientes o en progreso.", false);
+
+        var ctaOrigen = asignacion.CentroTratamiento.Codigo;
+
+        asignacion.CentroTratamientoId = dto.NuevoCtaId;
+        asignacion.FechaAsignacion = DateTime.UtcNow;
+        await _operarioRepo.UpdateAsync(asignacion);
+
+        _logger.LogInformation(
+            "Admin movió usuario {IdentityUserId} de CTA {CtaOrigen} a {CtaDestino}",
+            identityUserId,
+            ctaOrigen,
+            ctaDestino.Codigo);
+
+        return (true, null, false);
     }
 
     /// <inheritdoc />

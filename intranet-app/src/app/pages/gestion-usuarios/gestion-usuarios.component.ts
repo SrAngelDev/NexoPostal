@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -192,6 +192,10 @@ export class GestionUsuariosComponent implements OnInit {
 
   volver(): void {
     this.router.navigate(['/admin']);
+  }
+
+  verDetalle(usuario: UsuarioAdminDto): void {
+    this.router.navigate(['/gestion-usuarios', usuario.id]);
   }
 
   rolBadgeClass(rol: string): string {

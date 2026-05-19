@@ -17,53 +17,65 @@ public class AdminUsersProxyController : ControllerBase
 {
     private static readonly HttpClient _httpClient = new();
     private readonly string _authUrl;
+    private readonly string _logisticaUrl;
 
     public AdminUsersProxyController(IConfiguration config)
     {
         _authUrl = config["Microservices:Auth"] ?? "http://modulo-seguridad:80";
+        _logisticaUrl = config["Microservices:Logistica"] ?? "http://modulo-logistica:80";
     }
 
     /// <summary>Lista usuarios con filtros opcionales (?rol=&bloqueado=&q=).</summary>
     [HttpGet]
     public Task<IActionResult> Listar() =>
-        Proxy(HttpMethod.Get, "api/admin-usuarios");
+        Proxy(HttpMethod.Get, _authUrl, "api/admin-usuarios");
 
     /// <summary>Obtiene el detalle de un usuario por ID.</summary>
     [HttpGet("{id}")]
     public Task<IActionResult> Detalle(string id) =>
-        Proxy(HttpMethod.Get, $"api/admin-usuarios/{id}");
+        Proxy(HttpMethod.Get, _authUrl, $"api/admin-usuarios/{id}");
 
     /// <summary>Crea un nuevo empleado interno.</summary>
     [HttpPost]
     public Task<IActionResult> Crear() =>
-        Proxy(HttpMethod.Post, "api/admin-usuarios");
+        Proxy(HttpMethod.Post, _authUrl, "api/admin-usuarios");
 
     /// <summary>Cambia el rol de un usuario.</summary>
     [HttpPut("{id}/rol")]
     public Task<IActionResult> CambiarRol(string id) =>
-        Proxy(HttpMethod.Put, $"api/admin-usuarios/{id}/rol");
+        Proxy(HttpMethod.Put, _authUrl, $"api/admin-usuarios/{id}/rol");
 
     /// <summary>Bloquea el acceso de un usuario.</summary>
     [HttpPut("{id}/bloquear")]
     public Task<IActionResult> Bloquear(string id) =>
-        Proxy(HttpMethod.Put, $"api/admin-usuarios/{id}/bloquear");
+        Proxy(HttpMethod.Put, _authUrl, $"api/admin-usuarios/{id}/bloquear");
 
     /// <summary>Desbloquea el acceso de un usuario.</summary>
     [HttpPut("{id}/desbloquear")]
     public Task<IActionResult> Desbloquear(string id) =>
-        Proxy(HttpMethod.Put, $"api/admin-usuarios/{id}/desbloquear");
+        Proxy(HttpMethod.Put, _authUrl, $"api/admin-usuarios/{id}/desbloquear");
 
     /// <summary>Restablece la contraseña de un usuario (flujo admin).</summary>
     [HttpPost("{id}/reset-password")]
     public Task<IActionResult> ResetPassword(string id) =>
-        Proxy(HttpMethod.Post, $"api/admin-usuarios/{id}/reset-password");
+        Proxy(HttpMethod.Post, _authUrl, $"api/admin-usuarios/{id}/reset-password");
+
+    /// <summary>Obtiene el detalle operativo (CTA) de un usuario interno.</summary>
+    [HttpGet("{id}/detalle-operativo")]
+    public Task<IActionResult> DetalleOperativo(string id) =>
+        Proxy(HttpMethod.Get, _logisticaUrl, $"api/operarios/admin/identity/{id}");
+
+    /// <summary>Mueve la asignación CTA de un usuario interno.</summary>
+    [HttpPut("{id}/cta")]
+    public Task<IActionResult> ActualizarCta(string id) =>
+        Proxy(HttpMethod.Put, _logisticaUrl, $"api/operarios/admin/identity/{id}/cta");
 
     // ─── Helper ───
 
-    private async Task<IActionResult> Proxy(HttpMethod method, string path)
+    private async Task<IActionResult> Proxy(HttpMethod method, string baseUrl, string path)
     {
         var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
-        var requestMessage = new HttpRequestMessage(method, $"{_authUrl}/{path}{queryString}");
+        var requestMessage = new HttpRequestMessage(method, $"{baseUrl}/{path}{queryString}");
 
         // Reenviar Authorization header
         if (Request.Headers.TryGetValue("Authorization", out var authHeader))

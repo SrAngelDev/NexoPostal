@@ -142,6 +142,44 @@ public class OperariosController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene el detalle operativo (asignaciones CTA) por IdentityUserId para administración.
+    /// </summary>
+    [HttpGet("admin/identity/{identityUserId}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(AdminOperarioDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AdminOperarioDetalleDto>> ObtenerDetalleAdmin(string identityUserId)
+    {
+        var detalle = await _operarioService.ObtenerDetalleAdminPorIdentityUserId(identityUserId);
+        if (detalle == null)
+            return NotFound(new { message = "El usuario no tiene asignaciones CTA activas." });
+
+        return Ok(detalle);
+    }
+
+    /// <summary>
+    /// Mueve la asignación de CTA de un usuario (operación de administración).
+    /// </summary>
+    [HttpPut("admin/identity/{identityUserId}/cta")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ActualizarCtaAdmin(string identityUserId, [FromBody] AdminActualizarCtaDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var (ok, error, conflict) = await _operarioService.ActualizarCtaAdmin(identityUserId, dto);
+        if (ok)
+            return NoContent();
+
+        return conflict
+            ? Conflict(new { message = error })
+            : BadRequest(new { message = error });
+    }
+
+    /// <summary>
     /// Crea un nuevo operario y lo asigna a un CTA.
     /// Solo Admin y Supervisor pueden crear operarios.
     /// </summary>

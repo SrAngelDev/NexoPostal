@@ -11,6 +11,7 @@ namespace NexoPostal.Auth.Services;
 public interface IAuthService
 {
     Task<TokenResponseDto?> LoginAsync(LoginDto dto);
+    Task<(TokenResponseDto? Token, bool Bloqueado)> LoginWithStatusAsync(LoginDto dto);
     Task<(TokenResponseDto? Token, IEnumerable<string>? Errors)> RegisterAsync(RegisterDto dto);
     Task<TokenResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto dto);
     Task<UsuarioInfoDto?> GetUserInfoAsync(string userId);
@@ -43,14 +44,20 @@ public class AuthService : IAuthService
 
     public async Task<TokenResponseDto?> LoginAsync(LoginDto dto)
     {
+        var (token, _) = await LoginWithStatusAsync(dto);
+        return token;
+    }
+
+    public async Task<(TokenResponseDto? Token, bool Bloqueado)> LoginWithStatusAsync(LoginDto dto)
+    {
         var user = await _userRepository.GetByEmailAsync(dto.Email);
         if (user == null || !await _userRepository.CheckPasswordAsync(user, dto.Password))
-            return null;
+            return (null, false);
 
         if (await _userRepository.IsLockedOutAsync(user))
-            return null;
+            return (null, true);
 
-        return await EmitTokenPairAsync(user);
+        return (await EmitTokenPairAsync(user), false);
     }
 
     public async Task<(TokenResponseDto? Token, IEnumerable<string>? Errors)> RegisterAsync(RegisterDto dto)
@@ -83,6 +90,12 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
             return null;
+
+        if (await _userRepository.IsLockedOutAsync(user))
+        {
+            await RevokeRefreshTokenAsync(user);
+            return null;
+        }
 
         var storedHash = await _userRepository.GetUserTokenAsync(user, TokenProvider, RefreshTokenHashName);
         var storedExpiry = await _userRepository.GetUserTokenAsync(user, TokenProvider, RefreshTokenExpiryName);

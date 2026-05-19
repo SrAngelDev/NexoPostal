@@ -104,3 +104,47 @@ public class CtaAsignacionDto
     public string CtaNombre { get; set; } = string.Empty;
     public string Area { get; set; } = string.Empty;
 }
+
+/// <summary>
+/// Asignación operativa de un usuario interno a un CTA (vista administración).
+/// </summary>
+public class AdminOperarioCtaAsignacionDto
+{
+    public int OperarioCtaId { get; set; }
+    public int CtaId { get; set; }
+    public string CtaCodigo { get; set; } = string.Empty;
+    public string CtaNombre { get; set; } = string.Empty;
+    public string Area { get; set; } = string.Empty;
+    public string RolOperativo { get; set; } = string.Empty;
+    public bool Activo { get; set; }
+    public DateTime FechaAsignacion { get; set; }
+    public int TareasPendientes { get; set; }
+    public int TareasEnProgreso { get; set; }
+    public int TareasCompletadasHoy { get; set; }
+}
+
+/// <summary>
+/// Detalle operativo por IdentityUserId para administración.
+/// </summary>
+public class AdminOperarioDetalleDto
+{
+    public string IdentityUserId { get; set; } = string.Empty;
+    public string NombreCompleto { get; set; } = string.Empty;
+    public string CodigoEmpleado { get; set; } = string.Empty;
+    public List<AdminOperarioCtaAsignacionDto> AsignacionesCta { get; set; } = new();
+}
+
+/// <summary>
+/// Solicitud para mover la asignación de CTA de un trabajador.
+/// </summary>
+public class AdminActualizarCtaDto
+{
+    /// <summary>
+    /// OperarioCtaId a mover. Opcional si el usuario solo tiene una asignación activa.
+    /// </summary>
+    public int? OperarioCtaId { get; set; }
+
+    [Required]
+    [Range(1, int.MaxValue)]
+    public int NuevoCtaId { get; set; }
+}

@@ -1,0 +1,187 @@
+<div class="page-container">
+  <div class="page-header">
+    <button class="btn-back" (click)="volver()">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+    <h1 class="page-title">
+      <span class="material-symbols-outlined">person</span>
+      Detalle de Usuario
+    </h1>
+  </div>
+
+  @if (loading()) {
+    <div class="state-card">
+      <span class="material-symbols-outlined spinning">sync</span>
+      <p>Cargando detalle del usuario...</p>
+    </div>
+  } @else if (error()) {
+    <div class="alert alert-error">
+      <span class="material-symbols-outlined">error</span>
+      {{ error() }}
+    </div>
+  } @else if (usuario(); as u) {
+    <div class="grid">
+
+      <section class="card">
+        <h2 class="card-title">
+          <span class="material-symbols-outlined">badge</span>
+          Cuenta
+        </h2>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Nombre</span>
+            <span class="value">{{ u.nombreCompleto }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Email</span>
+            <span class="value">{{ u.email }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Código empleado</span>
+            <span class="value">{{ u.codigoEmpleado || '—' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Registro</span>
+            <span class="value">{{ u.fechaRegistro | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+        </div>
+
+        <div class="status-row">
+          <span class="badge" [ngClass]="rolBadgeClass(u.rol)">{{ u.rol }}</span>
+          @if (u.bloqueado) {
+            <span class="state-chip blocked">
+              <span class="material-symbols-outlined">block</span>
+              Bloqueado
+            </span>
+          } @else {
+            <span class="state-chip active">
+              <span class="material-symbols-outlined">check_circle</span>
+              Activo
+            </span>
+          }
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">
+          <span class="material-symbols-outlined">settings</span>
+          Configuración Operativa
+        </h2>
+
+        @if (!esRolConConfigCta()) {
+          <p class="muted">
+            Este rol no usa asignación de CTA en Intranet.
+          </p>
+        } @else if (!detalleOperativo() || detalleOperativo()!.asignacionesCta.length === 0) {
+          <div class="alert alert-warning">
+            <span class="material-symbols-outlined">warning</span>
+            El usuario no tiene asignaciones CTA activas.
+          </div>
+        } @else {
+          @if (detalleOperativo()!.asignacionesCta.length > 1) {
+            <div class="form-group">
+              <label>Asignación a gestionar</label>
+              <select
+                [ngModel]="asignacionSeleccionadaId()"
+                (ngModelChange)="onAsignacionChange($event)"
+                class="input-select"
+              >
+                @for (a of detalleOperativo()!.asignacionesCta; track a.operarioCtaId) {
+                  <option [ngValue]="a.operarioCtaId">
+                    {{ a.ctaCodigo }} · {{ a.ctaNombre }} ({{ a.rolOperativo }})
+                  </option>
+                }
+              </select>
+            </div>
+          }
+
+          @if (asignacionSeleccionada(); as asig) {
+            <div class="summary-box">
+              <div>
+                <span class="summary-label">CTA actual</span>
+                <strong>{{ asig.ctaCodigo }} · {{ asig.ctaNombre }}</strong>
+                <span class="summary-sub">{{ asig.area }} · {{ asig.rolOperativo }}</span>
+              </div>
+              <div class="stats-mini">
+                <span>Pendientes: {{ asig.tareasPendientes }}</span>
+                <span>En progreso: {{ asig.tareasEnProgreso }}</span>
+                <span>Hoy: {{ asig.tareasCompletadasHoy }}</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>CTA destino</label>
+              <select
+                [ngModel]="nuevoCtaId()"
+                (ngModelChange)="onNuevoCtaChange($event)"
+                class="input-select"
+              >
+                @for (c of ctas(); track c.id) {
+                  <option [ngValue]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="actions-row">
+              <button class="btn-primary" [disabled]="!puedeMoverCta()" (click)="moverCta()">
+                <span class="material-symbols-outlined">swap_horiz</span>
+                @if (saving()) {
+                  Guardando...
+                } @else {
+                  Mover CTA
+                }
+              </button>
+            </div>
+          }
+
+          @if (actionError()) {
+            <div class="alert alert-error">
+              <span class="material-symbols-outlined">error</span>
+              {{ actionError() }}
+            </div>
+          }
+
+          @if (actionOk()) {
+            <div class="alert alert-success">
+              <span class="material-symbols-outlined">check_circle</span>
+              {{ actionOk() }}
+            </div>
+          }
+
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>CTA</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Pend.</th>
+                  <th>Prog.</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of detalleOperativo()!.asignacionesCta; track a.operarioCtaId) {
+                  <tr [class.row-selected]="a.operarioCtaId === asignacionSeleccionadaId()">
+                    <td>{{ a.ctaCodigo }} · {{ a.ctaNombre }}</td>
+                    <td>{{ a.rolOperativo }}</td>
+                    <td>
+                      @if (a.activo) {
+                        <span class="state-chip active">Activo</span>
+                      } @else {
+                        <span class="state-chip blocked">Inactivo</span>
+                      }
+                    </td>
+                    <td>{{ a.tareasPendientes }}</td>
+                    <td>{{ a.tareasEnProgreso }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+    </div>
+  }
+</div>

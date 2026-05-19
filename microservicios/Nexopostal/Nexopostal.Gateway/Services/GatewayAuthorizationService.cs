@@ -65,10 +65,18 @@ public class GatewayAuthorizationService : IGatewayAuthorization
         // Ruta protegida: verificar que el usuario está autenticado vía JWT
         if (context.HttpContext.User.Identity?.IsAuthenticated != true)
         {
+            var errorCode = context.HttpContext.Items.TryGetValue("GatewayAuthErrorCode", out var codeObj)
+                ? codeObj as string
+                : null;
+            var userBlocked = string.Equals(errorCode, "USER_BLOCKED", StringComparison.OrdinalIgnoreCase);
+
             context.Result = new JsonResult(new
             {
-                error = "Acceso denegado",
-                message = "Token JWT requerido o inválido para acceder a este recurso.",
+                error = userBlocked ? "Cuenta bloqueada" : "Acceso denegado",
+                code = userBlocked ? "USER_BLOCKED" : "UNAUTHORIZED",
+                message = userBlocked
+                    ? "Tu cuenta ha sido bloqueada por un administrador."
+                    : "Token JWT requerido o invalido para acceder a este recurso.",
                 timestamp = DateTime.UtcNow
             })
             {
