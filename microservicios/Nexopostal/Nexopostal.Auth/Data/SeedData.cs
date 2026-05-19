@@ -107,9 +107,20 @@ public static class SeedData
         ApplicationUser user,
         string password)
     {
-        if (await userManager.FindByEmailAsync(user.Email!) == null)
+        var existente = await userManager.FindByIdAsync(user.Id);
+        if (existente == null)
         {
             await userManager.CreateAsync(user, password);
+        }
+        else if (existente.Email != user.Email || existente.Rol != user.Rol)
+        {
+            // Actualizar email/rol si cambiaron entre despliegues
+            existente.Email              = user.Email;
+            existente.UserName           = user.UserName;
+            existente.NormalizedEmail    = user.Email!.ToUpperInvariant();
+            existente.NormalizedUserName = user.UserName!.ToUpperInvariant();
+            existente.Rol                = user.Rol;
+            await userManager.UpdateAsync(existente);
         }
     }
 }
