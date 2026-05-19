@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexoPostal.Auth.DTOs;
@@ -132,7 +133,17 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var frontendUrl = _config["AppSettings:FrontendUrl"] ?? "http://localhost:4200";
+        // appsettings.json usa el placeholder "${FRONTEND_URL}" que .NET no resuelve
+        // automáticamente. Lo sustituimos aquí igual que hace EmailService.
+        var rawUrl = _config["AppSettings:FrontendUrl"] ?? string.Empty;
+        var frontendUrl = Regex.Replace(
+            rawUrl,
+            @"\$\{([^}]+)\}",
+            m => Environment.GetEnvironmentVariable(m.Groups[1].Value) ?? m.Value);
+
+        if (string.IsNullOrWhiteSpace(frontendUrl) || frontendUrl.Contains("${"))
+            frontendUrl = "http://localhost:4200";
+
         await _authService.SolicitarResetPasswordAsync(dto.Email, frontendUrl);
 
         return Ok(new { mensaje = "Si el email está registrado, recibirás un enlace de recuperación en breve." });
