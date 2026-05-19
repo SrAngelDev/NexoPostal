@@ -33,6 +33,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'gestion-usuarios',
+    loadComponent: () => import('./pages/gestion-usuarios/gestion-usuarios.component').then(m => m.GestionUsuariosComponent),
+    canActivate: [adminGuard]
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard]

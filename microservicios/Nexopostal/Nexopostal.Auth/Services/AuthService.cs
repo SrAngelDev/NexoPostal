@@ -47,6 +47,9 @@ public class AuthService : IAuthService
         if (user == null || !await _userRepository.CheckPasswordAsync(user, dto.Password))
             return null;
 
+        if (await _userRepository.IsLockedOutAsync(user))
+            return null;
+
         return await EmitTokenPairAsync(user);
     }
 

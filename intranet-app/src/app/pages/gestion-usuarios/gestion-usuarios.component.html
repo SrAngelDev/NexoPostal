@@ -1,0 +1,317 @@
+<div class="page-container">
+
+  <!-- Barra superior -->
+  <div class="page-header">
+    <button class="btn-back" (click)="volver()">
+      <span class="material-icons">arrow_back</span>
+    </button>
+    <h1 class="page-title">
+      <span class="material-icons title-icon">manage_accounts</span>
+      Gestión de Usuarios
+    </h1>
+    <button class="btn-primary" (click)="abrirModalCrear()">
+      <span class="material-icons">person_add</span>
+      Nuevo empleado
+    </button>
+  </div>
+
+  <!-- Error de acción -->
+  @if (actionError()) {
+    <div class="alert alert-error">
+      <span class="material-icons">error_outline</span>
+      {{ actionError() }}
+    </div>
+  }
+
+  <!-- Filtros -->
+  <div class="filters-bar">
+    <div class="filter-group">
+      <label>Buscar</label>
+      <input
+        type="text"
+        placeholder="Nombre, email o código..."
+        [(ngModel)]="filtroQ"
+        (ngModelChange)="filtroQ.set($event); cargar()"
+        class="input-text"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label>Rol</label>
+      <select
+        [ngModel]="filtroRol()"
+        (ngModelChange)="filtroRol.set($event); cargar()"
+        class="input-select"
+      >
+        @for (r of rolesTodos; track r) {
+          <option [value]="r">{{ r || 'Todos' }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-group filter-checkbox">
+      <label>
+        <input
+          type="checkbox"
+          [ngModel]="filtroBloqueado() === true"
+          (ngModelChange)="filtroBloqueado.set($event ? true : undefined); cargar()"
+        />
+        Solo bloqueados
+      </label>
+    </div>
+
+    <button class="btn-secondary" (click)="cargar()" title="Actualizar">
+      <span class="material-icons">refresh</span>
+    </button>
+  </div>
+
+  <!-- Tabla de usuarios -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="material-icons spinning">sync</span>
+      Cargando usuarios...
+    </div>
+  } @else if (error()) {
+    <div class="alert alert-error">{{ error() }}</div>
+  } @else if (usuarios().length === 0) {
+    <div class="empty-state">
+      <span class="material-icons">search_off</span>
+      <p>No se encontraron usuarios con los filtros actuales.</p>
+    </div>
+  } @else {
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Código</th>
+            <th>Rol</th>
+            <th>Registro</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of usuarios(); track u.id) {
+            <tr [class.row-blocked]="u.bloqueado">
+              <td class="cell-nombre">{{ u.nombreCompleto }}</td>
+              <td class="cell-email">{{ u.email }}</td>
+              <td class="cell-codigo">{{ u.codigoEmpleado || '—' }}</td>
+              <td>
+                <span class="badge" [ngClass]="rolBadgeClass(u.rol)">{{ u.rol }}</span>
+              </td>
+              <td class="cell-fecha">{{ u.fechaRegistro | date:'dd/MM/yyyy' }}</td>
+              <td>
+                @if (u.bloqueado) {
+                  <span class="status-badge status-blocked">
+                    <span class="material-icons">block</span>
+                    Bloqueado
+                  </span>
+                } @else {
+                  <span class="status-badge status-active">
+                    <span class="material-icons">check_circle</span>
+                    Activo
+                  </span>
+                }
+              </td>
+              <td class="cell-acciones">
+                <!-- Cambiar rol -->
+                <select
+                  [ngModel]="u.rol"
+                  (ngModelChange)="cambiarRol(u, $event)"
+                  class="select-rol"
+                  title="Cambiar rol"
+                >
+                  @for (r of rolesEmpleado; track r) {
+                    <option [value]="r">{{ r }}</option>
+                  }
+                  @if (u.rol === 'Cliente') {
+                    <option value="Cliente">Cliente</option>
+                  }
+                </select>
+
+                <!-- Bloquear / Desbloquear -->
+                @if (!u.bloqueado) {
+                  <button
+                    class="btn-icon btn-danger"
+                    (click)="bloquear(u)"
+                    title="Bloquear acceso"
+                  >
+                    <span class="material-icons">block</span>
+                  </button>
+                } @else {
+                  <button
+                    class="btn-icon btn-success"
+                    (click)="desbloquear(u)"
+                    title="Desbloquear acceso"
+                  >
+                    <span class="material-icons">lock_open</span>
+                  </button>
+                }
+
+                <!-- Reset password -->
+                <button
+                  class="btn-icon btn-warning"
+                  (click)="abrirModalReset(u)"
+                  title="Restablecer contraseña"
+                >
+                  <span class="material-icons">key</span>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="result-count">{{ usuarios().length }} usuario(s) encontrado(s)</p>
+  }
+
+</div>
+
+<!-- ─── Modal: Crear empleado ─── -->
+@if (modalCrear()) {
+  <div class="modal-overlay" (click)="cerrarModalCrear()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>
+          <span class="material-icons">person_add</span>
+          Nuevo empleado
+        </h2>
+        <button class="btn-close" (click)="cerrarModalCrear()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <form class="modal-form" (ngSubmit)="crearEmpleado()" #formCrearRef="ngForm">
+        <div class="form-group">
+          <label>Nombre completo *</label>
+          <input
+            type="text"
+            [(ngModel)]="formCrear.nombreCompleto"
+            name="nombreCompleto"
+            required
+            class="input-text"
+            placeholder="Juan García López"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Email *</label>
+          <input
+            type="email"
+            [(ngModel)]="formCrear.email"
+            name="email"
+            required
+            class="input-text"
+            placeholder="juan@nexopostal.es"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Código empleado</label>
+          <input
+            type="text"
+            [(ngModel)]="formCrear.codigoEmpleado"
+            name="codigoEmpleado"
+            class="input-text"
+            placeholder="EMP-001"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Rol *</label>
+          <select [(ngModel)]="formCrear.rol" name="rol" required class="input-select">
+            @for (r of rolesEmpleado; track r) {
+              <option [value]="r">{{ r }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Contraseña inicial *</label>
+          <input
+            type="password"
+            [(ngModel)]="formCrear.password"
+            name="password"
+            required
+            minlength="6"
+            class="input-text"
+            placeholder="Mínimo 6 caracteres"
+          />
+        </div>
+
+        @if (formCrearError()) {
+          <div class="alert alert-error">{{ formCrearError() }}</div>
+        }
+
+        @if (formCrearOk()) {
+          <div class="alert alert-success">
+            <span class="material-icons">check_circle</span>
+            Empleado creado correctamente.
+          </div>
+        }
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="cerrarModalCrear()">Cancelar</button>
+          <button type="submit" class="btn-primary" [disabled]="formCrearRef.invalid">
+            <span class="material-icons">save</span>
+            Crear empleado
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ─── Modal: Reset contraseña ─── -->
+@if (modalReset()) {
+  <div class="modal-overlay" (click)="cerrarModalReset()">
+    <div class="modal-card modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>
+          <span class="material-icons">key</span>
+          Restablecer contraseña
+        </h2>
+        <button class="btn-close" (click)="cerrarModalReset()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <div class="modal-form">
+        <p class="modal-subtitle">
+          Usuario: <strong>{{ usuarioReset()?.nombreCompleto }}</strong>
+        </p>
+
+        <div class="form-group">
+          <label>Nueva contraseña *</label>
+          <input
+            type="password"
+            [(ngModel)]="nuevaPassword"
+            class="input-text"
+            placeholder="Mínimo 6 caracteres"
+          />
+        </div>
+
+        @if (resetOk()) {
+          <div class="alert alert-success">
+            <span class="material-icons">check_circle</span>
+            Contraseña restablecida correctamente.
+          </div>
+        }
+
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="cerrarModalReset()">Cancelar</button>
+          <button
+            class="btn-primary"
+            (click)="confirmarReset()"
+            [disabled]="nuevaPassword.length < 6"
+          >
+            <span class="material-icons">lock_reset</span>
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

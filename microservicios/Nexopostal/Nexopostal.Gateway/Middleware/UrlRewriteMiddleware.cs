@@ -22,13 +22,14 @@ public class UrlRewriteMiddleware
         _next = next;
     }
 
-    // Rutas que se sirven directamente desde FileProxyController (contenido binario)
+    // Rutas que se sirven directamente desde proxy controllers específicos
     // y NO deben reescribirse al formato /api/Gateway/{api}/{route}
     private static readonly string[] DirectProxyPaths =
     [
         "/api/nexopostal/envios/etiqueta/",
         "/api/nexopostal/envios/factura/",
-        "/api/nexopostal/oficinas/"
+        "/api/nexopostal/oficinas/",
+        "/api/nexopostal/admin-usuarios"   // IDs son GUIDs (strings), no enteros
     ];
 
     // Compatibilidad para endpoints raíz /api/{apiKey} sin routeKey explícito.

@@ -1,0 +1,92 @@
+using System.Text;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Nexopostal.Gateway.Controllers;
+
+/// <summary>
+/// Proxy directo para la gestión de usuarios por Admin.
+/// Reenvía las peticiones al microservicio Auth, preservando el token JWT y el body.
+/// Se usa proxy directo (en lugar del ApiGateway genérico) porque los IDs de usuario
+/// son strings (GUIDs), no enteros, y el UrlRewriteMiddleware no los maneja.
+/// </summary>
+[Route("api/nexopostal/admin-usuarios")]
+[ApiController]
+[Authorize(Roles = "Admin")]
+public class AdminUsersProxyController : ControllerBase
+{
+    private static readonly HttpClient _httpClient = new();
+    private readonly string _authUrl;
+
+    public AdminUsersProxyController(IConfiguration config)
+    {
+        _authUrl = config["Microservices:Auth"] ?? "http://modulo-seguridad:80";
+    }
+
+    /// <summary>Lista usuarios con filtros opcionales (?rol=&bloqueado=&q=).</summary>
+    [HttpGet]
+    public Task<IActionResult> Listar() =>
+        Proxy(HttpMethod.Get, "api/admin-usuarios");
+
+    /// <summary>Obtiene el detalle de un usuario por ID.</summary>
+    [HttpGet("{id}")]
+    public Task<IActionResult> Detalle(string id) =>
+        Proxy(HttpMethod.Get, $"api/admin-usuarios/{id}");
+
+    /// <summary>Crea un nuevo empleado interno.</summary>
+    [HttpPost]
+    public Task<IActionResult> Crear() =>
+        Proxy(HttpMethod.Post, "api/admin-usuarios");
+
+    /// <summary>Cambia el rol de un usuario.</summary>
+    [HttpPut("{id}/rol")]
+    public Task<IActionResult> CambiarRol(string id) =>
+        Proxy(HttpMethod.Put, $"api/admin-usuarios/{id}/rol");
+
+    /// <summary>Bloquea el acceso de un usuario.</summary>
+    [HttpPut("{id}/bloquear")]
+    public Task<IActionResult> Bloquear(string id) =>
+        Proxy(HttpMethod.Put, $"api/admin-usuarios/{id}/bloquear");
+
+    /// <summary>Desbloquea el acceso de un usuario.</summary>
+    [HttpPut("{id}/desbloquear")]
+    public Task<IActionResult> Desbloquear(string id) =>
+        Proxy(HttpMethod.Put, $"api/admin-usuarios/{id}/desbloquear");
+
+    /// <summary>Restablece la contraseña de un usuario (flujo admin).</summary>
+    [HttpPost("{id}/reset-password")]
+    public Task<IActionResult> ResetPassword(string id) =>
+        Proxy(HttpMethod.Post, $"api/admin-usuarios/{id}/reset-password");
+
+    // ─── Helper ───
+
+    private async Task<IActionResult> Proxy(HttpMethod method, string path)
+    {
+        var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
+        var requestMessage = new HttpRequestMessage(method, $"{_authUrl}/{path}{queryString}");
+
+        // Reenviar Authorization header
+        if (Request.Headers.TryGetValue("Authorization", out var authHeader))
+            requestMessage.Headers.TryAddWithoutValidation("Authorization", authHeader.ToString());
+
+        // Reenviar body para POST / PUT
+        if (method == HttpMethod.Post || method == HttpMethod.Put)
+        {
+            using var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true);
+            var body = await reader.ReadToEndAsync();
+            if (!string.IsNullOrEmpty(body))
+                requestMessage.Content = new StringContent(body, Encoding.UTF8, "application/json");
+        }
+
+        var response = await _httpClient.SendAsync(requestMessage);
+        var responseBody = await response.Content.ReadAsStringAsync();
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/json";
+
+        return new ContentResult
+        {
+            StatusCode  = (int)response.StatusCode,
+            ContentType = contentType,
+            Content     = responseBody
+        };
+    }
+}

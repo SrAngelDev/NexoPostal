@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface DashboardCtaDto {
@@ -37,11 +37,30 @@ export interface DashboardAdminDto {
   detallePorCta: DashboardCtaDto[];
 }
 
+export interface UsuarioAdminDto {
+  id: string;
+  nombreCompleto: string;
+  email: string;
+  codigoEmpleado?: string;
+  rol: string;
+  fechaRegistro: string;
+  bloqueado: boolean;
+}
+
+export interface AdminCrearEmpleadoDto {
+  nombreCompleto: string;
+  email: string;
+  codigoEmpleado?: string;
+  rol: string;
+  password: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AdminService {
   private readonly API_URL = '/api/nexopostal/ctas';
+  private readonly USUARIOS_URL = '/api/nexopostal/admin-usuarios';
 
   constructor(private http: HttpClient) {}
 
@@ -56,4 +75,39 @@ export class AdminService {
   obtenerDashboardCta(ctaId: number): Observable<DashboardCtaDto> {
     return this.http.get<DashboardCtaDto>(`${this.API_URL}/${ctaId}/dashboard`);
   }
+
+  // ─── Gestión de usuarios (Admin) ───
+
+  listarUsuarios(rol?: string, bloqueado?: boolean, q?: string): Observable<UsuarioAdminDto[]> {
+    let params = new HttpParams();
+    if (rol) params = params.set('rol', rol);
+    if (bloqueado !== undefined) params = params.set('bloqueado', bloqueado.toString());
+    if (q) params = params.set('q', q);
+    return this.http.get<UsuarioAdminDto[]>(this.USUARIOS_URL, { params });
+  }
+
+  obtenerDetalleUsuario(id: string): Observable<UsuarioAdminDto> {
+    return this.http.get<UsuarioAdminDto>(`${this.USUARIOS_URL}/${id}`);
+  }
+
+  crearEmpleado(dto: AdminCrearEmpleadoDto): Observable<UsuarioAdminDto> {
+    return this.http.post<UsuarioAdminDto>(this.USUARIOS_URL, dto);
+  }
+
+  cambiarRol(id: string, nuevoRol: string): Observable<void> {
+    return this.http.put<void>(`${this.USUARIOS_URL}/${id}/rol`, { nuevoRol });
+  }
+
+  bloquearUsuario(id: string): Observable<void> {
+    return this.http.put<void>(`${this.USUARIOS_URL}/${id}/bloquear`, {});
+  }
+
+  desbloquearUsuario(id: string): Observable<void> {
+    return this.http.put<void>(`${this.USUARIOS_URL}/${id}/desbloquear`, {});
+  }
+
+  resetPasswordUsuario(id: string, nuevaPassword: string): Observable<void> {
+    return this.http.post<void>(`${this.USUARIOS_URL}/${id}/reset-password`, { nuevaPassword });
+  }
 }
+

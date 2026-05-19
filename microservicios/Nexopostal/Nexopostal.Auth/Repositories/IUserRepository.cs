@@ -41,4 +41,18 @@ public interface IUserRepository
 
     /// <summary>Restablece la contraseña usando el token generado por Identity</summary>
     Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword);
+
+    // ─── Gestión de usuarios (Admin) ───
+
+    /// <summary>Lista todos los usuarios, con filtros opcionales por rol y estado de bloqueo.</summary>
+    Task<List<ApplicationUser>> GetAllAsync(NexoPostal.Auth.Models.Rol? rol, bool? bloqueado);
+
+    /// <summary>Comprueba si el usuario tiene el acceso bloqueado (lockout activo).</summary>
+    Task<bool> IsLockedOutAsync(ApplicationUser user);
+
+    /// <summary>Bloquea o desbloquea el acceso de un usuario mediante Identity lockout.</summary>
+    Task<IdentityResult> SetLockoutAsync(ApplicationUser user, bool bloquear);
+
+    /// <summary>Restablece la contraseña de un usuario directamente (flujo admin, sin token previo).</summary>
+    Task<IdentityResult> AdminResetPasswordAsync(ApplicationUser user, string newPassword);
 }

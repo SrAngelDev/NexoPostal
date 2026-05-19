@@ -52,6 +52,22 @@ Todo esta orquestado por un API Gateway y microservicios .NET con bases de datos
 
 ---
 
+## Sistema de roles (actualizado)
+
+| Rol | Enum value | App |
+|-----|-----------:|-----|
+| Cliente | 0 | clientes-app |
+| Admin | 1 | intranet-app |
+| OperarioOficina | 2 | intranet-app |
+| OperarioCTA | 3 | intranet-app |
+| Supervisor | 4 | intranet-app |
+| Repartidor | 5 | driver-app |
+| JefeReparto | 7 | driver-app |
+
+Nota: el valor 6 se omite de forma intencional (rol eliminado en la reestructuracion).
+
+---
+
 ## Credenciales por defecto (solo desarrollo)
 
 Estas cuentas se crean automaticamente en el seed del modulo Auth.
@@ -60,12 +76,12 @@ Estas cuentas se crean automaticamente en el seed del modulo Auth.
 | App | Rol | Email | Password |
 |-----|-----|-------|----------|
 | Intranet | Admin | admin@nexopostal.es | Admin123! |
-| Intranet | Operario Oficina | operario@nexopostal.es | Operario123! |
-| Intranet | Operario Logistico | operario.logistico@nexopostal.es | Operario123! |
-| Intranet | Operario Jefe | operario.jefe@nexopostal.es | Operario123! |
+| Intranet | OperarioOficina | operario@nexopostal.es | Operario123! |
+| Intranet | OperarioCTA | operario.cta@nexopostal.es | Operario123! |
+| Intranet | Supervisor | supervisor@nexopostal.es | Operario123! |
 | Driver | Repartidor | repartidor@nexopostal.es | Repartidor123! |
-| Driver | Repartidor Logistico | repartidor.logistico@nexopostal.es | Repartidor123! |
-| Driver | Repartidor Jefe | repartidor.jefe@nexopostal.es | Repartidor123! |
+| Driver | Repartidor | repartidor2@nexopostal.es | Repartidor123! |
+| Driver | JefeReparto | jefe.reparto@nexopostal.es | Repartidor123! |
 | Clientes | Cliente demo | cliente@example.com | Cliente123! |
 
 ---

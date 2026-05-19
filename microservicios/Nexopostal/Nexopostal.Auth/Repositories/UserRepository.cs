@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using NexoPostal.Auth.Models;
 
 namespace NexoPostal.Auth.Repositories;
@@ -79,6 +80,49 @@ public class UserRepository : IUserRepository
     /// <inheritdoc />
     public async Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword)
     {
+        return await _userManager.ResetPasswordAsync(user, token, newPassword);
+    }
+
+    // ─── Gestión de usuarios (Admin) ───
+
+    /// <inheritdoc />
+    public async Task<List<ApplicationUser>> GetAllAsync(NexoPostal.Auth.Models.Rol? rol, bool? bloqueado)
+    {
+        var query = _userManager.Users.AsQueryable();
+
+        if (rol.HasValue)
+            query = query.Where(u => u.Rol == rol.Value);
+
+        if (bloqueado.HasValue)
+        {
+            if (bloqueado.Value)
+                query = query.Where(u => u.LockoutEnd != null && u.LockoutEnd > DateTimeOffset.UtcNow);
+            else
+                query = query.Where(u => u.LockoutEnd == null || u.LockoutEnd <= DateTimeOffset.UtcNow);
+        }
+
+        return await query.OrderBy(u => u.NombreCompleto).ToListAsync();
+    }
+
+    /// <inheritdoc />
+    public Task<bool> IsLockedOutAsync(ApplicationUser user)
+        => _userManager.IsLockedOutAsync(user);
+
+    /// <inheritdoc />
+    public async Task<IdentityResult> SetLockoutAsync(ApplicationUser user, bool bloquear)
+    {
+        if (bloquear)
+        {
+            await _userManager.SetLockoutEnabledAsync(user, true);
+            return await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+        }
+        return await _userManager.SetLockoutEndDateAsync(user, null);
+    }
+
+    /// <inheritdoc />
+    public async Task<IdentityResult> AdminResetPasswordAsync(ApplicationUser user, string newPassword)
+    {
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         return await _userManager.ResetPasswordAsync(user, token, newPassword);
     }
 }
