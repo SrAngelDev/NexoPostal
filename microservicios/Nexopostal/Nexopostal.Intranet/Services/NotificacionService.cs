@@ -55,6 +55,13 @@ public interface INotificacionService
 
     /// <summary>Envía una notificación general a todo un CTA</summary>
     Task NotificarGeneralCta(int ctaId, string ctaCodigo, string titulo, string mensaje);
+
+    /// <summary>Notifica a los OperarioOficina de una oficina origen que ha llegado un paquete nuevo recién admitido</summary>
+    Task NotificarNuevoPaqueteEnOficina(int oficinaJsonId, string? oficinaNombre, string numeroExpedicion,
+        bool esUrgente, string? cpOrigen = null, string? cpDestino = null, string? observaciones = null);
+
+    /// <summary>Notifica al equipo de reparto (JefeReparto) que un paquete está disponible para asignar a ruta</summary>
+    Task NotificarPaqueteDisponibleParaReparto(int ctaId, string ctaCodigo, string numeroExpedicion, bool esUrgente);
 }
 
 public class NotificacionService : INotificacionService
@@ -66,6 +73,64 @@ public class NotificacionService : INotificacionService
     {
         _hubContext = hubContext;
         _logger = logger;
+    }
+
+    /// <inheritdoc />
+    public async Task NotificarNuevoPaqueteEnOficina(int oficinaJsonId, string? oficinaNombre, string numeroExpedicion,
+        bool esUrgente, string? cpOrigen = null, string? cpDestino = null, string? observaciones = null)
+    {
+        var prioridad = esUrgente ? "🔴 URGENTE" : "📦 Nuevo paquete";
+        var notificacion = new NotificacionDto
+        {
+            Tipo = "NuevoPaqueteEnOficina",
+            Titulo = $"{prioridad} pendiente de recepción",
+            Mensaje = $"El paquete {numeroExpedicion} debe ser entregado en la oficina {oficinaNombre ?? oficinaJsonId.ToString()} antes de continuar el flujo logístico.",
+            CtaId = 0,
+            CtaCodigo = string.Empty,
+            NumeroExpedicion = numeroExpedicion,
+            EsUrgente = esUrgente,
+            Datos = new
+            {
+                oficinaJsonId,
+                oficinaNombre,
+                cpOrigen,
+                cpDestino,
+                observaciones,
+                accionRequerida = "Esperar entrega y registrar recepción del paquete en la oficina"
+            }
+        };
+
+        await _hubContext.Clients.Group($"oficina-{oficinaJsonId}")
+            .SendAsync("NuevoPaqueteEnOficina", notificacion);
+
+        _logger.LogInformation(
+            "📡 SignalR → NuevoPaqueteEnOficina · {Expedicion} → Oficina {OficinaId} ({OficinaNombre})",
+            numeroExpedicion, oficinaJsonId, oficinaNombre);
+    }
+
+    /// <inheritdoc />
+    public async Task NotificarPaqueteDisponibleParaReparto(int ctaId, string ctaCodigo, string numeroExpedicion, bool esUrgente)
+    {
+        var prioridad = esUrgente ? "🔴 URGENTE" : "🚚";
+        var notificacion = new NotificacionDto
+        {
+            Tipo = "PaqueteDisponibleParaReparto",
+            Titulo = $"{prioridad} Paquete listo para asignar a ruta",
+            Mensaje = $"El paquete {numeroExpedicion} está clasificado y disponible para asignar a un repartidor desde {ctaCodigo}.",
+            CtaId = ctaId,
+            CtaCodigo = ctaCodigo,
+            NumeroExpedicion = numeroExpedicion,
+            EsUrgente = esUrgente,
+            Datos = new { accionRequerida = "Asignar paquete a una ruta de reparto" }
+        };
+
+        // Difundir al grupo general del CTA destino (JefeReparto se suscribe vía Reparto, pero notificamos también aquí).
+        await _hubContext.Clients.Group($"cta-{ctaId}")
+            .SendAsync("PaqueteDisponibleParaReparto", notificacion);
+
+        _logger.LogInformation(
+            "📡 SignalR → PaqueteDisponibleParaReparto · {Expedicion} en {Cta}",
+            numeroExpedicion, ctaCodigo);
     }
 
     /// <inheritdoc />

@@ -97,10 +97,12 @@ public class ScanController : ControllerBase
         var todosModos = new[]
         {
             new { valor = ModosEscaneo.RecepcionOficina,    etiqueta = "Recepción en oficina",       icono = "store",          requiere = "oficina" },
+            new { valor = ModosEscaneo.SalidaOficinaACta,   etiqueta = "Salida hacia CTA origen",     icono = "local_shipping", requiere = "oficina" },
             new { valor = ModosEscaneo.RecepcionCta,        etiqueta = "Recepción en CTA",            icono = "warehouse",      requiere = "cta"     },
             new { valor = ModosEscaneo.Clasificacion,       etiqueta = "Clasificación",               icono = "sort",           requiere = "cta"     },
             new { valor = ModosEscaneo.DespachoTroncal,     etiqueta = "Despacho troncal",            icono = "local_shipping", requiere = "cta"     },
             new { valor = ModosEscaneo.RecepcionTroncal,    etiqueta = "Recepción troncal",           icono = "move_to_inbox",  requiere = "cta"     },
+            new { valor = ModosEscaneo.DisponibleParaReparto,etiqueta = "Disponible para reparto",    icono = "outbox",         requiere = "cta"     },
             new { valor = ModosEscaneo.EntregaOficinaDestino, etiqueta = "Entrega a oficina destino", icono = "storefront",     requiere = "oficina" },
             new { valor = ModosEscaneo.SalidaAReparto,      etiqueta = "Salida a reparto",            icono = "delivery_dining",requiere = "oficina" }
         };

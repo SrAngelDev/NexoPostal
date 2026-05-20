@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Nexopostal.Intranet.Models;
+using Nexopostal.Intranet.Repositories;
 using Nexopostal.Intranet.Services;
 using System.Security.Claims;
 
@@ -33,12 +34,18 @@ public class IntranetHub : Hub
 {
     private readonly IOperarioService _operarioService;
     private readonly IClasificacionService _clasificacionService;
+    private readonly IOperarioOficinaRepository _operarioOficinaRepo;
     private readonly ILogger<IntranetHub> _logger;
 
-    public IntranetHub(IOperarioService operarioService, IClasificacionService clasificacionService, ILogger<IntranetHub> logger)
+    public IntranetHub(
+        IOperarioService operarioService,
+        IClasificacionService clasificacionService,
+        IOperarioOficinaRepository operarioOficinaRepo,
+        ILogger<IntranetHub> logger)
     {
         _operarioService = operarioService;
         _clasificacionService = clasificacionService;
+        _operarioOficinaRepo = operarioOficinaRepo;
         _logger = logger;
     }
 
@@ -86,6 +93,42 @@ public class IntranetHub : Hub
                 totalCtas = todasCtas.Count,
                 mensaje = $"Conectado como Administrador — monitorizando {todasCtas.Count} CTAs"
             });
+            await base.OnConnectedAsync();
+            return;
+        }
+
+        // El rol OperarioOficina se gestiona aparte: vive en OperariosOficina (no en OperariosCta).
+        var isOperarioOficina = Context.User?.IsInRole("OperarioOficina") == true;
+        if (isOperarioOficina)
+        {
+            var operarioOficina = await _operarioOficinaRepo.GetByIdentityUserIdAsync(userId);
+            if (operarioOficina == null)
+            {
+                _logger.LogWarning("OperarioOficina {UserId} sin oficina asignada — conexión SignalR rechazada", userId);
+                Context.Abort();
+                return;
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"oficina-{operarioOficina.OficinaJsonId}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"operario-oficina-{operarioOficina.Id}");
+
+            _logger.LogInformation(
+                "OperarioOficina {Nombre} conectado a SignalR · Oficina {OficinaId} ({OficinaNombre}) · ConnectionId: {ConnId}",
+                operarioOficina.NombreCompleto,
+                operarioOficina.OficinaJsonId,
+                operarioOficina.OficinaNombre,
+                Context.ConnectionId);
+
+            await Clients.Caller.SendAsync("ConexionEstablecida", new
+            {
+                operarioId = operarioOficina.Id,
+                nombre = operarioOficina.NombreCompleto,
+                rol = "OperarioOficina",
+                oficinaJsonId = operarioOficina.OficinaJsonId,
+                oficinaNombre = operarioOficina.OficinaNombre,
+                mensaje = $"Conectado a la oficina {operarioOficina.OficinaNombre}"
+            });
+
             await base.OnConnectedAsync();
             return;
         }

@@ -36,10 +36,12 @@ public class ScanProcessorService : IScanProcessorService
     private static readonly Dictionary<string, string> DescripcionModos = new()
     {
         [ModosEscaneo.RecepcionOficina] = "Recepción en oficina de origen",
+        [ModosEscaneo.SalidaOficinaACta] = "Salida de oficina hacia CTA origen",
         [ModosEscaneo.RecepcionCta] = "Recepción en CTA",
         [ModosEscaneo.Clasificacion] = "Clasificación para expedición",
         [ModosEscaneo.DespachoTroncal] = "Despacho troncal (CTA → CTA)",
         [ModosEscaneo.RecepcionTroncal] = "Recepción troncal en CTA destino",
+        [ModosEscaneo.DisponibleParaReparto] = "Disponible para reparto (última milla)",
         [ModosEscaneo.EntregaOficinaDestino] = "Entrega a oficina de destino",
         [ModosEscaneo.SalidaAReparto] = "Salida a reparto a domicilio"
     };
@@ -48,10 +50,12 @@ public class ScanProcessorService : IScanProcessorService
     private static readonly Dictionary<string, string> EstadoInternoModos = new()
     {
         [ModosEscaneo.RecepcionOficina] = "RecogidoEnOrigen",
+        [ModosEscaneo.SalidaOficinaACta] = "EnTransitoACentroOrigen",
         [ModosEscaneo.RecepcionCta] = "RecibidoEnCentroOrigen",
         [ModosEscaneo.Clasificacion] = "ClasificadoParaExpedicion",
         [ModosEscaneo.DespachoTroncal] = "EnTransitoHaciaCentroDestino",
         [ModosEscaneo.RecepcionTroncal] = "RecibidoEnCentroDestino",
+        [ModosEscaneo.DisponibleParaReparto] = "DisponibleParaReparto",
         [ModosEscaneo.EntregaOficinaDestino] = "DepositadoEnOficina",
         [ModosEscaneo.SalidaAReparto] = "EnReparto"
     };
@@ -98,10 +102,12 @@ public class ScanProcessorService : IScanProcessorService
             return request.ModoOperacion switch
             {
                 ModosEscaneo.RecepcionOficina => await ProcesarRecepcionOficina(request, expedicion),
+                ModosEscaneo.SalidaOficinaACta => await ProcesarSalidaOficinaACta(request, expedicion),
                 ModosEscaneo.RecepcionCta => await ProcesarRecepcionCta(request, expedicion),
                 ModosEscaneo.Clasificacion => await ProcesarClasificacion(request, expedicion),
                 ModosEscaneo.DespachoTroncal => await ProcesarDespachoTroncal(request, expedicion),
                 ModosEscaneo.RecepcionTroncal => await ProcesarRecepcionTroncal(request, expedicion),
+                ModosEscaneo.DisponibleParaReparto => await ProcesarDisponibleParaReparto(request, expedicion),
                 ModosEscaneo.EntregaOficinaDestino => await ProcesarEntregaOficinaDestino(request, expedicion),
                 ModosEscaneo.SalidaAReparto => await ProcesarSalidaAReparto(request, expedicion),
                 _ => Error(request, "Modo no implementado")
@@ -178,6 +184,70 @@ public class ScanProcessorService : IScanProcessorService
         return Exito(req, expedicion, "RecogidoEnOrigen",
             $"Paquete recibido en {req.OficinaNombre}",
             req.OficinaNombre);
+    }
+
+    /// <summary>
+    /// Paquete sale de la oficina origen hacia el CTA origen.
+    /// → Estado: EnTransitoACentroOrigen
+    /// → Notifica al CTA origen (éste sí recibe ahora la señal de paquete entrante).
+    /// → Crea automáticamente la tarea de Clasificación en el CTA origen.
+    /// </summary>
+    private async Task<ScanResultDto> ProcesarSalidaOficinaACta(ScanRequestDto req, string expedicion)
+    {
+        if (!req.OficinaJsonId.HasValue)
+            return Error(req, "Se requiere la oficina para registrar la salida hacia CTA");
+
+        // Resolver CTA origen a partir del CP origen (o del CP de la oficina si no viene en el request).
+        ResolverCtaResponseDto? ctaOrigen = null;
+        if (!string.IsNullOrWhiteSpace(req.CodigoPostalOrigen))
+        {
+            ctaOrigen = await _clasificacionService.ResolverCtaDestino(req.CodigoPostalOrigen);
+        }
+
+        await RegistrarHistorial(expedicion, new CrearHistorialEventoDto
+        {
+            NumeroExpedicion = expedicion,
+            Estado = "EnTransitoACentroOrigen",
+            TipoUbicacion = TipoUbicacion.Oficina.ToString(),
+            UbicacionId = req.OficinaJsonId,
+            UbicacionNombre = req.OficinaNombre,
+            OperarioNombre = req.OperarioNombre,
+            Descripcion = $"Paquete en camino desde oficina {req.OficinaNombre} hacia CTA{(ctaOrigen != null ? " " + ctaOrigen.CtaCodigo : "")}",
+            Observaciones = req.Observaciones,
+            VisibleParaCliente = true
+        });
+
+        string? detalles = null;
+        if (ctaOrigen != null)
+        {
+            // Notificar al CTA origen (ahora sí recibe la señal de paquete entrante).
+            await _notificacionService.NotificarPaqueteRecibidoEnCta(
+                ctaOrigen.CtaId, ctaOrigen.CtaCodigo, expedicion,
+                req.EsUrgente, ctaOrigen.Provincia, "Paquete en camino desde oficina origen");
+
+            // Auto-crear tarea de Clasificación para el OperarioCTA del CTA origen.
+            var autoAsign = await AutoAsignarTareaClasificacionEnCtaAsync(
+                expedicion, ctaOrigen.CtaId, ctaOrigen.CtaCodigo, req.EsUrgente,
+                "Tarea generada al salir el paquete de la oficina origen");
+            detalles = autoAsign.Message;
+        }
+        else
+        {
+            _logger.LogWarning(
+                "SalidaOficinaACta {Expedicion}: no se pudo resolver CTA origen (CP origen: {Cp})",
+                expedicion, req.CodigoPostalOrigen);
+        }
+
+        await _ciudadanoNotifier.NotificarEstadoAsync(
+            expedicion, expedicion, "EnTransitoACentroOrigen",
+            $"Tu paquete ha salido de la oficina {req.OficinaNombre} hacia el centro de tratamiento");
+
+        var result = Exito(req, expedicion, "EnTransitoACentroOrigen",
+            $"Paquete en tránsito hacia CTA{(ctaOrigen != null ? " " + ctaOrigen.CtaCodigo : "")}",
+            req.OficinaNombre);
+        result.Detalles = detalles;
+        result.NotificacionEnviada = ctaOrigen != null;
+        return result;
     }
 
     /// <summary>
@@ -427,6 +497,45 @@ public class ScanProcessorService : IScanProcessorService
             $"Recibido en CTA destino {req.CtaCodigo}",
             req.CtaCodigo);
         result.Detalles = detalles;
+        result.NotificacionEnviada = true;
+        return result;
+    }
+
+    /// <summary>
+    /// Paquete clasificado y listo para asignar a una ruta de reparto en el CTA destino.
+    /// → Estado: DisponibleParaReparto
+    /// → Cierra la tarea de Clasificación del OperarioCTA y notifica a JefeReparto.
+    /// </summary>
+    private async Task<ScanResultDto> ProcesarDisponibleParaReparto(ScanRequestDto req, string expedicion)
+    {
+        if (!req.CtaId.HasValue)
+            return Error(req, "Se requiere el CTA para marcar el paquete como disponible para reparto");
+
+        await RegistrarHistorial(expedicion, new CrearHistorialEventoDto
+        {
+            NumeroExpedicion = expedicion,
+            Estado = "DisponibleParaReparto",
+            TipoUbicacion = TipoUbicacion.Cta.ToString(),
+            UbicacionId = req.CtaId,
+            UbicacionNombre = req.CtaCodigo,
+            UbicacionCodigo = req.CtaCodigo,
+            OperarioNombre = req.OperarioNombre,
+            Descripcion = $"Paquete disponible para reparto en {req.CtaCodigo}",
+            Observaciones = req.Observaciones,
+            VisibleParaCliente = true
+        });
+
+        // Notificar a JefeReparto / equipo de reparto del CTA destino.
+        await _notificacionService.NotificarPaqueteDisponibleParaReparto(
+            req.CtaId.Value, req.CtaCodigo ?? "", expedicion, req.EsUrgente);
+
+        await _ciudadanoNotifier.NotificarEstadoAsync(
+            expedicion, expedicion, "DisponibleParaReparto",
+            $"Tu paquete está listo para asignar a un repartidor en {req.CtaCodigo}");
+
+        var result = Exito(req, expedicion, "DisponibleParaReparto",
+            $"Paquete disponible para reparto desde {req.CtaCodigo}",
+            req.CtaCodigo);
         result.NotificacionEnviada = true;
         return result;
     }

@@ -27,29 +27,24 @@ public interface IAdmisionService
 
 public class AdmisionService : IAdmisionService
 {
-    private const string MensajeSistemaAutoasignacion = "Asignación automática tras admisión de envío pagado";
-
     private readonly IMovimientoPaqueteRepository _movimientoRepo;
-    private readonly IAsignacionPaqueteRepository _asignacionRepo;
-    private readonly IOperarioCtaRepository _operarioRepo;
     private readonly IClasificacionService _clasificacionService;
+    private readonly IOficinaPostalService _oficinaService;
     private readonly IRepartoOrquestacionService _repartoOrquestacionService;
     private readonly INotificacionService _notificacionService;
     private readonly ILogger<AdmisionService> _logger;
 
     public AdmisionService(
         IMovimientoPaqueteRepository movimientoRepo,
-        IAsignacionPaqueteRepository asignacionRepo,
-        IOperarioCtaRepository operarioRepo,
         IClasificacionService clasificacionService,
+        IOficinaPostalService oficinaService,
         IRepartoOrquestacionService repartoOrquestacionService,
         INotificacionService notificacionService,
         ILogger<AdmisionService> logger)
     {
         _movimientoRepo = movimientoRepo;
-        _asignacionRepo = asignacionRepo;
-        _operarioRepo = operarioRepo;
         _clasificacionService = clasificacionService;
+        _oficinaService = oficinaService;
         _repartoOrquestacionService = repartoOrquestacionService;
         _notificacionService = notificacionService;
         _logger = logger;
@@ -98,26 +93,49 @@ public class AdmisionService : IAdmisionService
                 dto.NumeroExpedicion, ctaOrigen.CtaCodigo, ctaDestino.CtaCodigo, tipoTransporte);
         }
 
-        // 4. Crear tarea automática en CTA:
-        //    - Para envíos con troncal (inter-CTA): la tarea es en el CTA ORIGEN,
-        //      donde el paquete se encuentra físicamente y debe clasificarse/despacharse.
-        //    - Para envíos locales (mismo CTA): la tarea es en el CTA destino (que es igual al origen).
-        var ctaParaAsignacion = (requiereTroncal && ctaOrigen != null) ? ctaOrigen : ctaDestino;
-        var autoAsignacionCta = await AutoAsignarClasificacionEnCtaAsync(dto, ctaParaAsignacion);
+        // 4. (REVISADO) NO se autoasigna tarea al OperarioCTA en la admisión.
+        //    El flujo debe pasar primero por la Oficina origen: cuando el OperarioOficina
+        //    escanee "SalidaOficinaACta" se generará entonces la tarea de Clasificación en CTA.
+        var autoAsignacionCta = new AutoAsignacionCtaResultado
+        {
+            Attempted = false,
+            Success = false,
+            Message = "La asignación al CTA se difiere al momento en que la oficina origen entregue el paquete."
+        };
 
-        // 5. 📡 Notificar al rol OperarioCTA del CTA que debe gestionar el paquete
-        await _notificacionService.NotificarPaqueteRecibidoEnCta(
-            ctaParaAsignacion.CtaId,
-            ctaParaAsignacion.CtaCodigo,
-            dto.NumeroExpedicion,
-            dto.EsUrgente,
-            ctaParaAsignacion.Provincia,
-            dto.Observaciones);
+        // 5. 📡 Notificar a la OFICINA ORIGEN (si se pudo resolver por CP origen).
+        //    Si no hay CP origen o no se resuelve, no se notifica a nadie en esta fase.
+        int? oficinaOrigenJsonId = null;
+        string? oficinaOrigenNombre = null;
+        if (!string.IsNullOrWhiteSpace(dto.CodigoPostalOrigen))
+        {
+            var oficinaOrigen = await _oficinaService.ResolverOficinaPorCp(dto.CodigoPostalOrigen);
+            if (oficinaOrigen != null)
+            {
+                oficinaOrigenJsonId = oficinaOrigen.OficinaId;
+                oficinaOrigenNombre = oficinaOrigen.OficinaNombre;
+
+                await _notificacionService.NotificarNuevoPaqueteEnOficina(
+                    oficinaOrigen.OficinaId,
+                    oficinaOrigen.OficinaNombre,
+                    dto.NumeroExpedicion,
+                    dto.EsUrgente,
+                    dto.CodigoPostalOrigen,
+                    dto.CodigoPostalDestino,
+                    dto.Observaciones);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Admisión {Expedicion}: no se pudo resolver oficina origen para CP {Cp}",
+                    dto.NumeroExpedicion, dto.CodigoPostalOrigen);
+            }
+        }
 
         _logger.LogInformation(
-            "Paquete {Expedicion} admitido · CP destino: {Cp} → CTA: {Cta} ({Area}) · Urgente: {Urgente} · Troncal: {Troncal} · AutoAsignacionCTA: {AutoAsignacion}",
+            "Paquete {Expedicion} admitido · CP destino: {Cp} → CTA: {Cta} ({Area}) · Urgente: {Urgente} · Troncal: {Troncal} · OficinaOrigen: {Oficina}",
             dto.NumeroExpedicion, dto.CodigoPostalDestino, ctaDestino.CtaCodigo,
-            ctaDestino.Area, dto.EsUrgente, requiereTroncal, autoAsignacionCta.Success);
+            ctaDestino.Area, dto.EsUrgente, requiereTroncal, oficinaOrigenJsonId);
 
         // 6. Orquestar última milla con Reparto (si vienen datos mínimos de entrega)
         var orquestacionIntentada = TieneDatosMinimosReparto(dto);
@@ -177,137 +195,6 @@ public class AdmisionService : IAdmisionService
                 ? $"Paquete admitido. Se enviará de {ctaOrigen!.CtaCodigo} a {ctaDestino.CtaCodigo} vía {tipoTransporteStr}. Operarios del CTA notificados."
                 : $"Paquete admitido directamente en {ctaDestino.CtaCodigo} ({ctaDestino.Provincia}). Operarios del CTA notificados."
         };
-    }
-
-    private async Task<AutoAsignacionCtaResultado> AutoAsignarClasificacionEnCtaAsync(
-        AdmisionPaqueteDto dto,
-        ResolverCtaResponseDto ctaDestino)
-    {
-        try
-        {
-            var asignacionExistente = await _asignacionRepo.GetByExpedicionTipoCtaAsync(
-                dto.NumeroExpedicion,
-                TipoTarea.Clasificacion,
-                ctaDestino.CtaId);
-
-            if (asignacionExistente != null)
-            {
-                var operarioExistente = await _operarioRepo.GetByIdAsync(asignacionExistente.OperarioAsignadoId);
-
-                return new AutoAsignacionCtaResultado
-                {
-                    Attempted = true,
-                    Success = true,
-                    Idempotent = true,
-                    AsignacionId = asignacionExistente.Id,
-                    OperarioAsignadoId = asignacionExistente.OperarioAsignadoId,
-                    OperarioAsignadoNombre = operarioExistente?.NombreCompleto,
-                    Message = "La tarea de clasificación ya existía para esta expedición en el CTA asignado."
-                };
-            }
-
-            var operariosActivosCta = await _operarioRepo.GetByCtaIdAsync(ctaDestino.CtaId, soloActivos: true);
-
-            // Buscar primero OperarioCTA; si no hay, usar Supervisor como fallback
-            var operariosAsignables = operariosActivosCta
-                .Where(o => o.Rol == RolOperario.OperarioCTA || o.Rol == RolOperario.Supervisor)
-                .ToList();
-
-            if (operariosAsignables.Count == 0)
-            {
-                _logger.LogWarning(
-                    "Autoasignación CTA omitida para {Expedicion}: no hay OperarioCTA ni Supervisor activo en {Cta}",
-                    dto.NumeroExpedicion,
-                    ctaDestino.CtaCodigo);
-
-                return new AutoAsignacionCtaResultado
-                {
-                    Attempted = true,
-                    Success = false,
-                    Message = "No hay operarios CTA activos para autoasignar la clasificación en este CTA."
-                };
-            }
-
-            var operarioAsignado = await SeleccionarOperarioConMenorCargaAsync(operariosAsignables);
-
-            var asignador = operariosActivosCta.FirstOrDefault(o => o.Rol == RolOperario.OperarioCTA)
-                ?? operariosActivosCta.FirstOrDefault(o => o.Rol == RolOperario.Supervisor)
-                ?? operarioAsignado;
-
-            var observaciones = string.IsNullOrWhiteSpace(dto.Observaciones)
-                ? MensajeSistemaAutoasignacion
-                : $"{MensajeSistemaAutoasignacion}. Nota admisión: {dto.Observaciones}";
-
-            var asignacion = await _asignacionRepo.CreateAsync(new AsignacionPaquete
-            {
-                NumeroExpedicion = dto.NumeroExpedicion,
-                OperarioAsignadoId = operarioAsignado.Id,
-                AsignadoPorId = asignador.Id,
-                CtaId = ctaDestino.CtaId,
-                TipoTarea = TipoTarea.Clasificacion,
-                EsUrgente = dto.EsUrgente,
-                Observaciones = observaciones
-            });
-
-            await _notificacionService.NotificarTareaAsignada(
-                operarioAsignado.Id,
-                ctaDestino.CtaId,
-                ctaDestino.CtaCodigo,
-                dto.NumeroExpedicion,
-                TipoTarea.Clasificacion.ToString(),
-                dto.EsUrgente,
-                asignador.NombreCompleto);
-
-            _logger.LogInformation(
-                "Autoasignación CTA creada: {Expedicion} -> Operario {Operario} ({OperarioId}) en {Cta}",
-                dto.NumeroExpedicion,
-                operarioAsignado.CodigoEmpleado,
-                operarioAsignado.Id,
-                ctaDestino.CtaCodigo);
-
-            return new AutoAsignacionCtaResultado
-            {
-                Attempted = true,
-                Success = true,
-                Idempotent = false,
-                AsignacionId = asignacion.Id,
-                OperarioAsignadoId = operarioAsignado.Id,
-                OperarioAsignadoNombre = operarioAsignado.NombreCompleto,
-                Message = "Tarea de clasificación autoasignada correctamente en el CTA de gestión."
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Error en autoasignación CTA para expedición {Expedicion}",
-                dto.NumeroExpedicion);
-
-            return new AutoAsignacionCtaResultado
-            {
-                Attempted = true,
-                Success = false,
-                Message = "No se pudo crear la asignación automática en CTA."
-            };
-        }
-    }
-
-    private async Task<OperarioCta> SeleccionarOperarioConMenorCargaAsync(List<OperarioCta> operariosOficina)
-    {
-        var cargas = new List<(OperarioCta Operario, int Carga)>();
-
-        foreach (var operario in operariosOficina)
-        {
-            var pendientes = await _asignacionRepo.CountByOperarioAndEstadoAsync(operario.Id, EstadoTarea.Pendiente);
-            var enProgreso = await _asignacionRepo.CountByOperarioAndEstadoAsync(operario.Id, EstadoTarea.EnProgreso);
-            cargas.Add((operario, pendientes + enProgreso));
-        }
-
-        return cargas
-            .OrderBy(c => c.Carga)
-            .ThenBy(c => c.Operario.Id)
-            .Select(c => c.Operario)
-            .First();
     }
 
     private static bool TieneDatosMinimosReparto(AdmisionPaqueteDto dto)

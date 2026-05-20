@@ -63,7 +63,22 @@ public enum TipoTarea
     DescargaTransporte = 3,
 
     /// <summary>Registrar la expedición/salida del paquete del CTA</summary>
-    Expedicion = 4
+    Expedicion = 4,
+
+    /// <summary>Recibir paquete en oficina origen (operario oficina)</summary>
+    RecepcionOficina = 5,
+
+    /// <summary>Marcar la salida del paquete desde la oficina hacia el CTA origen</summary>
+    SalidaOficinaACta = 6,
+
+    /// <summary>Despachar paquete en transporte troncal (CTA origen → CTA destino)</summary>
+    DespachoTroncal = 7,
+
+    /// <summary>Recibir paquete tras movimiento troncal en CTA destino</summary>
+    RecepcionTroncal = 8,
+
+    /// <summary>Liberar paquete al equipo de reparto (lo verá JefeReparto)</summary>
+    DisponibleParaReparto = 9
 }
 
 /// <summary>
