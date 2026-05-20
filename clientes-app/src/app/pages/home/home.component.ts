@@ -4,7 +4,6 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LoginComponent } from '../login/login.component';
 import { RegisterComponent } from '../register/register.component';
-import { ThemeToggleComponent } from '../../components/theme-toggle/theme-toggle.component';
 import { AuthService } from '../../services/auth.service';
 import { PerfilService } from '../../services/perfil.service';
 import { UsuarioService } from '../../services/usuario.service';
@@ -16,7 +15,7 @@ import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoginComponent, RegisterComponent, ThemeToggleComponent],
+  imports: [CommonModule, FormsModule, LoginComponent, RegisterComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
 })
