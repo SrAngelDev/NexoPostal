@@ -150,3 +150,51 @@ public class EntregaPaqueteRepository : IEntregaPaqueteRepository
             .Where(e => rutaIds.Contains(e.RutaRepartoId))
             .ToListAsync();
 }
+
+public class UbicacionRepartidorRepository : IUbicacionRepartidorRepository
+{
+    private readonly RepartoDbContext _context;
+    public UbicacionRepartidorRepository(RepartoDbContext context) => _context = context;
+
+    public async Task UpsertAsync(int repartidorId, double latitud, double longitud, int? rutaActivaId)
+    {
+        var existente = await _context.UbicacionesRepartidores
+            .FirstOrDefaultAsync(u => u.RepartidorId == repartidorId);
+
+        if (existente == null)
+        {
+            _context.UbicacionesRepartidores.Add(new UbicacionRepartidor
+            {
+                RepartidorId = repartidorId,
+                Latitud = latitud,
+                Longitud = longitud,
+                RutaActivaId = rutaActivaId,
+                ActualizadoEn = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            existente.Latitud = latitud;
+            existente.Longitud = longitud;
+            existente.RutaActivaId = rutaActivaId;
+            existente.ActualizadoEn = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<UbicacionRepartidor>> GetActivasAsync(TimeSpan ventana, int? oficinaJsonId = null)
+    {
+        var umbral = DateTime.UtcNow - ventana;
+        var query = _context.UbicacionesRepartidores
+            .Include(u => u.Repartidor)
+            .Where(u => u.ActualizadoEn >= umbral);
+
+        if (oficinaJsonId.HasValue)
+            query = query.Where(u => u.Repartidor.OficinaJsonId == oficinaJsonId.Value);
+
+        return await query
+            .OrderByDescending(u => u.ActualizadoEn)
+            .ToListAsync();
+    }
+}

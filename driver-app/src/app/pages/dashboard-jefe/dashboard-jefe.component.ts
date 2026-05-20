@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../services/auth.service';
 
 interface DashboardReparto {
   rutasHoy: number;
@@ -24,10 +25,17 @@ export class DashboardJefeComponent implements OnInit {
   stats = signal<DashboardReparto | null>(null);
   cargando = signal(false);
   error = signal<string | null>(null);
+  userName = '';
 
   private readonly API = '/api/nexopostal/reparto';
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private authService: AuthService
+  ) {
+    this.userName = this.authService.getCurrentUser()?.user ?? '';
+  }
 
   ngOnInit(): void {
     this.cargarDashboard();
@@ -56,7 +64,12 @@ export class DashboardJefeComponent implements OnInit {
     return s.tasaEntregaExitosa;
   }
 
-  volver(): void {
-    this.router.navigate(['/']);
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
+  }
+
+  ir(ruta: string): void {
+    this.router.navigate([ruta]);
   }
 }

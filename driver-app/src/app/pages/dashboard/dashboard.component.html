@@ -16,15 +16,10 @@
   <main class="dashboard-main">
     <h2 class="dashboard-title">Panel de Reparto</h2>
     <p class="dashboard-subtitle">
-      @if (isJefeReparto) {
-        Gestiona las rutas y el equipo de repartidores.
-      } @else {
-        Bienvenido al sistema de gestión de repartos de NexoPostal.
-      }
+      Bienvenido al sistema de gestión de repartos de NexoPostal.
     </p>
 
     <div class="dashboard-cards">
-      <!-- Ruta activa — Repartidor (y JefeReparto puede consultarla también) -->
       <button class="dashboard-card" (click)="navigateTo('/ruta')">
         <div class="card-icon-wrapper card-icon-route">
           <span class="material-symbols-outlined">route</span>
@@ -46,31 +41,6 @@
         </div>
         <span class="material-symbols-outlined card-arrow">arrow_forward</span>
       </button>
-
-      <!-- Gestión de rutas — solo JefeReparto -->
-      @if (isJefeReparto) {
-        <button class="dashboard-card" (click)="navigateTo('/gestion-rutas')">
-          <div class="card-icon-wrapper" style="background: linear-gradient(135deg, #1565c0, #1e88e5);">
-            <span class="material-symbols-outlined">map</span>
-          </div>
-          <div class="card-body">
-            <h3 class="card-title">Gestión de Rutas</h3>
-            <p class="card-desc">Planifica y asigna rutas de reparto a tu equipo. Crea nuevas rutas y supervisa el progreso.</p>
-          </div>
-          <span class="material-symbols-outlined card-arrow">arrow_forward</span>
-        </button>
-
-        <button class="dashboard-card" (click)="navigateTo('/dashboard-jefe')">
-          <div class="card-icon-wrapper" style="background: linear-gradient(135deg, #2e7d32, #43a047);">
-            <span class="material-symbols-outlined">leaderboard</span>
-          </div>
-          <div class="card-body">
-            <h3 class="card-title">Métricas del Equipo</h3>
-            <p class="card-desc">Estadísticas del equipo: entregas realizadas, incidencias y rendimiento por repartidor.</p>
-          </div>
-          <span class="material-symbols-outlined card-arrow">arrow_forward</span>
-        </button>
-      }
     </div>
   </main>
 </div>

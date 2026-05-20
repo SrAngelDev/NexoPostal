@@ -15,13 +15,16 @@ export class DashboardComponent {
   userRole = '';
   userRoleLabel = '';
 
-  isJefeReparto = false;
-
   constructor(private authService: AuthService, private router: Router) {
+    // El JefeReparto no opera entregas: lo enviamos a su panel.
+    if (this.authService.isJefeReparto()) {
+      this.router.navigate(['/dashboard-jefe']);
+      return;
+    }
+
     const user = this.authService.getCurrentUser();
     this.userName = user?.user ?? '';
     this.userRole = user?.rol ?? '';
-    this.isJefeReparto = this.authService.isJefeReparto();
     this.userRoleLabel = this.getRoleLabel();
   }
 

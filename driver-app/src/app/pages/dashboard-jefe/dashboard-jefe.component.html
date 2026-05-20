@@ -1,13 +1,40 @@
 <div class="page-container">
   <nav class="page-nav">
-    <button class="btn-back" (click)="volver()">
-      <span class="material-symbols-outlined">arrow_back</span>
-    </button>
-    <h2 class="page-title">Métricas del Equipo</h2>
-    <button class="btn-refresh" (click)="cargarDashboard()">
-      <span class="material-symbols-outlined">refresh</span>
-    </button>
+    <div class="nav-brand">
+      <span class="material-symbols-outlined">supervisor_account</span>
+      <h2 class="page-title">Panel del Jefe de Reparto</h2>
+    </div>
+    <div class="nav-actions">
+      <span class="nav-user">{{ userName }}</span>
+      <button class="btn-refresh" (click)="cargarDashboard()" title="Refrescar">
+        <span class="material-symbols-outlined">refresh</span>
+      </button>
+      <button class="btn-logout" (click)="logout()" title="Cerrar sesión">
+        <span class="material-symbols-outlined">logout</span>
+      </button>
+    </div>
   </nav>
+
+  <!-- Accesos rápidos a las herramientas del jefe -->
+  <div class="quick-actions">
+    <button class="quick-card quick-blue" (click)="ir('/gestion-rutas')">
+      <span class="material-symbols-outlined">route</span>
+      <div class="quick-title">Gestión de Rutas</div>
+      <div class="quick-desc">Planifica y supervisa las rutas del día</div>
+    </button>
+    <button class="quick-card quick-green" (click)="ir('/mapa-tiempo-real')">
+      <span class="material-symbols-outlined">my_location</span>
+      <div class="quick-title">Mapa en tiempo real</div>
+      <div class="quick-desc">Ubicación GPS de tu equipo ahora mismo</div>
+    </button>
+    <button class="quick-card quick-orange" (click)="ir('/asignar-paradas')">
+      <span class="material-symbols-outlined">swap_horiz</span>
+      <div class="quick-title">Asignar paradas</div>
+      <div class="quick-desc">Redistribuye paquetes entre repartidores</div>
+    </button>
+  </div>
+
+  <h3 class="section-title">Métricas del día</h3>
 
   @if (cargando()) {
     <div class="loading">

@@ -1,0 +1,85 @@
+<div class="page-container">
+  <nav class="page-nav">
+    <button class="btn-back" (click)="volver()" title="Volver">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+    <h2 class="page-title">Asignar paradas a rutas</h2>
+    <button class="btn-refresh" (click)="cargar()" [disabled]="cargando()" title="Refrescar">
+      <span class="material-symbols-outlined" [class.spinning]="cargando()">refresh</span>
+    </button>
+  </nav>
+
+  @if (mensaje(); as m) {
+    <div class="banner banner-ok">
+      <span class="material-symbols-outlined">check_circle</span>
+      {{ m }}
+    </div>
+  }
+  @if (error(); as e) {
+    <div class="banner banner-err">
+      <span class="material-symbols-outlined">error</span>
+      {{ e }}
+    </div>
+  }
+
+  @if (cargando()) {
+    <div class="loading">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+      Cargando...
+    </div>
+  } @else if (entregas().length === 0) {
+    <div class="empty">
+      <span class="material-symbols-outlined">inbox</span>
+      <p>No hay entregas pendientes que asignar.</p>
+    </div>
+  } @else {
+    <div class="lista">
+      @for (e of entregas(); track e.entregaId) {
+        <div class="entrega-card">
+          <div class="entrega-head">
+            <div>
+              <div class="exp">{{ e.numeroExpedicion }}</div>
+              <div class="dest">{{ e.nombreDestinatario }}</div>
+            </div>
+            <span class="estado">{{ e.estado }}</span>
+          </div>
+
+          <div class="entrega-body">
+            <div class="info-row">
+              <span class="material-symbols-outlined">location_on</span>
+              <span>{{ e.direccionEntrega }}, {{ e.codigoPostal }} {{ e.ciudad }}</span>
+            </div>
+            <div class="info-row">
+              <span class="material-symbols-outlined">route</span>
+              <span>Ruta actual: <strong>{{ e.rutaActualCodigo }}</strong> ({{ e.repartidorActualNombre }})</span>
+            </div>
+            <div class="info-row">
+              <span class="material-symbols-outlined">store</span>
+              <span>Oficina destino: {{ e.oficinaNombre }}</span>
+            </div>
+          </div>
+
+          <div class="entrega-actions">
+            <select class="ruta-select"
+                    (change)="setSeleccion(e.entregaId, $any($event.target).value)">
+              <option value="">— Selecciona nueva ruta —</option>
+              @for (r of rutasParaEntrega(e); track r.id) {
+                <option [value]="r.id">{{ r.codigo }} — {{ r.repartidorNombre }} ({{ r.totalEntregas }} paradas)</option>
+              }
+            </select>
+            <button class="btn-asignar"
+                    (click)="asignar(e)"
+                    [disabled]="!puedeAsignar(e.entregaId)">
+              @if (isProcesando(e.entregaId)) {
+                <span class="material-symbols-outlined spinning">progress_activity</span>
+              } @else {
+                <span class="material-symbols-outlined">swap_horiz</span>
+              }
+              Asignar
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

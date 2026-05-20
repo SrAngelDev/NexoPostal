@@ -17,6 +17,7 @@ public class RepartoDbContext : DbContext
     public DbSet<Repartidor> Repartidores { get; set; }
     public DbSet<RutaReparto> RutasReparto { get; set; }
     public DbSet<EntregaPaquete> EntregasPaquetes { get; set; }
+    public DbSet<UbicacionRepartidor> UbicacionesRepartidores { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -100,6 +101,21 @@ public class RepartoDbContext : DbContext
                 .WithMany(r => r.Entregas)
                 .HasForeignKey(e => e.RutaRepartoId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ===== UbicacionRepartidor =====
+        modelBuilder.Entity<UbicacionRepartidor>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasIndex(e => e.RepartidorId)
+                .IsUnique()
+                .HasDatabaseName("IX_UbicacionesRepartidores_RepartidorId");
+
+            entity.HasOne(e => e.Repartidor)
+                .WithMany()
+                .HasForeignKey(e => e.RepartidorId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

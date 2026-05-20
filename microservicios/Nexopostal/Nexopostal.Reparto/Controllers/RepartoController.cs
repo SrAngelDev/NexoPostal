@@ -53,7 +53,7 @@ public class RepartoController : ControllerBase
     /// Obtiene el perfil de repartidor del usuario autenticado (para driver-app).
     /// </summary>
     [HttpGet("mi-perfil")]
-    [Authorize(Roles = "Repartidor,JefeReparto")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> ObtenerMiPerfil()
     {
         var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
@@ -119,7 +119,7 @@ public class RepartoController : ControllerBase
     /// Obtiene la ruta activa del repartidor autenticado (para driver-app).
     /// </summary>
     [HttpGet("ruta")]
-    [Authorize(Roles = "Repartidor,JefeReparto")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> ObtenerMiRuta()
     {
         try
@@ -193,7 +193,7 @@ public class RepartoController : ControllerBase
     /// Inicia una ruta de reparto (el repartidor sale de la oficina).
     /// </summary>
     [HttpPost("rutas/{id:int}/iniciar")]
-    [Authorize(Roles = "Repartidor,JefeReparto")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> IniciarRuta(int id)
     {
         var ruta = await _repartoService.IniciarRuta(id);
@@ -206,7 +206,7 @@ public class RepartoController : ControllerBase
     /// Finaliza una ruta de reparto (el repartidor regresa a la oficina).
     /// </summary>
     [HttpPost("rutas/{id:int}/finalizar")]
-    [Authorize(Roles = "Repartidor,JefeReparto")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> FinalizarRuta(int id, [FromBody] FinalizarRutaRequest? request = null)
     {
         var ruta = await _repartoService.FinalizarRuta(id, request?.Observaciones);
@@ -259,7 +259,7 @@ public class RepartoController : ControllerBase
     /// Endpoint principal para el repartidor desde la driver-app.
     /// </summary>
     [HttpPost("confirmar")]
-    [Authorize(Roles = "Repartidor,JefeReparto")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> ConfirmarEntrega([FromQuery] int entregaId, [FromBody] RegistrarEntregaDto dto)
     {
         var entrega = await _repartoService.RegistrarEntrega(entregaId, dto);
@@ -274,7 +274,7 @@ public class RepartoController : ControllerBase
     /// Registra el resultado de entrega por ID en ruta.
     /// </summary>
     [HttpPut("entregas/{entregaId:int}/registrar")]
-    [Authorize(Roles = "Repartidor,JefeReparto")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> RegistrarEntrega(int entregaId, [FromBody] RegistrarEntregaDto dto)
     {
         var entrega = await _repartoService.RegistrarEntrega(entregaId, dto);
@@ -308,15 +308,92 @@ public class RepartoController : ControllerBase
         }
     }
 
+    // ═══════════════════════════════════════════
+    //  TRACKING TIEMPO REAL (JefeReparto)
+    // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// Devuelve la última ubicación conocida de cada repartidor activo
+    /// (que ha enviado una posición en los últimos N minutos).
+    /// Pensado para el mapa en tiempo real del JefeReparto.
+    /// </summary>
+    [HttpGet("ubicaciones-activas")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ObtenerUbicacionesActivas(
+        [FromQuery] int? oficinaJsonId,
+        [FromQuery] int ventanaMinutos = 10)
+    {
+        try
+        {
+            var ubicaciones = await _repartoService.ObtenerUbicacionesActivas(oficinaJsonId, ventanaMinutos);
+            return Ok(ubicaciones);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo ubicaciones activas");
+            return StatusCode(500, new { message = "Error obteniendo ubicaciones activas.", detail = ex.Message });
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    //  ASIGNACIÓN MANUAL DE PARADAS (JefeReparto)
+    // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// Lista las entregas pendientes de rutas planificadas del día actual,
+    /// para que el JefeReparto pueda redistribuirlas entre repartidores.
+    /// </summary>
+    [HttpGet("entregas/pendientes-asignacion")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ObtenerEntregasPendientesAsignacion([FromQuery] int? oficinaJsonId)
+    {
+        try
+        {
+            var pendientes = await _repartoService.ObtenerEntregasPendientesAsignacion(oficinaJsonId);
+            return Ok(pendientes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo entregas pendientes de asignación");
+            return StatusCode(500, new { message = "Error obteniendo entregas pendientes.", detail = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Reasigna una entrega pendiente a otra ruta planificada del día.
+    /// </summary>
+    [HttpPatch("entregas/{entregaId:int}/reasignar")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ReasignarEntrega(int entregaId, [FromBody] ReasignarEntregaDto dto)
+    {
+        var entrega = await _repartoService.ReasignarEntregaARuta(entregaId, dto.NuevaRutaId);
+        if (entrega == null)
+            return BadRequest(new { message = "No se pudo reasignar la entrega. Verifique que está pendiente y que la ruta destino existe y está planificada." });
+        return Ok(entrega);
+    }
+
     /// <summary>
     /// Registra la ubicación en tiempo real del repartidor (para tracking).
+    /// Además de notificar al servicio Ciudadano para el seguimiento público,
+    /// persiste la última ubicación del repartidor para el mapa del JefeReparto.
     /// </summary>
     [HttpPost("ubicacion")]
-    [Authorize(Roles = "Repartidor,JefeReparto")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> RegistrarUbicacion([FromBody] UbicacionRepartidorRequest request)
     {
         _logger.LogInformation("Ubicación recibida de repartidor: lat={Lat}, lng={Lng}",
             request.Latitud, request.Longitud);
+
+        // Persistir última ubicación del repartidor autenticado
+        var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            await _repartoService.RegistrarUbicacionRepartidor(
+                userId,
+                request.Latitud,
+                request.Longitud,
+                request.RutaId);
+        }
 
         var seguimientos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 

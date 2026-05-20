@@ -37,3 +37,10 @@ public interface IEntregaPaqueteRepository
     Task<int> CountByExpedicionAsync(string numeroExpedicion);
     Task<List<EntregaPaquete>> GetByRutaIdsAsync(List<int> rutaIds);
 }
+
+/// <summary>Repositorio para ubicaciones GPS de los repartidores</summary>
+public interface IUbicacionRepartidorRepository
+{
+    Task UpsertAsync(int repartidorId, double latitud, double longitud, int? rutaActivaId);
+    Task<List<UbicacionRepartidor>> GetActivasAsync(TimeSpan ventana, int? oficinaJsonId = null);
+}

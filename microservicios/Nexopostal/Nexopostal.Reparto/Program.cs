@@ -72,6 +72,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IRepartidorRepository, RepartidorRepository>();
 builder.Services.AddScoped<IRutaRepartoRepository, RutaRepartoRepository>();
 builder.Services.AddScoped<IEntregaPaqueteRepository, EntregaPaqueteRepository>();
+builder.Services.AddScoped<IUbicacionRepartidorRepository, UbicacionRepartidorRepository>();
 
 // 4. Registrar servicios propios
 builder.Services.AddScoped<IRepartoService, RepartoService>();

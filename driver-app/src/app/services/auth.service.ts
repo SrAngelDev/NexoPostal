@@ -74,8 +74,7 @@ export class AuthService {
   }
 
   isRepartidor(): boolean {
-    const rol = this.getRol();
-    return rol === 'Repartidor' || rol === 'JefeReparto';
+    return this.getRol() === 'Repartidor';
   }
 
   isJefeReparto(): boolean {
