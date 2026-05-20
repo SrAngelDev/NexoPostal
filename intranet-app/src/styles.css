@@ -253,6 +253,102 @@ html, body {
   .reveal { opacity: 1; transform: none; }
 }
 
+/* ============ DARK MODE BRIDGE para Tailwind clases legacy ============ */
+.dark .bg-white { background-color: var(--surface) !important; }
+.dark .bg-gray-50 { background-color: var(--bg) !important; }
+.dark .bg-gray-100 { background-color: var(--surface-2) !important; }
+.dark .bg-gray-200 { background-color: var(--surface-muted) !important; }
+.dark .bg-indigo-50, .dark .bg-indigo-100 { background-color: color-mix(in srgb, var(--brand-primary-soft) 22%, transparent) !important; }
+.dark .bg-blue-50, .dark .bg-blue-100 { background-color: color-mix(in srgb, var(--info) 18%, transparent) !important; }
+.dark .bg-green-50, .dark .bg-green-100, .dark .bg-emerald-50, .dark .bg-emerald-100 { background-color: color-mix(in srgb, var(--success) 18%, transparent) !important; }
+.dark .bg-yellow-50, .dark .bg-yellow-100, .dark .bg-amber-50, .dark .bg-amber-100 { background-color: color-mix(in srgb, var(--warning) 18%, transparent) !important; }
+.dark .bg-red-50, .dark .bg-red-100 { background-color: color-mix(in srgb, var(--danger) 18%, transparent) !important; }
+
+.dark .text-gray-400 { color: var(--text-subtle) !important; }
+.dark .text-gray-500, .dark .text-gray-600 { color: var(--text-muted) !important; }
+.dark .text-gray-700, .dark .text-gray-800, .dark .text-gray-900, .dark .text-black { color: var(--text) !important; }
+
+.dark .border-gray-100 { border-color: var(--border-soft) !important; }
+.dark .border-gray-200, .dark .border-gray-300 { border-color: var(--border) !important; }
+.dark .border-gray-400 { border-color: var(--border-strong) !important; }
+
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--border-soft) !important; }
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--border) !important; }
+
+.dark .shadow, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl { box-shadow: var(--shadow-md) !important; }
+.dark .shadow-sm { box-shadow: var(--shadow-sm) !important; }
+
+/* Brand hex hardcoded -> tokens en dark */
+.dark .text-\[\#1A237E\] { color: var(--brand-accent) !important; }
+.dark .bg-\[\#1A237E\] { background-color: var(--brand-primary-strong) !important; }
+.dark .border-\[\#1A237E\] { border-color: var(--brand-accent) !important; }
+.dark .from-\[\#1A237E\] { --tw-gradient-from: var(--brand-primary-strong) !important; }
+.dark .to-\[\#1A237E\] { --tw-gradient-to: var(--brand-primary-strong) !important; }
+.dark .hover\:bg-\[\#1A237E\]:hover { background-color: var(--brand-accent) !important; color: var(--brand-primary-strong) !important; }
+.dark .text-\[\#283593\] { color: var(--brand-accent) !important; }
+.dark .bg-\[\#283593\] { background-color: var(--brand-primary-soft) !important; }
+.dark .hover\:bg-\[\#283593\]:hover { background-color: var(--brand-accent) !important; color: #1A237E !important; }
+.dark .bg-\[\#263238\] { background-color: #0B1220 !important; }
+.dark .text-\[\#FFC107\] { color: var(--brand-accent) !important; }
+.dark .bg-\[\#FFC107\] { background-color: var(--brand-accent) !important; }
+.dark .border-\[\#FFC107\] { border-color: var(--brand-accent) !important; }
+
+/* ============ NAVBARS GLOBALES INTRANET (override por estilo común) ============ */
+.navbar,
+.dashboard-nav,
+.admin-nav,
+.page-nav {
+  background: var(--gradient-night) !important;
+  color: #fff !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 8px 24px -16px rgba(0,0,0,0.55) !important;
+}
+.navbar .nav-icon,
+.dashboard-nav .nav-icon,
+.admin-nav .nav-icon,
+.page-nav .nav-icon { color: var(--brand-accent) !important; }
+.navbar .nav-role,
+.dashboard-nav .nav-role,
+.admin-nav .nav-role {
+  background: color-mix(in srgb, var(--brand-accent) 22%, transparent) !important;
+  color: #FFE082 !important;
+}
+.dark .navbar .nav-role,
+.dark .dashboard-nav .nav-role,
+.dark .admin-nav .nav-role { color: var(--brand-accent) !important; }
+
+/* Body global */
+body {
+  background: var(--bg);
+  color: var(--text);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.page,
+.dashboard-page,
+.admin-page,
+.page-container { background: var(--bg) !important; }
+
+/* Cards en intranet */
+.dashboard-card,
+.kpi-card,
+.search-card,
+.detail-card,
+.quick-card,
+.stat-card,
+.ruta-card {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border-soft) !important;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.dark .dashboard-card,
+.dark .kpi-card,
+.dark .search-card,
+.dark .detail-card,
+.dark .quick-card,
+.dark .stat-card,
+.dark .ruta-card { box-shadow: var(--shadow-md) !important; }
+
 /* ============ RESPONSIVE GLOBAL HELPERS ============ */
 html, body {
   max-width: 100%;

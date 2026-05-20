@@ -1,0 +1,183 @@
+/* ============================================================
+   REGISTER modal — tokens + dark mode
+   ============================================================ */
+
+@keyframes registerFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes registerSlideUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 100;
+  background: color-mix(in srgb, #0F172A 78%, transparent);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  animation: registerFadeIn var(--dur) var(--ease-out);
+}
+
+.modal-container {
+  background: var(--surface); color: var(--text);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 32rem;
+  max-height: 92vh; overflow-y: auto;
+  border: 1px solid var(--border-soft);
+  animation: registerSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-header {
+  position: relative;
+  background: var(--gradient-night);
+  color: #fff;
+  padding: 1.75rem;
+}
+.modal-header::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 20% 30%, rgba(255,193,7,0.22) 0%, transparent 55%);
+  pointer-events: none;
+}
+.modal-header > * { position: relative; z-index: 1; }
+.modal-header::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+  background: var(--gradient-accent);
+}
+.modal-header h2 { font: 800 1.65rem var(--font-sans); letter-spacing: -0.02em; }
+.modal-header p { font-size: 0.85rem; opacity: 0.85; margin-top: 0.35rem; }
+.modal-header .flex { display: flex; justify-content: space-between; align-items: center; }
+
+.close-button {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.close-button:hover { background: rgba(255,255,255,0.22); transform: rotate(90deg); }
+
+.modal-body {
+  padding: 1.75rem;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+
+.success-message {
+  background: var(--success-soft);
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+  color: var(--success);
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  animation: registerSlideUp var(--dur) var(--ease-out);
+}
+
+.error-message {
+  background: var(--danger-soft);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  color: var(--danger);
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  animation: registerSlideUp var(--dur) var(--ease-out);
+}
+
+.form-group { position: relative; }
+.form-label {
+  display: block;
+  font: 600 0.85rem var(--font-sans);
+  color: var(--text); margin-bottom: 0.4rem;
+}
+
+.input-wrapper { position: relative; display: flex; align-items: center; }
+.input-icon {
+  position: absolute; left: 0.95rem;
+  color: var(--text-subtle); pointer-events: none;
+  transition: color var(--dur) var(--ease);
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.85rem;
+  background: var(--surface-2); color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font: 500 0.9rem var(--font-sans);
+  outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.form-input::placeholder { color: var(--text-subtle); }
+.form-input:focus,
+.form-select:focus {
+  border-color: var(--brand-primary);
+  background: var(--surface);
+  box-shadow: var(--ring);
+}
+.dark .form-input:focus,
+.dark .form-select:focus { border-color: var(--brand-accent); box-shadow: var(--ring-accent); }
+.input-wrapper:focus-within .input-icon { color: var(--brand-primary); }
+.dark .input-wrapper:focus-within .input-icon { color: var(--brand-accent); }
+
+.submit-button,
+.submit-button-register {
+  position: relative; overflow: hidden;
+  width: 100%;
+  background: var(--gradient-brand);
+  color: #fff;
+  padding: 0.95rem 1.1rem;
+  border: 0; border-radius: var(--radius-md);
+  font: 700 0.95rem var(--font-sans);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  box-shadow: var(--shadow-brand);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.submit-button::before,
+.submit-button-register::before {
+  content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+  transition: left 0.6s;
+}
+.submit-button:hover:not(:disabled),
+.submit-button-register:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -10px rgba(26,35,126,0.55);
+}
+.submit-button:hover:not(:disabled)::before,
+.submit-button-register:hover:not(:disabled)::before { left: 100%; }
+.submit-button:disabled,
+.submit-button-register:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.submit-button .animate-spin,
+.submit-button-register .animate-spin {
+  display: inline-block; width: 1.1rem; height: 1.1rem;
+  border: 2px solid rgba(255,255,255,0.9);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.switch-auth {
+  text-align: center; padding-top: 1.25rem;
+  border-top: 1px solid var(--border-soft);
+}
+.switch-auth p { color: var(--text-muted); font-size: 0.9rem; }
+.switch-link {
+  color: var(--brand-primary);
+  font-weight: 700;
+  background: none; border: 0; cursor: pointer;
+  margin-left: 0.25rem;
+  transition: color var(--dur) var(--ease);
+}
+.dark .switch-link { color: var(--brand-accent); }
+.switch-link:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+  .modal-backdrop { padding: 0.5rem; }
+  .modal-body { padding: 1.35rem; }
+  .modal-header { padding: 1.4rem; }
+  .modal-header h2 { font-size: 1.4rem; }
+}
