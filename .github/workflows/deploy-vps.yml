@@ -254,6 +254,11 @@ jobs:
           fi
 
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+          # Remove containers with stale names (e.g. left by docker-compose v1 with hash prefix)
+          # 'down' is idempotent: safe even if no containers are running
+          $DC --env-file ./.env -f docker-compose.production.yml down --remove-orphans 2>/dev/null || true
+
           $DC --env-file ./.env -f docker-compose.production.yml pull
           $DC --env-file ./.env -f docker-compose.production.yml up -d --no-build --remove-orphans
           $DC --env-file ./.env -f docker-compose.production.yml restart reverse-proxy
