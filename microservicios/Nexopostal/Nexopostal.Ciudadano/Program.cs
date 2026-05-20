@@ -53,9 +53,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidAudience = audience,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero, // Eliminar el margen de 5 minutos por defecto
-            NameClaimType = "sub",
-            RoleClaimType = "role"
+            ClockSkew = TimeSpan.Zero // Eliminar el margen de 5 minutos por defecto
         };
 
         // Logging para debugging

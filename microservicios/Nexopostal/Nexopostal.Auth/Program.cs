@@ -76,9 +76,7 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidAudience = audience,
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero,
-        NameClaimType = "sub",
-        RoleClaimType = "role"
+        ClockSkew = TimeSpan.Zero
     };
 });
 builder.Services.AddAuthorization();

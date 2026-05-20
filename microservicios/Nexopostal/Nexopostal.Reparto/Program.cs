@@ -52,9 +52,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidAudience = audience,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero,
-            NameClaimType = "sub",
-            RoleClaimType = "role"
+            ClockSkew = TimeSpan.Zero
         };
 
         options.Events = new JwtBearerEvents
