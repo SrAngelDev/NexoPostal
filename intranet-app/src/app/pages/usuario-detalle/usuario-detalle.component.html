@@ -80,20 +80,10 @@
           </div>
         } @else {
           @if (detalleOperativo()!.asignacionesCta.length > 1) {
-            <div class="form-group">
-              <label>Asignación a gestionar</label>
-              <select
-                [ngModel]="asignacionSeleccionadaId()"
-                (ngModelChange)="onAsignacionChange($event)"
-                class="input-select"
-              >
-                @for (a of detalleOperativo()!.asignacionesCta; track a.operarioCtaId) {
-                  <option [ngValue]="a.operarioCtaId">
-                    {{ a.ctaCodigo }} · {{ a.ctaNombre }} ({{ a.rolOperativo }})
-                  </option>
-                }
-              </select>
-            </div>
+            <p class="muted small">
+              <span class="material-symbols-outlined" style="font-size:1rem; vertical-align:middle;">touch_app</span>
+              El usuario tiene varias asignaciones. Haz clic en una fila de la tabla para seleccionarla.
+            </p>
           }
 
           @if (asignacionSeleccionada(); as asig) {
@@ -110,21 +100,23 @@
               </div>
             </div>
 
-            <div class="form-group">
-              <label>CTA destino</label>
-              <select
-                [ngModel]="nuevoCtaId()"
-                (ngModelChange)="onNuevoCtaChange($event)"
-                class="input-select"
-              >
-                @for (c of ctas(); track c.id) {
-                  <option [ngValue]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
-                }
-              </select>
-            </div>
+            <div class="move-row">
+              <div class="form-group move-select">
+                <label>Mover a CTA destino</label>
+                <select
+                  [ngModel]="nuevoCtaId()"
+                  (ngModelChange)="onNuevoCtaChange($event)"
+                  class="input-select"
+                >
+                  @for (c of ctas(); track c.id) {
+                    <option [ngValue]="c.id" [disabled]="c.id === asig.ctaId">
+                      {{ c.codigo }} · {{ c.nombre }}{{ c.id === asig.ctaId ? ' (actual)' : '' }}
+                    </option>
+                  }
+                </select>
+              </div>
 
-            <div class="actions-row">
-              <button class="btn-primary" [disabled]="!puedeMoverCta()" (click)="moverCta()">
+              <button class="btn-primary move-btn" [disabled]="!puedeMoverCta()" (click)="moverCta()">
                 <span class="material-symbols-outlined">swap_horiz</span>
                 @if (saving()) {
                   Guardando...
@@ -150,9 +142,10 @@
           }
 
           <div class="table-wrapper">
-            <table class="data-table">
+            <table class="data-table selectable">
               <thead>
                 <tr>
+                  <th></th>
                   <th>CTA</th>
                   <th>Rol</th>
                   <th>Estado</th>
@@ -162,7 +155,18 @@
               </thead>
               <tbody>
                 @for (a of detalleOperativo()!.asignacionesCta; track a.operarioCtaId) {
-                  <tr [class.row-selected]="a.operarioCtaId === asignacionSeleccionadaId()">
+                  <tr
+                    [class.row-selected]="a.operarioCtaId === asignacionSeleccionadaId()"
+                    (click)="onAsignacionChange(a.operarioCtaId)"
+                    class="row-clickable"
+                  >
+                    <td>
+                      @if (a.operarioCtaId === asignacionSeleccionadaId()) {
+                        <span class="material-symbols-outlined selected-icon">radio_button_checked</span>
+                      } @else {
+                        <span class="material-symbols-outlined unselected-icon">radio_button_unchecked</span>
+                      }
+                    </td>
                     <td>{{ a.ctaCodigo }} · {{ a.ctaNombre }}</td>
                     <td>{{ a.rolOperativo }}</td>
                     <td>

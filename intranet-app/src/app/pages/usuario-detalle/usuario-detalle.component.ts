@@ -140,10 +140,13 @@ export class UsuarioDetalleComponent implements OnInit {
     this.actionError.set(null);
     this.actionOk.set(null);
 
+    // Guardamos el CTA destino para localizar la asignación tras el refresh
+    const ctaDestinoId = nuevoCtaId;
+
     this.adminService.moverCtaUsuario(usuario.id, nuevoCtaId, asignacion.operarioCtaId).subscribe({
       next: () => {
         this.actionOk.set('CTA actualizado correctamente.');
-        this.recargarDetalleOperativo();
+        this.recargarDetalleOperativo(ctaDestinoId);
       },
       error: (err) => {
         this.actionError.set(err.error?.message ?? 'No se pudo mover la asignación de CTA.');
@@ -152,7 +155,7 @@ export class UsuarioDetalleComponent implements OnInit {
     });
   }
 
-  private recargarDetalleOperativo(): void {
+  private recargarDetalleOperativo(ctaDestinoEsperado?: number): void {
     this.adminService.obtenerDetalleOperativoUsuario(this.userId).pipe(
       catchError((err) => {
         if (err.status === 404) return of(null);
@@ -163,7 +166,14 @@ export class UsuarioDetalleComponent implements OnInit {
         this.detalleOperativo.set(operativo);
 
         if (operativo && operativo.asignacionesCta.length > 0) {
-          const seleccion = operativo.asignacionesCta.find(a => a.operarioCtaId === this.asignacionSeleccionadaId())
+          // 1º intento: si tras el move sabemos el CTA destino, seleccionamos esa asignación.
+          // 2º intento: misma operarioCtaId que antes (caso sin cambio).
+          // 3º fallback: primera asignación.
+          const seleccion =
+            (ctaDestinoEsperado !== undefined
+              ? operativo.asignacionesCta.find(a => a.ctaId === ctaDestinoEsperado)
+              : undefined)
+            ?? operativo.asignacionesCta.find(a => a.operarioCtaId === this.asignacionSeleccionadaId())
             ?? operativo.asignacionesCta[0];
 
           this.asignacionSeleccionadaId.set(seleccion.operarioCtaId);
