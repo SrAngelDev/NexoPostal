@@ -1,9 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { SignalrService } from '../../services/signalr.service';
+import { SignalrService, CtaCambiadaPayload } from '../../services/signalr.service';
 import { IntranetApiService, MisCtasInfo, CtaAsignacion } from '../../services/intranet-api.service';
 import { ScanService, ScanRequest, ScanResult, ModoEscaneo } from '../../services/scan.service';
 import { BarcodeScannerComponent } from '../../components/barcode-scanner/barcode-scanner.component';
@@ -52,6 +52,9 @@ export class EscaneoComponent implements OnInit {
   modoBatch = signal(false);
   codigosBatch = signal<string[]>([]);
 
+  // CTA change notification banner
+  ctaCambiadaBanner = signal<CtaCambiadaPayload | null>(null);
+
   constructor(
     private authService: AuthService,
     private router: Router,
@@ -62,6 +65,16 @@ export class EscaneoComponent implements OnInit {
     const user = this.authService.getCurrentUser();
     this.userName = user?.user ?? '';
     this.userRole = user?.rol ?? '';
+
+    // React to CTA reassignment by admin
+    effect(() => {
+      const cambio = this.signalr.ctaCambiada();
+      if (!cambio) return;
+      this.ctaCambiadaBanner.set(cambio);
+      // Reload CTA list and reconnect to correct SignalR groups
+      this.cargarDatos();
+      this.signalr.reconectar();
+    });
   }
 
   ngOnInit(): void {
@@ -271,6 +284,10 @@ export class EscaneoComponent implements OnInit {
 
   limpiarHistorial(): void {
     this.historial.set([]);
+  }
+
+  dismissCtaCambiadaBanner(): void {
+    this.ctaCambiadaBanner.set(null);
   }
 
   contarExitosos(): number {

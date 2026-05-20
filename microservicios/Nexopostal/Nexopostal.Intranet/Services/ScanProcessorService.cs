@@ -28,6 +28,8 @@ public class ScanProcessorService : IScanProcessorService
     private readonly IMovimientoService _movimientoService;
     private readonly INotificacionService _notificacionService;
     private readonly ICiudadanoEstadoNotifierService _ciudadanoNotifier;
+    private readonly IAsignacionPaqueteRepository _asignacionRepo;
+    private readonly IOperarioCtaRepository _operarioRepo;
     private readonly ILogger<ScanProcessorService> _logger;
 
     // Mapeo modo → descripción legible
@@ -61,6 +63,8 @@ public class ScanProcessorService : IScanProcessorService
         IMovimientoService movimientoService,
         INotificacionService notificacionService,
         ICiudadanoEstadoNotifierService ciudadanoNotifier,
+        IAsignacionPaqueteRepository asignacionRepo,
+        IOperarioCtaRepository operarioRepo,
         ILogger<ScanProcessorService> logger)
     {
         _movimientoRepo = movimientoRepo;
@@ -69,6 +73,8 @@ public class ScanProcessorService : IScanProcessorService
         _movimientoService = movimientoService;
         _notificacionService = notificacionService;
         _ciudadanoNotifier = ciudadanoNotifier;
+        _asignacionRepo = asignacionRepo;
+        _operarioRepo = operarioRepo;
         _logger = logger;
     }
 
@@ -251,7 +257,8 @@ public class ScanProcessorService : IScanProcessorService
 
     /// <summary>
     /// Paquete clasificado para expedición en CTA.
-    /// → Estado: ClasificadoParaExpedicion
+    /// → Si es CTA origen: Estado ClasificadoParaExpedicion.
+    /// → Si es CTA destino (recibido por troncal): Estado AsignadoARuta + notificación de listo para reparto.
     /// </summary>
     private async Task<ScanResultDto> ProcesarClasificacion(ScanRequestDto req, string expedicion)
     {
@@ -268,28 +275,51 @@ public class ScanProcessorService : IScanProcessorService
                 detalles = $"Destino resuelto: {ctaDestino.CtaCodigo} ({ctaDestino.Provincia})";
         }
 
+        // Detectar si es clasificación de última milla (CTA destino ha recibido un troncal para esta expedición)
+        var movimientoRecibido = await _movimientoRepo.GetRecibidoByExpedicionAndCtaDestinoAsync(expedicion, req.CtaId.Value);
+        var esUltimaMilla = movimientoRecibido != null;
+
+        string estadoNuevo;
+        string descripcion;
+
+        if (esUltimaMilla)
+        {
+            estadoNuevo = "AsignadoARuta";
+            descripcion = $"Paquete clasificado para última milla en {req.CtaCodigo} — listo para reparto";
+
+            // Notificar al CTA que el paquete está disponible para reparto
+            await _notificacionService.NotificarGeneralCta(
+                req.CtaId.Value, req.CtaCodigo ?? "",
+                "📦 Paquete listo para reparto",
+                $"El paquete {expedicion} ha sido clasificado en {req.CtaCodigo} y está disponible para asignar a ruta de reparto.");
+        }
+        else
+        {
+            estadoNuevo = "ClasificadoParaExpedicion";
+            descripcion = $"Paquete clasificado en {req.CtaCodigo}";
+        }
+
         await RegistrarHistorial(expedicion, new CrearHistorialEventoDto
         {
             NumeroExpedicion = expedicion,
-            Estado = "ClasificadoParaExpedicion",
+            Estado = estadoNuevo,
             TipoUbicacion = TipoUbicacion.Cta.ToString(),
             UbicacionId = req.CtaId,
             UbicacionNombre = req.CtaCodigo,
             UbicacionCodigo = req.CtaCodigo,
             OperarioNombre = req.OperarioNombre,
-            Descripcion = $"Paquete clasificado en {req.CtaCodigo}",
+            Descripcion = descripcion,
             Observaciones = req.Observaciones,
             VisibleParaCliente = true
         });
 
         await _ciudadanoNotifier.NotificarEstadoAsync(
-            null, expedicion, "ClasificadoParaExpedicion",
-            $"Clasificado para expedición en {req.CtaCodigo}");
+            null, expedicion, estadoNuevo,
+            esUltimaMilla
+                ? $"Paquete listo para reparto en {req.CtaCodigo}"
+                : $"Clasificado para expedición en {req.CtaCodigo}");
 
-        var result = Exito(req, expedicion, "ClasificadoParaExpedicion",
-            $"Clasificado para expedición en {req.CtaCodigo}",
-            req.CtaCodigo);
-
+        var result = Exito(req, expedicion, estadoNuevo, descripcion, req.CtaCodigo);
         result.Detalles = detalles;
         return result;
     }
@@ -382,6 +412,11 @@ public class ScanProcessorService : IScanProcessorService
         await _notificacionService.NotificarPaqueteRecibidoEnCta(
             req.CtaId.Value, req.CtaCodigo ?? "", expedicion,
             req.EsUrgente, "", "Recibido tras movimiento troncal");
+
+        // Crear tarea de Clasificación automática en el CTA destino
+        var autoAsignacion = await AutoAsignarTareaClasificacionEnCtaAsync(
+            expedicion, req.CtaId.Value, req.CtaCodigo ?? "", req.EsUrgente,
+            "Clasificación de última milla tras recepción troncal");
 
         // Notificar a Ciudadano (tracking público)
         await _ciudadanoNotifier.NotificarEstadoAsync(
@@ -497,5 +532,84 @@ public class ScanProcessorService : IScanProcessorService
             ModoDescripcion = DescripcionModos.GetValueOrDefault(req.ModoOperacion, req.ModoOperacion),
             Mensaje = mensaje
         };
+    }
+
+    // ─── Helper: auto-asignar tarea Clasificacion en CTA ───
+
+    /// <summary>
+    /// Crea una tarea de Clasificación asignada al OperarioCTA con menor carga en el CTA indicado.
+    /// Aplica idempotencia por NumeroExpedicion + TipoTarea + CtaId.
+    /// Usado al recibir un paquete vía troncal en el CTA destino.
+    /// </summary>
+    private async Task<(bool Success, bool Idempotent, string Message)> AutoAsignarTareaClasificacionEnCtaAsync(
+        string numeroExpedicion, int ctaId, string ctaCodigo, bool esUrgente, string? observaciones = null)
+    {
+        try
+        {
+            var existente = await _asignacionRepo.GetByExpedicionTipoCtaAsync(
+                numeroExpedicion, TipoTarea.Clasificacion, ctaId);
+
+            if (existente != null)
+            {
+                _logger.LogInformation(
+                    "Tarea Clasificacion ya existe para {Expedicion} en CTA {Cta} (idempotente)",
+                    numeroExpedicion, ctaCodigo);
+                return (true, true, "La tarea de clasificación ya existía en este CTA.");
+            }
+
+            var operariosActivos = await _operarioRepo.GetByCtaIdAsync(ctaId, soloActivos: true);
+            var candidatos = operariosActivos
+                .Where(o => o.Rol == RolOperario.OperarioCTA || o.Rol == RolOperario.Supervisor)
+                .ToList();
+
+            if (candidatos.Count == 0)
+            {
+                _logger.LogWarning(
+                    "No hay OperarioCTA activo en CTA {Cta} para auto-asignar clasificación de {Expedicion}",
+                    ctaCodigo, numeroExpedicion);
+                return (false, false, "No hay operarios CTA activos en este CTA para asignar la tarea.");
+            }
+
+            // Seleccionar el operario con menor carga
+            var cargas = new List<(OperarioCta Operario, int Carga)>();
+            foreach (var op in candidatos)
+            {
+                var pendientes = await _asignacionRepo.CountByOperarioAndEstadoAsync(op.Id, EstadoTarea.Pendiente);
+                var enProgreso = await _asignacionRepo.CountByOperarioAndEstadoAsync(op.Id, EstadoTarea.EnProgreso);
+                cargas.Add((op, pendientes + enProgreso));
+            }
+
+            var operarioAsignado = cargas.OrderBy(c => c.Carga).ThenBy(c => c.Operario.Id).First().Operario;
+            var asignador = candidatos.FirstOrDefault(o => o.Rol == RolOperario.OperarioCTA) ?? operarioAsignado;
+
+            await _asignacionRepo.CreateAsync(new AsignacionPaquete
+            {
+                NumeroExpedicion = numeroExpedicion,
+                OperarioAsignadoId = operarioAsignado.Id,
+                AsignadoPorId = asignador.Id,
+                CtaId = ctaId,
+                TipoTarea = TipoTarea.Clasificacion,
+                EsUrgente = esUrgente,
+                Observaciones = observaciones ?? "Clasificación de última milla — asignación automática tras recepción troncal"
+            });
+
+            await _notificacionService.NotificarTareaAsignada(
+                operarioAsignado.Id, ctaId, ctaCodigo,
+                numeroExpedicion, TipoTarea.Clasificacion.ToString(),
+                esUrgente, asignador.NombreCompleto);
+
+            _logger.LogInformation(
+                "Tarea Clasificacion auto-asignada a {Operario} en CTA {Cta} para {Expedicion}",
+                operarioAsignado.CodigoEmpleado, ctaCodigo, numeroExpedicion);
+
+            return (true, false, $"Tarea de clasificación asignada a {operarioAsignado.NombreCompleto}.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error en auto-asignación de tarea Clasificacion para {Expedicion} en CTA {Cta}",
+                numeroExpedicion, ctaCodigo);
+            return (false, false, "Error al crear la asignación automática.");
+        }
     }
 }

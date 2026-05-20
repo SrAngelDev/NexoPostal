@@ -886,3 +886,41 @@
     transform: translateY(0);
   }
 }
+
+/* ===== CTA Cambiada Banner ===== */
+.cta-cambiada-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #f59e0b;
+  color: #1c1917;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+  animation: fadeSlideUp 0.3s ease;
+}
+
+.cta-cambiada-banner .material-symbols-outlined {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.banner-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.banner-close:hover {
+  opacity: 1;
+}

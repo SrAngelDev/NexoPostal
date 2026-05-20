@@ -305,6 +305,15 @@ public class MovimientoPaqueteRepository : IMovimientoPaqueteRepository
                 m.CtaDestinoId == ctaDestinoId &&
                 m.Estado == EstadoMovimiento.EnTransito);
 
+    public async Task<MovimientoPaquete?> GetRecibidoByExpedicionAndCtaDestinoAsync(string expedicion, int ctaDestinoId)
+        => await _context.MovimientosPaquetes
+            .Include(m => m.CtaOrigen)
+            .Include(m => m.CtaDestino)
+            .FirstOrDefaultAsync(m =>
+                m.NumeroExpedicion == expedicion &&
+                m.CtaDestinoId == ctaDestinoId &&
+                m.Estado == EstadoMovimiento.Recibido);
+
     public async Task<List<MovimientoPaquete>> GetEnTransitoAnterioresAAsync(DateTime umbral)
         => await _context.MovimientosPaquetes
             .Include(m => m.CtaOrigen)

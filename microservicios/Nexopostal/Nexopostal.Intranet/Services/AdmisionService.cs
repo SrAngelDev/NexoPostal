@@ -98,16 +98,20 @@ public class AdmisionService : IAdmisionService
                 dto.NumeroExpedicion, ctaOrigen.CtaCodigo, ctaDestino.CtaCodigo, tipoTransporte);
         }
 
-        // 4. Crear tarea automática en CTA (mínimo viable): clasificación directa a OperarioOficina
-        var autoAsignacionCta = await AutoAsignarClasificacionEnCtaAsync(dto, ctaDestino);
+        // 4. Crear tarea automática en CTA:
+        //    - Para envíos con troncal (inter-CTA): la tarea es en el CTA ORIGEN,
+        //      donde el paquete se encuentra físicamente y debe clasificarse/despacharse.
+        //    - Para envíos locales (mismo CTA): la tarea es en el CTA destino (que es igual al origen).
+        var ctaParaAsignacion = (requiereTroncal && ctaOrigen != null) ? ctaOrigen : ctaDestino;
+        var autoAsignacionCta = await AutoAsignarClasificacionEnCtaAsync(dto, ctaParaAsignacion);
 
-        // 5. 📡 Notificar al rol OperarioCTA del CTA destino
+        // 5. 📡 Notificar al rol OperarioCTA del CTA que debe gestionar el paquete
         await _notificacionService.NotificarPaqueteRecibidoEnCta(
-            ctaDestino.CtaId,
-            ctaDestino.CtaCodigo,
+            ctaParaAsignacion.CtaId,
+            ctaParaAsignacion.CtaCodigo,
             dto.NumeroExpedicion,
             dto.EsUrgente,
-            ctaDestino.Provincia,
+            ctaParaAsignacion.Provincia,
             dto.Observaciones);
 
         _logger.LogInformation(
@@ -198,7 +202,7 @@ public class AdmisionService : IAdmisionService
                     AsignacionId = asignacionExistente.Id,
                     OperarioAsignadoId = asignacionExistente.OperarioAsignadoId,
                     OperarioAsignadoNombre = operarioExistente?.NombreCompleto,
-                    Message = "La tarea de clasificación ya existía para esta expedición en el CTA destino."
+                    Message = "La tarea de clasificación ya existía para esta expedición en el CTA asignado."
                 };
             }
 
@@ -269,7 +273,7 @@ public class AdmisionService : IAdmisionService
                 AsignacionId = asignacion.Id,
                 OperarioAsignadoId = operarioAsignado.Id,
                 OperarioAsignadoNombre = operarioAsignado.NombreCompleto,
-                Message = "Tarea de clasificación autoasignada correctamente en el CTA destino."
+                Message = "Tarea de clasificación autoasignada correctamente en el CTA de gestión."
             };
         }
         catch (Exception ex)

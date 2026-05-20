@@ -26,6 +26,7 @@ namespace Nexopostal.Intranet.Hubs;
 ///   - "IncidenciaCreada" → Se ha reportado una nueva incidencia
 ///   - "IncidenciaActualizada" → Una incidencia ha cambiado de estado
 ///   - "NotificacionGeneral" → Mensaje genérico para todo el CTA
+///   - "CtaCambiada" → El operario ha sido reasignado a un nuevo CTA por un administrador
 /// </summary>
 [Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
 public class IntranetHub : Hub

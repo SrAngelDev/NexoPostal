@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.SignalR;
 using Nexopostal.Intranet.DTOs;
+using Nexopostal.Intranet.Hubs;
 using Nexopostal.Intranet.Models;
 using Nexopostal.Intranet.Repositories;
 
@@ -45,17 +47,20 @@ public class OperarioService : IOperarioService
     private readonly IOperarioCtaRepository _operarioRepo;
     private readonly ICentroTratamientoRepository _ctaRepo;
     private readonly IAsignacionPaqueteRepository _asignacionRepo;
+    private readonly IHubContext<IntranetHub> _hubContext;
     private readonly ILogger<OperarioService> _logger;
 
     public OperarioService(
         IOperarioCtaRepository operarioRepo,
         ICentroTratamientoRepository ctaRepo,
         IAsignacionPaqueteRepository asignacionRepo,
+        IHubContext<IntranetHub> hubContext,
         ILogger<OperarioService> logger)
     {
         _operarioRepo = operarioRepo;
         _ctaRepo = ctaRepo;
         _asignacionRepo = asignacionRepo;
+        _hubContext = hubContext;
         _logger = logger;
     }
 
@@ -227,26 +232,52 @@ public class OperarioService : IOperarioService
         if (ctaDestino == null)
             return (false, $"CTA con ID {dto.NuevoCtaId} no encontrado.", false);
 
-        var yaExiste = await _operarioRepo.ExistsByIdentityUserIdAndCtaAsync(identityUserId, dto.NuevoCtaId);
-        if (yaExiste)
-            return (false, "Este usuario ya está asignado al CTA destino.", true);
-
         var tareasPendientes = await _asignacionRepo.CountByOperarioAndEstadoAsync(asignacion.Id, EstadoTarea.Pendiente);
         var tareasEnProgreso = await _asignacionRepo.CountByOperarioAndEstadoAsync(asignacion.Id, EstadoTarea.EnProgreso);
         if (tareasPendientes > 0 || tareasEnProgreso > 0)
             return (false, "No se puede mover de CTA mientras tenga tareas pendientes o en progreso.", false);
 
-        var ctaOrigen = asignacion.CentroTratamiento.Codigo;
+        // Capture source info before any mutation
+        var ctaOrigenId = asignacion.CentroTratamientoId;
+        var ctaOrigenCodigo = asignacion.CentroTratamiento?.Codigo ?? "?";
+        var sourceOperarioCtaId = asignacion.Id;
 
-        asignacion.CentroTratamientoId = dto.NuevoCtaId;
-        asignacion.FechaAsignacion = DateTime.UtcNow;
-        await _operarioRepo.UpdateAsync(asignacion);
+        // Check if user already has an active assignment at the destination CTA.
+        // (asignaciones only contains active records — see GetAllByIdentityUserIdAsync)
+        var asignacionDestino = asignaciones.FirstOrDefault(o => o.CentroTratamientoId == dto.NuevoCtaId);
+        if (asignacionDestino != null)
+        {
+            // Destination already active (e.g. seeder assigns every worker to all CTAs).
+            // Deactivate the source record so only the destination remains.
+            asignacion.Activo = false;
+            await _operarioRepo.UpdateAsync(asignacion);
+        }
+        else
+        {
+            // Normal move: reassign source record to the destination CTA.
+            asignacion.CentroTratamientoId = dto.NuevoCtaId;
+            asignacion.FechaAsignacion = DateTime.UtcNow;
+            await _operarioRepo.UpdateAsync(asignacion);
+        }
 
         _logger.LogInformation(
             "Admin movió usuario {IdentityUserId} de CTA {CtaOrigen} a {CtaDestino}",
             identityUserId,
-            ctaOrigen,
+            ctaOrigenCodigo,
             ctaDestino.Codigo);
+
+        // Notify the worker in real time via SignalR
+        await _hubContext.Clients.Group($"operario-{sourceOperarioCtaId}")
+            .SendAsync("CtaCambiada", new
+            {
+                operarioCtaId = sourceOperarioCtaId,
+                ctaAnteriorId = ctaOrigenId,
+                ctaAnteriorCodigo = ctaOrigenCodigo,
+                ctaNuevoId = dto.NuevoCtaId,
+                ctaNuevoCodigo = ctaDestino.Codigo,
+                ctaNuevoNombre = ctaDestino.Nombre,
+                mensaje = $"Has sido movido al CTA {ctaDestino.Codigo} ({ctaDestino.Nombre})"
+            });
 
         return (true, null, false);
     }

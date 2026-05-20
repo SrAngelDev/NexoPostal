@@ -84,6 +84,7 @@ public interface IMovimientoPaqueteRepository
     Task<List<MovimientoPaquete>> GetPendientesTransporteAsync();
     Task<MovimientoPaquete?> GetProgramadoByExpedicionAndCtaOrigenAsync(string expedicion, int ctaOrigenId);
     Task<MovimientoPaquete?> GetEnTransitoByExpedicionAndCtaDestinoAsync(string expedicion, int ctaDestinoId);
+    Task<MovimientoPaquete?> GetRecibidoByExpedicionAndCtaDestinoAsync(string expedicion, int ctaDestinoId);
     Task<List<MovimientoPaquete>> GetEnTransitoAnterioresAAsync(DateTime umbral);
 }
 

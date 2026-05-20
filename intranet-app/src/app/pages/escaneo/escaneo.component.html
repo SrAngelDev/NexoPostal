@@ -23,6 +23,20 @@
   </nav>
 
   <main class="main-content">
+    <!-- CTA reassignment banner -->
+    @if (ctaCambiadaBanner()) {
+      <div class="cta-cambiada-banner">
+        <span class="material-symbols-outlined">swap_horiz</span>
+        <span>
+          <strong>Cambio de CTA:</strong>
+          {{ ctaCambiadaBanner()!.mensaje }}. Tu vista se está actualizando.
+        </span>
+        <button class="banner-close" (click)="dismissCtaCambiadaBanner()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    }
+
     @if (loading()) {
       <div class="loading-state">
         <span class="spinner-lg"></span>

@@ -27,6 +27,16 @@ export interface ConexionInfo {
   mensaje: string;
 }
 
+export interface CtaCambiadaPayload {
+  operarioCtaId: number;
+  ctaAnteriorId: number;
+  ctaAnteriorCodigo: string;
+  ctaNuevoId: number;
+  ctaNuevoCodigo: string;
+  ctaNuevoNombre: string;
+  mensaje: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -39,6 +49,7 @@ export class SignalrService {
   readonly notificaciones = signal<NotificacionSignalR[]>([]);
   readonly notificacionesNoLeidas = signal(0);
   readonly ultimaNotificacion = signal<NotificacionSignalR | null>(null);
+  readonly ctaCambiada = signal<CtaCambiadaPayload | null>(null);
 
   constructor(private authService: AuthService) {}
 
@@ -105,6 +116,14 @@ export class SignalrService {
   }
 
   /**
+   * Desconecta y vuelve a conectar (útil tras un cambio de CTA)
+   */
+  reconectar(): void {
+    this.desconectar();
+    setTimeout(() => this.conectar(), 500);
+  }
+
+  /**
    * Marca todas las notificaciones como leídas
    */
   marcarComoLeidas(): void {
@@ -148,6 +167,11 @@ export class SignalrService {
 
     // Notificación general
     this.hubConnection.on('NotificacionGeneral', (n: NotificacionSignalR) => this.agregarNotificacion(n));
+
+    // Cambio de CTA asignado al operario
+    this.hubConnection.on('CtaCambiada', (payload: CtaCambiadaPayload) => {
+      this.ctaCambiada.set(payload);
+    });
   }
 
   private agregarNotificacion(n: NotificacionSignalR): void {
