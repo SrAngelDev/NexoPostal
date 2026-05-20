@@ -74,7 +74,8 @@ public class UrlRewriteMiddleware
             ["historial|interno"] = "historial-interno",
             ["oficinaspostales|listar"] = "oficinaspostales-listar",
             ["oficinaspostales|buscar"] = "oficinaspostales-buscar",
-            ["oficinaspostales|resolver"] = "oficinaspostales-resolver"
+            ["oficinaspostales|resolver"] = "oficinaspostales-resolver",
+            ["reparto|entregas/pendientes-asignacion"] = "entregas-pendientes-asignacion"
         };
 
     public async Task InvokeAsync(HttpContext context)
@@ -162,6 +163,29 @@ public class UrlRewriteMiddleware
         {
             routeKey = segments[2];
             extra    = $"{segments[1]}/{segments[2]}";
+        }
+
+        // Patrón /api/{apiKey}/{subresource}/{subaction} (no numéricos) con alias compuesto.
+        // ej: /api/reparto/entregas/pendientes-asignacion → alias "entregas-pendientes-asignacion".
+        // Solo se activa si existe el alias específico, así no rompe URLs existentes.
+        else if (segments.Length == 3
+                 && !int.TryParse(segments[2], out _)
+                 && RouteKeyAliases.ContainsKey($"{apiKey}|{segments[1]}/{segments[2]}"))
+        {
+            routeKey = RouteKeyAliases[$"{apiKey}|{segments[1]}/{segments[2]}"];
+            extra = null;
+            context.Request.Path = $"{GatewayPrefix}{apiKey}/{routeKey}";
+            return;
+        }
+
+        // Patrón /api/{apiKey}/{subresource}/{numericId}/{action}
+        // ej: PATCH /api/reparto/entregas/45/reasignar → routeKey="entregas-reasignar",
+        // parameters="45/reasignar". Combinado con Path="api/reparto/entregas/" produce
+        // upstream: api/reparto/entregas/45/reasignar
+        else if (segments.Length == 4 && int.TryParse(segments[2], out _))
+        {
+            routeKey = $"{segments[1]}-{segments[3]}";
+            extra = $"{segments[2]}/{segments[3]}";
         }
         else
         {

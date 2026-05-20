@@ -167,7 +167,10 @@ public static class ApiOrchestrationConfig
             .AddRoute("confirmar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/confirmar" })
             .AddRoute("ubicacion", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/ubicacion" })
             .AddRoute("entregas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/entregas" })
-            .AddRoute("dashboard", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/dashboard" });
+            .AddRoute("dashboard", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/dashboard" })
+            .AddRoute("ubicaciones-activas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/ubicaciones-activas" })
+            .AddRoute("entregas-pendientes-asignacion", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/entregas/pendientes-asignacion" })
+            .AddRoute("entregas-reasignar", GatewayVerb.PATCH, new RouteInfo { Path = "api/reparto/entregas/" });
     }
 
     // ASIGNACIONES (Intranet / Logistica)
