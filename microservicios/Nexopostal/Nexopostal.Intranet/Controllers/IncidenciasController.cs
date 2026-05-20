@@ -57,6 +57,42 @@ public class IncidenciasController : ControllerBase
     }
 
     /// <summary>
+    /// Endpoint reservado a operarios (OperarioCTA / OperarioOficina) para reportar
+    /// que han escaneado un paquete fuera de sus tareas asignadas. Crea siempre una
+    /// incidencia tipo <see cref="TipoIncidencia.PaqueteFueraDeTareas"/>.
+    /// </summary>
+    [HttpPost("reportar-fuera-tareas")]
+    [Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
+    [ProducesResponseType(typeof(IncidenciaDetalleDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IncidenciaDetalleDto>> ReportarFueraDeTareas(
+        [FromBody] ReportarFueraTareasDto dto)
+    {
+        var operario = await ObtenerOperarioActual();
+        if (operario == null) return Forbid();
+
+        if (string.IsNullOrWhiteSpace(dto.NumeroExpedicion) || string.IsNullOrWhiteSpace(dto.Motivo))
+            return BadRequest(new { message = "Número de expedición y motivo obligatorios" });
+
+        var crearDto = new CrearIncidenciaDto
+        {
+            NumeroExpedicion = dto.NumeroExpedicion.Trim(),
+            Tipo = TipoIncidencia.PaqueteFueraDeTareas.ToString(),
+            Descripcion = dto.Motivo.Trim()
+        };
+
+        try
+        {
+            var incidencia = await _incidenciaService.CrearIncidencia(crearDto, operario.Id, operario.CentroTratamientoId);
+            return CreatedAtAction(nameof(ObtenerDetalle), new { id = incidencia.Id }, incidencia);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Obtiene las incidencias de un CTA, opcionalmente filtradas por estado.
     /// </summary>
     [HttpGet("cta/{ctaId:int}")]

@@ -89,6 +89,27 @@ public class AsignacionesController : ControllerBase
     }
 
     /// <summary>
+    /// Busca una tarea (pendiente o en progreso) del operario por número de expedición.
+    /// Si no la encuentra devuelve 404 — el frontend debe ofrecer crear incidencia
+    /// "PaqueteFueraDeTareas".
+    /// </summary>
+    [HttpGet("buscar")]
+    [ProducesResponseType(typeof(AsignacionResumenDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AsignacionResumenDto>> BuscarEnMisTareas([FromQuery] string codigo)
+    {
+        if (string.IsNullOrWhiteSpace(codigo))
+            return BadRequest(new { message = "Código requerido" });
+
+        var operario = await ObtenerOperarioActual();
+        if (operario == null) return Forbid();
+
+        var resultado = await _asignacionService.BuscarEnMisTareasAsync(operario.Id, codigo);
+        if (resultado == null) return NotFound(new { message = "Paquete fuera de tus tareas" });
+        return Ok(resultado);
+    }
+
+    /// <summary>
     /// Obtiene todas las asignaciones de un CTA, opcionalmente filtradas por estado.
     /// </summary>
     [HttpGet("cta/{ctaId:int}")]
@@ -123,7 +144,7 @@ public class AsignacionesController : ControllerBase
     /// Solo el operario asignado puede iniciar su tarea.
     /// </summary>
     [HttpPut("{id:int}/iniciar")]
-    [Authorize(Roles = "Admin,OperarioOficina")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(typeof(AsignacionDetalleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AsignacionDetalleDto>> Iniciar(int id)
@@ -148,7 +169,7 @@ public class AsignacionesController : ControllerBase
     /// Solo el operario asignado puede completar su tarea.
     /// </summary>
     [HttpPut("{id:int}/completar")]
-    [Authorize(Roles = "Admin,OperarioOficina")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(typeof(AsignacionDetalleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AsignacionDetalleDto>> Completar(int id)
@@ -172,7 +193,7 @@ public class AsignacionesController : ControllerBase
     /// Cancela una tarea. Solo OperarioCTA o Admin.
     /// </summary>
     [HttpPut("{id:int}/cancelar")]
-    [Authorize(Roles = "Admin,OperarioCTA")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Cancelar(int id)

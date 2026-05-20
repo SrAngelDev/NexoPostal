@@ -154,7 +154,10 @@ public enum TipoIncidencia
     ErrorClasificacion = 4,
 
     /// <summary>Otra incidencia no categorizada</summary>
-    Otra = 5
+    Otra = 5,
+
+    /// <summary>El operario escaneó un paquete que no estaba en sus tareas asignadas</summary>
+    PaqueteFueraDeTareas = 6
 }
 
 /// <summary>

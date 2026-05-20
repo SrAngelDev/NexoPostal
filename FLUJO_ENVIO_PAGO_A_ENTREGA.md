@@ -99,11 +99,32 @@ Tras admision:
 
 - se crea tarea de clasificacion para personal de CTA (idempotente),
 - se notifica en tiempo real por SignalR al CTA destino,
-- se intenta orquestacion de ultima milla hacia microservicio Reparto.
+- NO se orquesta automaticamente Reparto desde admision (los datos de ultima milla viajan unicamente con el paquete y se materializan al llegar a `DisponibleParaReparto`).
+
+### 4.2.bis Encadenamiento por escaneo (sesion mayo 2026)
+
+El ciclo operativo se construye exclusivamente con escaneos. Cada handler de `ScanProcessor` cierra la tarea actual del operario y crea automaticamente la siguiente:
+
+- `RecepcionOficina` -> crea `SalidaOficinaACta` (oficina origen).
+- `SalidaOficinaACta` -> crea `Recepcion` en CTA origen.
+- `Recepcion` (CTA) -> crea `Clasificacion`.
+- `Clasificacion` -> crea `DespachoTroncal` o `DisponibleParaReparto` segun destino.
+- `DespachoTroncal` -> crea `RecepcionTroncal` en CTA destino.
+- `RecepcionTroncal` -> crea `Clasificacion` o `DisponibleParaReparto`.
+- `DisponibleParaReparto` -> NO crea tarea nueva: emite SignalR `PaqueteDisponibleParaReparto` para que JefeReparto orqueste manualmente la ruta.
+
+Los endpoints `PUT /api/asignaciones/{id}/iniciar|completar|cancelar` quedan reservados a `Admin,Supervisor` para correccion administrativa; los operarios solo cambian estado a traves de escaneos.
+
+### 4.2.ter Busqueda de tarea por codigo + incidencia fuera-de-tareas
+
+El operario dispone de un buscador integrado en `intranet-app` que llama a `GET /api/asignaciones/buscar?codigo=...`:
+
+- Si el codigo coincide con una tarea propia (Pendiente o EnProgreso) el backend devuelve `AsignacionResumenDto` con `modoSugerido` (mapeo de `TipoTarea` -> modo de escaneo) y la UI confirma el paso via `POST /api/scan/procesar` automaticamente.
+- Si no aparece, devuelve 404 con `{ message: "Paquete fuera de tus tareas" }`. La UI abre un modal bloqueante que pide motivo y dispara `POST /api/incidencias/reportar-fuera-tareas`, generando una incidencia tipo `PaqueteFueraDeTareas` para el Supervisor (autorizado para Admin/Supervisor/OperarioCTA/OperarioOficina).
 
 ### 4.3 Autoasignacion de reparto
 
-Reparto recibe solicitud interna y:
+Reparto recibe la solicitud (disparada manualmente por JefeReparto al recibir la notificacion `PaqueteDisponibleParaReparto`) y:
 
 1. valida datos minimos,
 2. evita duplicados por `NumeroExpedicion` (idempotencia),
@@ -211,3 +232,13 @@ Existe un servicio en segundo plano que tambien puede marcar pagos pendientes co
 - pero no ejecuta todo el flujo rico de documentos + email + notificacion logistica en el mismo paso.
 
 Para operativa completa, la ruta principal es verificacion/webhook que dispara el procesamiento completo.
+
+## 9) Cambios recientes (sesion mayo 2026)
+
+- AdmisionService deja de invocar Reparto y de auto-asignar CTA: se limita a registrar la admision y emitir SignalR.
+- ScanProcessor encadena tareas paso a paso (ver 4.2.bis).
+- `TipoIncidencia.PaqueteFueraDeTareas = 6` (nuevo).
+- Nuevo endpoint `GET /api/asignaciones/buscar?codigo=` para que el operario localice una tarea propia y obtenga `modoSugerido`.
+- Nuevo endpoint `POST /api/incidencias/reportar-fuera-tareas` accesible a operarios (Admin/Supervisor/OperarioCTA/OperarioOficina) para reportar paquetes fuera de sus tareas.
+- Endpoints `PUT /api/asignaciones/{id}/iniciar|completar|cancelar` restringidos a `Admin,Supervisor` (la operativa normal cambia estado solo por escaneo).
+- `intranet-app` integra buscador/escaner en la pagina de asignaciones + modal "Paquete fuera de tus tareas".

@@ -213,6 +213,10 @@ App: **driver-app**, usuario **Repartidor**.
 - [ ] **Reasignar entrega ya entregada**: debe devolver error de negocio (estado inválido).
 - [ ] **Reasignar a ruta no Planificada (EnCurso/Finalizada)**: debe devolver error.
 - [ ] **Sin permiso de geolocalización**: la app debe mostrar aviso y no romper.
+- [ ] **Operario intenta cambio manual de estado**: con `OperarioCTA`/`OperarioOficina`, llamar `PUT /api/asignaciones/{id}/iniciar` o `/completar` o `/cancelar` → `403 Forbidden` (solo Admin/Supervisor).
+- [ ] **Buscador encuentra tarea propia**: en intranet-app, panel "Confirmar paso" con código de una tarea Pendiente del operario → `GET /api/asignaciones/buscar` devuelve la tarea con `modoSugerido` y la UI dispara `POST /api/scan/procesar` automáticamente.
+- [ ] **Paquete fuera de tus tareas**: el operario teclea/escanea un código que no aparece en sus tareas → `GET /api/asignaciones/buscar` responde `404 { message: "Paquete fuera de tus tareas" }`. La UI abre modal bloqueante; al rellenar motivo y enviar, `POST /api/incidencias/reportar-fuera-tareas` crea incidencia tipo `PaqueteFueraDeTareas` visible para el Supervisor.
+- [ ] **Encadenamiento por escaneo**: tras escanear `RecepcionOficina` se debe crear automáticamente la tarea `SalidaOficinaACta`; al escanearla, `Recepcion` en CTA; y así hasta `DisponibleParaReparto` (que NO crea siguiente tarea, sólo emite SignalR `PaqueteDisponibleParaReparto`).
 
 ---
 

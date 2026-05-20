@@ -35,10 +35,13 @@
 | Scan — modos RecepcionCta, Clasificacion, DespachoTroncal, RecepcionTroncal | ✅ | ❌ | ✅ | ❌ |
 | **AsignacionesController** (clase) | ✅ | ✅ | ✅ | ✅ |
 | Asignaciones — Crear tarea | ✅ | ✅ | ✅ | ❌ |
-| Asignaciones — Iniciar/Completar tarea | ✅ | ✅ | ❌ | ❌ |
-| Asignaciones — Ver todas del CTA / Cancelar | ✅ | ❌ | ✅ | ✅ |
+| Asignaciones — Iniciar/Completar/Cancelar tarea (manual) | ✅ | ❌ | ❌ | ✅ |
+| Asignaciones — Mis pendientes / Mis en progreso | ❌ | ✅ | ✅ | ❌ |
+| Asignaciones — Buscar por código (`?codigo=`) | ❌ | ✅ | ✅ | ❌ |
+| Asignaciones — Ver todas del CTA | ✅ | ❌ | ✅ | ✅ |
 | **AdmisionController** | ✅ | ❌ | ✅ | ❌ |
-| **IncidenciasController** | ✅ | ❌ | ❌ | ✅ |
+| **IncidenciasController** (clase) | ✅ | ❌ | ❌ | ✅ |
+| Incidencias — Reportar paquete fuera de tareas | ✅ | ✅ | ✅ | ✅ |
 | **CtasController** (clase) | ✅ | ✅ | ✅ | ✅ |
 | Ctas — Dashboard | ✅ | ❌ | ✅ | ✅ |
 | **MovimientosController** | ✅ | ❌ | ✅ | ❌ |

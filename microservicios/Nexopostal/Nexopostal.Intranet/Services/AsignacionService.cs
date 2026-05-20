@@ -34,6 +34,9 @@ public interface IAsignacionService
 
     /// <summary>Obtiene el detalle de una asignación</summary>
     Task<AsignacionDetalleDto?> ObtenerDetalle(int asignacionId);
+
+    /// <summary>Busca una tarea pendiente o en progreso del operario por número de expedición / seguimiento.</summary>
+    Task<AsignacionResumenDto?> BuscarEnMisTareasAsync(int operarioId, string codigo);
 }
 
 public class AsignacionService : IAsignacionService
@@ -67,9 +70,6 @@ public class AsignacionService : IAsignacionService
 
         if (operarioAsignado.CentroTratamientoId != ctaId)
             throw new InvalidOperationException("El operario no pertenece a este CTA");
-
-        if (operarioAsignado.Rol != RolOperario.OperarioOficina)
-            throw new InvalidOperationException("Solo se pueden asignar tareas a operarios de oficina");
 
         var asignacion = new AsignacionPaquete
         {
@@ -251,6 +251,38 @@ public class AsignacionService : IAsignacionService
         OperarioAsignado = a.OperarioAsignado.NombreCompleto,
         AsignadoPor = a.AsignadoPor.NombreCompleto,
         FechaAsignacion = a.FechaAsignacion,
-        FechaCompletada = a.FechaCompletada
+        FechaCompletada = a.FechaCompletada,
+        ModoSugerido = MapTipoTareaAModoEscaneo(a.TipoTarea)
     };
+
+    /// <summary>
+    /// Devuelve el modo de escaneo recomendado para un TipoTarea.
+    /// Permite que el frontend ejecute el escaneo sin pedir al operario que escoja modo.
+    /// </summary>
+    private static string? MapTipoTareaAModoEscaneo(TipoTarea tipo) => tipo switch
+    {
+        TipoTarea.RecepcionOficina => "RecepcionOficina",
+        TipoTarea.SalidaOficinaACta => "SalidaOficinaACta",
+        TipoTarea.Recepcion => "RecepcionCta",
+        TipoTarea.Clasificacion => "Clasificacion",
+        TipoTarea.DespachoTroncal => "DespachoTroncal",
+        TipoTarea.RecepcionTroncal => "RecepcionTroncal",
+        TipoTarea.DisponibleParaReparto => "DisponibleParaReparto",
+        _ => null
+    };
+
+    /// <inheritdoc />
+    public async Task<AsignacionResumenDto?> BuscarEnMisTareasAsync(int operarioId, string codigo)
+    {
+        if (string.IsNullOrWhiteSpace(codigo)) return null;
+        var clave = codigo.Trim();
+
+        var pendientes = await _asignacionRepo.GetByOperarioAsync(operarioId, EstadoTarea.Pendiente);
+        var enProgreso = await _asignacionRepo.GetByOperarioAsync(operarioId, EstadoTarea.EnProgreso);
+
+        var match = pendientes.Concat(enProgreso)
+            .FirstOrDefault(a => string.Equals(a.NumeroExpedicion, clave, StringComparison.OrdinalIgnoreCase));
+
+        return match == null ? null : MapToResumen(match);
+    }
 }

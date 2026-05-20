@@ -284,6 +284,86 @@
   font-size: 1.125rem;
 }
 
+/* ===== Scan bar ===== */
+.scan-bar {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(59, 130, 246, 0.05));
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.scan-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.scan-icon {
+  font-size: 1.6rem;
+  color: #6366f1;
+}
+
+.scan-input {
+  flex: 1;
+  height: 2.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0 0.875rem;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.scan-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.btn-scan {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #6366f1;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-scan:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.btn-scan:disabled {
+  background: #c7d2fe;
+  cursor: not-allowed;
+}
+
+.scan-feedback {
+  margin: 0.6rem 0 0;
+  font-size: 0.875rem;
+}
+
+.scan-feedback-error {
+  color: #dc2626;
+}
+
+.scan-feedback-ok {
+  color: #059669;
+}
+
+.modal-text {
+  margin: 0 0 1rem;
+  color: #4b5563;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
 /* ===== Filters ===== */
 .filters-bar {
   display: flex;

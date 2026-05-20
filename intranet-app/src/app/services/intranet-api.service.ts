@@ -69,6 +69,8 @@ export interface AsignacionResumen {
   asignadoPor: string;
   fechaAsignacion: string;
   fechaCompletada?: string;
+  /** Modo de escaneo recomendado para esta tarea (calculado en backend). */
+  modoSugerido?: string;
 }
 
 export interface AsignacionDetalle {
@@ -162,6 +164,31 @@ export class IntranetApiService {
   /** Obtiene asignaciones de un CTA */
   obtenerAsignacionesCta(ctaId: number): Observable<AsignacionResumen[]> {
     return this.http.get<AsignacionResumen[]>(`/api/asignaciones/cta/${ctaId}`);
+  }
+
+  /** Tareas pendientes del operario autenticado */
+  obtenerMisPendientes(): Observable<AsignacionResumen[]> {
+    return this.http.get<AsignacionResumen[]>('/api/asignaciones/mis-pendientes');
+  }
+
+  /** Tareas en progreso del operario autenticado */
+  obtenerMisEnProgreso(): Observable<AsignacionResumen[]> {
+    return this.http.get<AsignacionResumen[]>('/api/asignaciones/mis-en-progreso');
+  }
+
+  /**
+   * Busca una tarea (pendiente o en progreso) del operario por número de expedición.
+   * 404 si el código no está en sus tareas → frontend debe abrir modal PaqueteFueraDeTareas.
+   */
+  buscarTareaPorCodigo(codigo: string): Observable<AsignacionResumen> {
+    return this.http.get<AsignacionResumen>('/api/asignaciones/buscar', {
+      params: { codigo }
+    });
+  }
+
+  /** Reporta un paquete escaneado fuera de las tareas asignadas (incidencia para Supervisor). */
+  reportarPaqueteFueraDeTareas(dto: { numeroExpedicion: string; motivo: string; }): Observable<unknown> {
+    return this.http.post('/api/incidencias/reportar-fuera-tareas', dto);
   }
 
   /** Obtiene detalle de una asignación */

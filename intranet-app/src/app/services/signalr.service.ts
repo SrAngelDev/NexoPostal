@@ -150,6 +150,8 @@ export class SignalrService {
 
     // Eventos de paquetes
     this.hubConnection.on('PaqueteRecibidoEnCta', (n: NotificacionSignalR) => this.agregarNotificacion(n));
+    this.hubConnection.on('NuevoPaqueteEnOficina', (n: NotificacionSignalR) => this.agregarNotificacion(n));
+    this.hubConnection.on('PaqueteDisponibleParaReparto', (n: NotificacionSignalR) => this.agregarNotificacion(n));
     
     // Eventos de tareas
     this.hubConnection.on('TareaAsignada', (n: NotificacionSignalR) => this.agregarNotificacion(n));

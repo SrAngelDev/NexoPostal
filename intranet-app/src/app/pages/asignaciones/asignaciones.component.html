@@ -66,6 +66,37 @@
         </button>
       </div>
 
+      <!-- ===== ESCÁNER / BUSCADOR ===== -->
+      <div class="scan-bar animate-in">
+        <div class="scan-input-wrapper">
+          <span class="material-symbols-outlined scan-icon">qr_code_scanner</span>
+          <input
+            type="text"
+            class="scan-input"
+            placeholder="Escanea o teclea el número de expedición…"
+            [(ngModel)]="codigoBusqueda"
+            (keydown.enter)="buscarYConfirmar()"
+            [disabled]="buscando()" />
+          <button
+            class="btn-scan"
+            (click)="buscarYConfirmar()"
+            [disabled]="buscando() || !codigoBusqueda.trim()">
+            @if (buscando()) {
+              <span class="spinner-sm"></span>
+            } @else {
+              <span class="material-symbols-outlined">double_arrow</span>
+              Confirmar paso
+            }
+          </button>
+        </div>
+        @if (scanError()) {
+          <p class="scan-feedback scan-feedback-error">{{ scanError() }}</p>
+        }
+        @if (scanOk()) {
+          <p class="scan-feedback scan-feedback-ok">{{ scanOk() }}</p>
+        }
+      </div>
+
       <!-- ===== FILTROS ===== -->
       <div class="filters-bar animate-in">
         <div class="filter-group">
@@ -97,7 +128,6 @@
                 <th>Asignado por</th>
                 <th>Fecha</th>
                 <th>Urgente</th>
-                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -118,28 +148,6 @@
                       <span class="urgente-badge">URGENTE</span>
                     } @else {
                       <span class="normal-badge">Normal</span>
-                    }
-                  </td>
-                  <td class="td-actions">
-                    @if (accionLoading() === asig.id) {
-                      <span class="spinner-sm"></span>
-                    } @else {
-                      @if (asig.estadoTarea === 'Pendiente') {
-                        <button class="btn-action btn-iniciar" title="Iniciar tarea" (click)="iniciarTarea(asig.id)">
-                          <span class="material-symbols-outlined">play_arrow</span>
-                        </button>
-                        <button class="btn-action btn-cancelar" title="Cancelar" (click)="cancelarTarea(asig.id)">
-                          <span class="material-symbols-outlined">close</span>
-                        </button>
-                      }
-                      @if (asig.estadoTarea === 'EnProgreso') {
-                        <button class="btn-action btn-completar" title="Completar tarea" (click)="completarTarea(asig.id)">
-                          <span class="material-symbols-outlined">check</span>
-                        </button>
-                        <button class="btn-action btn-cancelar" title="Cancelar" (click)="cancelarTarea(asig.id)">
-                          <span class="material-symbols-outlined">close</span>
-                        </button>
-                      }
                     }
                   </td>
                 </tr>
@@ -238,6 +246,57 @@
               <span class="spinner-sm"></span>
             }
             Crear asignación
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ===== MODAL: PAQUETE FUERA DE TUS TAREAS ===== -->
+  @if (fueraTareasVisible()) {
+    <div class="modal-overlay">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">
+            <span class="material-symbols-outlined">report</span>
+            Paquete fuera de tus tareas
+          </h3>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-text">
+            El código <strong>{{ fueraTareasCodigo() }}</strong> no aparece en tus tareas
+            pendientes ni en progreso. Indica el motivo por el que lo has manipulado y se
+            generará una incidencia para el Supervisor.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Motivo *</label>
+            <textarea
+              class="form-textarea"
+              [(ngModel)]="fueraTareasMotivo"
+              rows="3"
+              placeholder="Ej: Llegó suelto en la cinta sin etiqueta de tarea"></textarea>
+          </div>
+
+          @if (fueraTareasError()) {
+            <div class="alert alert-error">
+              <span class="material-symbols-outlined">error</span>
+              {{ fueraTareasError() }}
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" (click)="cerrarFueraTareas()" [disabled]="fueraTareasEnviando()">Cancelar</button>
+          <button
+            class="btn-confirm"
+            (click)="reportarFueraTareas()"
+            [disabled]="fueraTareasEnviando() || !fueraTareasMotivo.trim()">
+            @if (fueraTareasEnviando()) {
+              <span class="spinner-sm"></span>
+            }
+            Reportar incidencia
           </button>
         </div>
       </div>

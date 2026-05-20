@@ -33,10 +33,12 @@ Nota: este documento no incluye credenciales ni secretos.
 - Seguridad interna: validacion de X-Service-Key en endpoints internos de tracking.
 
 ### Intranet (Logistica)
-- Admision de paquetes (incluye endpoint interno para inter-servicios).
-- Asignaciones de tareas por CTA y operario.
+- Admision de paquetes (incluye endpoint interno para inter-servicios). La admision NO orquesta automaticamente Reparto: registra el paquete y emite SignalR; la ultima milla se materializa en el handler de escaneo `DisponibleParaReparto` (notifica al JefeReparto).
+- Asignaciones de tareas por CTA y operario, con flujo encadenado por escaneo (cada handler de `ScanProcessor` cierra la tarea actual y crea la siguiente).
+- Buscador de tarea por codigo (`GET /api/asignaciones/buscar?codigo=`) con `modoSugerido` derivado del `TipoTarea`; si el codigo no esta en las tareas del operario, la UI abre un modal bloqueante para reportar incidencia `PaqueteFueraDeTareas`.
+- Endpoints de cambio manual de estado (`iniciar`/`completar`/`cancelar`) reservados a `Admin,Supervisor`; la operativa normal de operario cambia estado solo via escaneo.
 - Movimientos troncales (CTA origen/destino).
-- Incidencias (alta y ciclo de vida).
+- Incidencias (alta y ciclo de vida) con tipo nuevo `PaqueteFueraDeTareas`.
 - Orquestacion automatica hacia Reparto tras admision (cuando llega payload con datos de ultima milla), con respuesta operacional embebida en la admision.
 
 ### Auth (Gestion de usuarios Admin)
@@ -195,13 +197,18 @@ Intranet:
 - POST /api/admision/paquete
 - POST /api/admision/interno/paquete
 - POST /api/asignaciones
+- GET  /api/asignaciones/cta/{ctaId}
 - GET  /api/asignaciones/mis-pendientes
-- PUT  /api/asignaciones/{id}/iniciar
-- PUT  /api/asignaciones/{id}/completar
+- GET  /api/asignaciones/mis-en-progreso
+- GET  /api/asignaciones/buscar?codigo=  (operario; 404 si fuera de sus tareas)
+- PUT  /api/asignaciones/{id}/iniciar     (Admin/Supervisor)
+- PUT  /api/asignaciones/{id}/completar   (Admin/Supervisor)
+- PUT  /api/asignaciones/{id}/cancelar    (Admin/Supervisor)
 - POST /api/movimientos
 - PUT  /api/movimientos/{id}/despachar
 - PUT  /api/movimientos/{id}/recibir
-- POST /api/incidencias
+- POST /api/incidencias                   (Admin/Supervisor)
+- POST /api/incidencias/reportar-fuera-tareas (Admin/Supervisor/OperarioCTA/OperarioOficina)
 - PUT  /api/incidencias/{id}
 
 Reparto:
