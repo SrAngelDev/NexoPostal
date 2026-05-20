@@ -57,44 +57,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Events = new JwtBearerEvents
         {
-            OnMessageReceived = context =>
-            {
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                var auth = context.Request.Headers["Authorization"].ToString();
-                logger.LogWarning("[JWT-DEBUG] OnMessageReceived path={Path} hasAuth={HasAuth} authPrefix={Prefix}",
-                    context.Request.Path,
-                    !string.IsNullOrEmpty(auth),
-                    auth.Length > 20 ? auth.Substring(0, 20) : auth);
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = context =>
-            {
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                var claims = string.Join(", ", context.Principal!.Claims.Select(c => $"{c.Type}={c.Value}"));
-                logger.LogWarning("[JWT-DEBUG] OnTokenValidated claims=[{Claims}]", claims);
-                return Task.CompletedTask;
-            },
             OnAuthenticationFailed = context =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                logger.LogWarning("[JWT-DEBUG] OnAuthenticationFailed type={Type} message={Message}",
-                    context.Exception.GetType().Name, context.Exception.Message);
-                return Task.CompletedTask;
-            },
-            OnChallenge = context =>
-            {
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                logger.LogWarning("[JWT-DEBUG] OnChallenge path={Path} error={Error} desc={Desc} failure={Failure}",
-                    context.Request.Path,
-                    context.Error,
-                    context.ErrorDescription,
-                    context.AuthenticateFailure?.Message);
-                return Task.CompletedTask;
-            },
-            OnForbidden = context =>
-            {
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                logger.LogWarning("[JWT-DEBUG] OnForbidden path={Path}", context.Request.Path);
+                logger.LogWarning("Autenticación JWT fallida: {Message}", context.Exception.Message);
                 return Task.CompletedTask;
             }
         };

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Reparto.DTOs;
 using Nexopostal.Reparto.Services;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -56,7 +57,9 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> ObtenerMiPerfil()
     {
-        var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value
+                     ?? User.FindFirst("nameid")?.Value;
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "No se pudo identificar al usuario" });
 
@@ -124,7 +127,9 @@ public class RepartoController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                         ?? User.FindFirst("sub")?.Value
+                         ?? User.FindFirst("nameid")?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
@@ -385,7 +390,9 @@ public class RepartoController : ControllerBase
             request.Latitud, request.Longitud);
 
         // Persistir última ubicación del repartidor autenticado
-        var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value
+                     ?? User.FindFirst("nameid")?.Value;
         if (!string.IsNullOrEmpty(userId))
         {
             await _repartoService.RegistrarUbicacionRepartidor(
