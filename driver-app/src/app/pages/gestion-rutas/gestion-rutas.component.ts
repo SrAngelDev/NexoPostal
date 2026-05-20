@@ -27,7 +27,7 @@ export class GestionRutasComponent implements OnInit {
   cargando = signal(false);
   error = signal<string | null>(null);
 
-  private readonly API = '/api/reparto';
+  private readonly API = '/api/nexopostal/reparto';
 
   constructor(
     private http: HttpClient,

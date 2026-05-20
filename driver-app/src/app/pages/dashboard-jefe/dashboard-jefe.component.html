@@ -24,7 +24,7 @@
 
       <div class="stat-card stat-blue">
         <span class="material-symbols-outlined">group</span>
-        <div class="stat-value">{{ s.totalRepartidores }}</div>
+        <div class="stat-value">{{ s.repartidoresActivos }}</div>
         <div class="stat-label">Repartidores activos</div>
       </div>
 
@@ -36,19 +36,19 @@
 
       <div class="stat-card stat-green">
         <span class="material-symbols-outlined">check_circle</span>
-        <div class="stat-value">{{ s.rutasCompletadas }}</div>
-        <div class="stat-label">Rutas completadas</div>
+        <div class="stat-value">{{ s.rutasHoy }}</div>
+        <div class="stat-label">Rutas hoy</div>
       </div>
 
       <div class="stat-card stat-purple">
         <span class="material-symbols-outlined">inventory_2</span>
-        <div class="stat-value">{{ porcentajeEntregas() }}%</div>
-        <div class="stat-label">Entregas realizadas</div>
+        <div class="stat-value">{{ s.tasaEntregaExitosa }}%</div>
+        <div class="stat-label">Tasa de entrega</div>
       </div>
 
       <div class="stat-card stat-red">
         <span class="material-symbols-outlined">warning</span>
-        <div class="stat-value">{{ s.entregasIncidencia }}</div>
+        <div class="stat-value">{{ s.entregasFallidas }}</div>
         <div class="stat-label">Con incidencias</div>
       </div>
 

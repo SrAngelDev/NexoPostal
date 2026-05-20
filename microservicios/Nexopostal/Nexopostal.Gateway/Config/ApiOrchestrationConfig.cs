@@ -161,6 +161,7 @@ public static class ApiOrchestrationConfig
         orchestrator.AddApi("reparto", url + "/")
             .AddRoute("mi-perfil", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/mi-perfil" })
             .AddRoute("ruta", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/ruta" })
+            .AddRoute("rutas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/rutas" })
             .AddRoute("ruta-iniciar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
             .AddRoute("ruta-finalizar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
             .AddRoute("confirmar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/confirmar" })

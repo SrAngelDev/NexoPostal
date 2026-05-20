@@ -172,7 +172,7 @@ public class ScanProcessorService : IScanProcessorService
         });
 
         await _ciudadanoNotifier.NotificarEstadoAsync(
-            null, expedicion, "RecogidoEnOrigen",
+            expedicion, expedicion, "RecogidoEnOrigen",
             $"Paquete recibido en {req.OficinaNombre}");
 
         return Exito(req, expedicion, "RecogidoEnOrigen",
@@ -241,7 +241,7 @@ public class ScanProcessorService : IScanProcessorService
 
         // Notificar a Ciudadano (tracking público)
         await _ciudadanoNotifier.NotificarEstadoAsync(
-            null, expedicion, "RecibidoEnCentroOrigen",
+            expedicion, expedicion, "RecibidoEnCentroOrigen",
             $"Paquete admitido en {req.CtaCodigo}");
 
         var result = Exito(req, expedicion, "RecibidoEnCentroOrigen",
@@ -314,7 +314,7 @@ public class ScanProcessorService : IScanProcessorService
         });
 
         await _ciudadanoNotifier.NotificarEstadoAsync(
-            null, expedicion, estadoNuevo,
+            expedicion, expedicion, estadoNuevo,
             esUltimaMilla
                 ? $"Paquete listo para reparto en {req.CtaCodigo}"
                 : $"Clasificado para expedición en {req.CtaCodigo}");
@@ -362,7 +362,7 @@ public class ScanProcessorService : IScanProcessorService
         });
 
         await _ciudadanoNotifier.NotificarEstadoAsync(
-            null, expedicion, "EnTransitoHaciaCentroDestino",
+            expedicion, expedicion, "EnTransitoHaciaCentroDestino",
             $"Paquete despachado desde {req.CtaCodigo}");
 
         var result = Exito(req, expedicion, "EnTransitoHaciaCentroDestino",
@@ -420,7 +420,7 @@ public class ScanProcessorService : IScanProcessorService
 
         // Notificar a Ciudadano (tracking público)
         await _ciudadanoNotifier.NotificarEstadoAsync(
-            null, expedicion, "RecibidoEnCentroDestino",
+            expedicion, expedicion, "RecibidoEnCentroDestino",
             $"Recibido en CTA destino {req.CtaCodigo}");
 
         var result = Exito(req, expedicion, "RecibidoEnCentroDestino",
@@ -454,7 +454,7 @@ public class ScanProcessorService : IScanProcessorService
         });
 
         await _ciudadanoNotifier.NotificarEstadoAsync(
-            null, expedicion, "DepositadoEnOficina",
+            expedicion, expedicion, "DepositadoEnOficina",
             $"Paquete disponible en {req.OficinaNombre}");
 
         return Exito(req, expedicion, "DepositadoEnOficina",
@@ -485,7 +485,7 @@ public class ScanProcessorService : IScanProcessorService
         });
 
         await _ciudadanoNotifier.NotificarEstadoAsync(
-            null, expedicion, "EnReparto",
+            expedicion, expedicion, "EnReparto",
             $"En reparto desde {req.OficinaNombre}");
 
         return Exito(req, expedicion, "EnReparto",

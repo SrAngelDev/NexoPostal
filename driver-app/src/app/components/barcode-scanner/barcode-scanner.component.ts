@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, AfterViewInit, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
@@ -219,7 +219,7 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
     }
   `]
 })
-export class BarcodeScannerComponent implements OnInit, OnDestroy {
+export class BarcodeScannerComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() alturaScanner = 260;
   @Input() continuoMode = true;
   @Output() codigoDetectado = new EventEmitter<string>();
@@ -235,7 +235,9 @@ export class BarcodeScannerComponent implements OnInit, OnDestroy {
   private ultimoTimestamp = 0;
   private readonly DEBOUNCE_MS = 2000;
 
-  ngOnInit(): void {
+  ngOnInit(): void {}
+
+  ngAfterViewInit(): void {
     this.html5Qrcode = new Html5Qrcode(this.scannerId, {
       formatsToSupport: [
         Html5QrcodeSupportedFormats.QR_CODE,

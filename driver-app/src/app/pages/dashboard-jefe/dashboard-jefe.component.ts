@@ -4,14 +4,13 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 
 interface DashboardReparto {
-  totalRepartidores: number;
-  rutasPlanificadas: number;
+  rutasHoy: number;
   rutasEnCurso: number;
-  rutasCompletadas: number;
-  totalEntregas: number;
-  entregasRealizadas: number;
   entregasPendientes: number;
-  entregasIncidencia: number;
+  entregasCompletadas: number;
+  entregasFallidas: number;
+  repartidoresActivos: number;
+  tasaEntregaExitosa: number;
 }
 
 @Component({
@@ -26,7 +25,7 @@ export class DashboardJefeComponent implements OnInit {
   cargando = signal(false);
   error = signal<string | null>(null);
 
-  private readonly API = '/api/reparto';
+  private readonly API = '/api/nexopostal/reparto';
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -53,8 +52,8 @@ export class DashboardJefeComponent implements OnInit {
 
   porcentajeEntregas(): number {
     const s = this.stats();
-    if (!s || s.totalEntregas === 0) return 0;
-    return Math.round((s.entregasRealizadas / s.totalEntregas) * 100);
+    if (!s) return 0;
+    return s.tasaEntregaExitosa;
   }
 
   volver(): void {

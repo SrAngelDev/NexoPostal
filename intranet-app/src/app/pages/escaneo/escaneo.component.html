@@ -131,49 +131,19 @@
       <div class="scan-layout">
         <!-- ===== COLUMNA IZQUIERDA: ESCÁNER ===== -->
         <div class="scan-column">
-          <!-- Toggle batch -->
-          <div class="batch-toggle">
-            <button class="btn-batch" [class.batch-active]="modoBatch()" (click)="toggleBatch()">
-              <span class="material-symbols-outlined">{{ modoBatch() ? 'playlist_add_check' : 'playlist_add' }}</span>
-              {{ modoBatch() ? 'Modo lote activo' : 'Modo lote' }}
-            </button>
+          <div class="scanner-panel">
+            <app-barcode-scanner
+              [alturaScanner]="260"
+              [continuoMode]="true"
+              (codigoDetectado)="onCodigoDetectado($event)">
+            </app-barcode-scanner>
           </div>
-
-          <!-- Scanner -->
-          <app-barcode-scanner
-            [alturaScanner]="260"
-            [continuoMode]="true"
-            (codigoDetectado)="onCodigoDetectado($event)">
-          </app-barcode-scanner>
 
           <!-- Indicador de procesamiento -->
           @if (procesando()) {
             <div class="processing-bar">
               <span class="spinner-sm"></span>
               Procesando escaneo...
-            </div>
-          }
-
-          <!-- Cola de batch -->
-          @if (modoBatch() && codigosBatch().length > 0) {
-            <div class="batch-queue">
-              <div class="batch-header">
-                <h4>Cola de escaneo ({{ codigosBatch().length }})</h4>
-                <button class="btn-procesar-batch" (click)="procesarBatch()" [disabled]="procesando()">
-                  <span class="material-symbols-outlined">send</span>
-                  Procesar lote
-                </button>
-              </div>
-              <div class="batch-items">
-                @for (codigo of codigosBatch(); track codigo) {
-                  <div class="batch-item">
-                    <span class="batch-code">{{ codigo }}</span>
-                    <button class="batch-remove" (click)="eliminarDeBatch(codigo)">
-                      <span class="material-symbols-outlined">close</span>
-                    </button>
-                  </div>
-                }
-              </div>
             </div>
           }
         </div>

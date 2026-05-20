@@ -143,7 +143,7 @@ public class RepartoService : IRepartoService
             Id = r.Id,
             Codigo = r.Codigo,
             FechaReparto = r.FechaReparto.ToString("yyyy-MM-dd"),
-            RepartidorNombre = r.Repartidor.NombreCompleto,
+            RepartidorNombre = r.Repartidor?.NombreCompleto ?? string.Empty,
             OficinaOrigenNombre = r.OficinaOrigenNombre,
             Estado = r.Estado.ToString(),
             TotalEntregas = r.Entregas.Count,

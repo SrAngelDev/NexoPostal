@@ -48,10 +48,6 @@ export class EscaneoComponent implements OnInit {
   oficinaJsonId = '';
   oficinaNombre = '';
 
-  // Batch mode
-  modoBatch = signal(false);
-  codigosBatch = signal<string[]>([]);
-
   // CTA change notification banner
   ctaCambiadaBanner = signal<CtaCambiadaPayload | null>(null);
 
@@ -159,12 +155,6 @@ export class EscaneoComponent implements OnInit {
 
   onCodigoDetectado(codigo: string): void {
     if (this.procesando()) return;
-
-    if (this.modoBatch()) {
-      this.agregarABatch(codigo);
-      return;
-    }
-
     this.procesarCodigo(codigo);
   }
 
@@ -217,59 +207,6 @@ export class EscaneoComponent implements OnInit {
           resultado: errorResult,
           fecha: new Date()
         }, ...h].slice(0, 50));
-        this.procesando.set(false);
-      }
-    });
-  }
-
-  // ─── Batch mode ───
-
-  toggleBatch(): void {
-    this.modoBatch.update(v => !v);
-    if (!this.modoBatch()) {
-      this.codigosBatch.set([]);
-    }
-  }
-
-  agregarABatch(codigo: string): void {
-    if (!this.codigosBatch().includes(codigo)) {
-      this.codigosBatch.update(list => [...list, codigo]);
-    }
-  }
-
-  eliminarDeBatch(codigo: string): void {
-    this.codigosBatch.update(list => list.filter(c => c !== codigo));
-  }
-
-  procesarBatch(): void {
-    const codigos = this.codigosBatch();
-    if (codigos.length === 0) return;
-
-    this.procesando.set(true);
-    const cta = this.ctaSeleccionado();
-
-    this.scanService.procesarLote({
-      codigosEscaneados: codigos,
-      modoOperacion: this.modoActivo(),
-      ctaId: cta?.ctaId,
-      ctaCodigo: cta?.ctaCodigo,
-      operarioNombre: this.userName,
-      oficinaJsonId: this.requiereOficina() && this.oficinaJsonId ? +this.oficinaJsonId : undefined,
-      oficinaNombre: this.requiereOficina() ? this.oficinaNombre : undefined
-    }).subscribe({
-      next: (batchResult) => {
-        for (const r of batchResult.resultados) {
-          this.historial.update(h => [{
-            codigo: r.numeroExpedicion,
-            resultado: r,
-            fecha: new Date()
-          }, ...h].slice(0, 50));
-        }
-        this.codigosBatch.set([]);
-        this.modoBatch.set(false);
-        this.procesando.set(false);
-      },
-      error: () => {
         this.procesando.set(false);
       }
     });
