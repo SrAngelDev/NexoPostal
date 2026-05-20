@@ -314,3 +314,5 @@
 | Ver rutas propias | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
 | Crear rutas | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅? |
 | Ver rutas de equipo | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅? |
+
+
