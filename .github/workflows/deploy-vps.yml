@@ -243,10 +243,14 @@ jobs:
               -subj "/C=ES/ST=Madrid/L=Madrid/O=NexoPostal/CN=nexopostal.es"
           fi
 
-          if command -v docker-compose >/dev/null 2>&1; then
+          # Prefer Compose V2 plugin (handles OCI images without ContainerConfig)
+          # Only fall back to legacy v1 if V2 is not available
+          if docker compose version >/dev/null 2>&1; then
+            DC="docker compose"
+          elif command -v docker-compose >/dev/null 2>&1; then
             DC="docker-compose"
           else
-            DC="docker compose"
+            echo "ERROR: docker compose not available" && exit 1
           fi
 
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
