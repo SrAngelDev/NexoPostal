@@ -1,1 +1,100 @@
 @import "tailwindcss";
+
+/* ============ RESPONSIVE GLOBAL HELPERS ============ */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+  /* Navbars genéricos */
+  .navbar,
+  .nav,
+  .topbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .nav-actions,
+  .nav-right {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .nav-user,
+  .nav-role {
+    font-size: 0.75rem;
+  }
+
+  /* Cabeceras de página + barras de filtros */
+  .page-header,
+  .header-row,
+  .filters-bar,
+  .filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Tablas: scroll horizontal en lugar de romper layout */
+  .table-wrapper,
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table,
+  table.data-table {
+    min-width: 560px;
+    font-size: 0.875rem;
+  }
+
+  /* Modales */
+  .modal,
+  .dialog {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    max-height: 90vh;
+  }
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  /* Grids comunes → 1 columna */
+  .dashboard-grid,
+  .stats-grid,
+  .cards-grid,
+  .cta-grid,
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Paddings y touch targets */
+  .main-content,
+  .page-content,
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  button,
+  .btn,
+  [class*="btn-"] {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-title,
+  .navbar h1 {
+    font-size: 1rem !important;
+  }
+  .page-heading,
+  h2.page-heading {
+    font-size: 1.25rem !important;
+  }
+  .nav-role {
+    display: none;
+  }
+  .data-table {
+    font-size: 0.75rem;
+  }
+}

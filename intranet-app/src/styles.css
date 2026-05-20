@@ -13,3 +13,106 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ============ RESPONSIVE GLOBAL HELPERS ============ */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+  .navbar,
+  .nav,
+  .topbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem !important;
+  }
+  .nav-actions,
+  .nav-right {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .nav-user,
+  .nav-role,
+  .nav-signalr-status {
+    font-size: 0.75rem;
+  }
+
+  .page-header,
+  .header-row,
+  .filters-bar,
+  .filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .table-wrapper,
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table,
+  table.data-table {
+    min-width: 640px;
+    font-size: 0.875rem;
+  }
+
+  .modal,
+  .dialog {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .dashboard-grid,
+  .stats-grid,
+  .cards-grid,
+  .cta-grid,
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .main-content,
+  .page-content,
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  button,
+  .btn,
+  [class*="btn-"] {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-title,
+  .navbar h1 {
+    font-size: 1rem !important;
+  }
+  .page-heading,
+  h2.page-heading {
+    font-size: 1.25rem !important;
+  }
+  .nav-role,
+  .nav-signalr-status {
+    display: none;
+  }
+  .data-table {
+    font-size: 0.75rem;
+  }
+  .nav-back {
+    padding: 0.4rem !important;
+  }
+  .nav-logout span:not(.material-symbols-outlined) {
+    display: none;
+  }
+}

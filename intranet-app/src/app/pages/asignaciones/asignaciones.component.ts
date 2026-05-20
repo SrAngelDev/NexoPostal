@@ -128,11 +128,15 @@ export class AsignacionesComponent implements OnInit {
     this.cargarOperarios(cta.ctaId);
   }
 
-  onCtaChange(ctaId: number): void {
+  onCtaChange(ctaId: number | string): void {
     const info = this.misCtasInfo();
     if (!info) return;
-    const cta = info.ctas.find(c => c.ctaId === ctaId);
-    if (cta) this.seleccionarCta(cta);
+    const id = typeof ctaId === 'string' ? Number(ctaId) : ctaId;
+    if (Number.isNaN(id)) return;
+    const cta = info.ctas.find(c => c.ctaId === id);
+    if (cta && cta.ctaId !== this.ctaSeleccionado()?.ctaId) {
+      this.seleccionarCta(cta);
+    }
   }
 
   cargarAsignaciones(ctaId: number): void {

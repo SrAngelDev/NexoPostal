@@ -96,7 +96,9 @@ public static class ServiceCollectionExtensions
                 ValidateAudience = true,
                 ValidAudience = audience,
                 ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = TimeSpan.Zero,
+                NameClaimType = "sub",
+                RoleClaimType = "role"
             };
 
             options.Events = new JwtBearerEvents

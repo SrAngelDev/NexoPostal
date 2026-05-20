@@ -51,7 +51,7 @@
                         [ngModel]="ctaSeleccionado()?.ctaId"
                         (ngModelChange)="onCtaChange($event)">
                   @for (c of info.ctas; track c.ctaId) {
-                    <option [value]="c.ctaId">{{ c.ctaCodigo }} — {{ c.ctaNombre }}</option>
+                    <option [ngValue]="c.ctaId">{{ c.ctaCodigo }} — {{ c.ctaNombre }}</option>
                   }
                 </select>
               </div>
