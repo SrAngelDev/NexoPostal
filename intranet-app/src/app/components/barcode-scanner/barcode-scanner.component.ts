@@ -7,7 +7,7 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './barcode-scanner.component.html',
-  styleUrl: './barcode-scanner.component.css'
+  styleUrls: ['./barcode-scanner.component.css']
 })
 export class BarcodeScannerComponent implements AfterViewInit, OnDestroy {
   @Input() alturaScanner = 280;
