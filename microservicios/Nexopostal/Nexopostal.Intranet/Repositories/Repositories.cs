@@ -59,6 +59,13 @@ public class OperarioCtaRepository : IOperarioCtaRepository
             .OrderBy(o => o.CentroTratamiento.Codigo)
             .ToListAsync();
 
+    public async Task<List<OperarioCta>> GetAllByIdentityUserIdIncludingInactiveAsync(string identityUserId)
+        => await _context.OperariosCta.Include(o => o.CentroTratamiento)
+            .Where(o => o.IdentityUserId == identityUserId)
+            .OrderByDescending(o => o.Activo)
+            .ThenBy(o => o.CentroTratamiento.Codigo)
+            .ToListAsync();
+
     public async Task<OperarioCta?> GetWithCtaAsync(int id)
         => await _context.OperariosCta.Include(o => o.CentroTratamiento)
             .FirstOrDefaultAsync(o => o.Id == id);

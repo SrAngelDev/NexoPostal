@@ -79,13 +79,6 @@
             El usuario no tiene asignaciones CTA activas.
           </div>
         } @else {
-          @if (detalleOperativo()!.asignacionesCta.length > 1) {
-            <p class="muted small">
-              <span class="material-symbols-outlined" style="font-size:1rem; vertical-align:middle;">touch_app</span>
-              El usuario tiene varias asignaciones. Haz clic en una fila de la tabla para seleccionarla.
-            </p>
-          }
-
           @if (asignacionSeleccionada(); as asig) {
             <div class="summary-box">
               <div>
@@ -100,16 +93,24 @@
               </div>
             </div>
 
+            @if (detalleOperativo()!.asignacionesCta.length > 1) {
+              <p class="alert alert-warning small">
+                <span class="material-symbols-outlined">info</span>
+                Este usuario tiene varias asignaciones activas (datos de prueba).
+                Al reasignar, se desactivarán todas y quedará <strong>solo</strong> la del CTA destino.
+              </p>
+            }
+
             <div class="move-row">
               <div class="form-group move-select">
-                <label>Mover a CTA destino</label>
+                <label>Reasignar a CTA</label>
                 <select
                   [ngModel]="nuevoCtaId()"
                   (ngModelChange)="onNuevoCtaChange($event)"
                   class="input-select"
                 >
                   @for (c of ctas(); track c.id) {
-                    <option [ngValue]="c.id" [disabled]="c.id === asig.ctaId">
+                    <option [ngValue]="c.id">
                       {{ c.codigo }} · {{ c.nombre }}{{ c.id === asig.ctaId ? ' (actual)' : '' }}
                     </option>
                   }
@@ -121,7 +122,7 @@
                 @if (saving()) {
                   Guardando...
                 } @else {
-                  Mover CTA
+                  Reasignar
                 }
               </button>
             </div>
@@ -142,10 +143,9 @@
           }
 
           <div class="table-wrapper">
-            <table class="data-table selectable">
+            <table class="data-table">
               <thead>
                 <tr>
-                  <th></th>
                   <th>CTA</th>
                   <th>Rol</th>
                   <th>Estado</th>
@@ -155,18 +155,7 @@
               </thead>
               <tbody>
                 @for (a of detalleOperativo()!.asignacionesCta; track a.operarioCtaId) {
-                  <tr
-                    [class.row-selected]="a.operarioCtaId === asignacionSeleccionadaId()"
-                    (click)="onAsignacionChange(a.operarioCtaId)"
-                    class="row-clickable"
-                  >
-                    <td>
-                      @if (a.operarioCtaId === asignacionSeleccionadaId()) {
-                        <span class="material-symbols-outlined selected-icon">radio_button_checked</span>
-                      } @else {
-                        <span class="material-symbols-outlined unselected-icon">radio_button_unchecked</span>
-                      }
-                    </td>
+                  <tr [class.row-selected]="a.activo">
                     <td>{{ a.ctaCodigo }} · {{ a.ctaNombre }}</td>
                     <td>{{ a.rolOperativo }}</td>
                     <td>

@@ -1,0 +1,71 @@
+<div class="scanner-shell" [class.is-active]="escaneando">
+  <div class="scanner-header">
+    <div class="scanner-status" [class.status-live]="escaneando">
+      <span class="status-dot"></span>
+      <span>{{ escaneando ? 'Camara activa' : 'Camara detenida' }}</span>
+    </div>
+    <span class="scanner-mode">{{ continuoMode ? 'Modo continuo' : 'Modo unico' }}</span>
+  </div>
+
+  <div class="scanner-stage" [style.min-height.px]="alturaScanner">
+    <div [id]="scannerId" class="scanner-view"></div>
+
+    @if (!escaneando) {
+      <div class="scanner-overlay">
+        <span class="material-symbols-outlined overlay-icon">qr_code_scanner</span>
+        <p class="overlay-title">Camara lista para iniciar</p>
+        <p class="overlay-hint">Usa el boton para empezar a leer codigos</p>
+      </div>
+    }
+
+    @if (escaneando) {
+      <div class="scanner-guides" aria-hidden="true">
+        <div class="guide-corners"></div>
+        <div class="guide-line"></div>
+      </div>
+    }
+  </div>
+
+  <div class="scanner-actions">
+    @if (!escaneando) {
+      <button type="button" class="scanner-btn btn-start" (click)="iniciarEscaneo()">
+        <span class="material-symbols-outlined">videocam</span>
+        Iniciar camara
+      </button>
+    } @else {
+      <button type="button" class="scanner-btn btn-stop" (click)="detenerEscaneo()">
+        <span class="material-symbols-outlined">videocam_off</span>
+        Detener escaneo
+      </button>
+    }
+  </div>
+
+  <div class="manual-entry">
+    <label [for]="scannerId + '-manual'" class="manual-label">Entrada manual</label>
+    <div class="manual-row">
+      <input
+        #manualInput
+        [id]="scannerId + '-manual'"
+        type="text"
+        placeholder="Escribe un codigo (NXI-XXXXXXXX)"
+        class="manual-input"
+        (keydown.enter)="onManualSubmit(manualInput.value); manualInput.value = ''"
+      />
+      <button
+        type="button"
+        class="manual-submit"
+        (click)="onManualSubmit(manualInput.value); manualInput.value = ''"
+        aria-label="Enviar codigo manual"
+      >
+        <span class="material-symbols-outlined">search</span>
+      </button>
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="scanner-error">
+      <span class="material-symbols-outlined">warning</span>
+      <span>{{ error }}</span>
+    </div>
+  }
+</div>

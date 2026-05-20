@@ -131,7 +131,19 @@
       <div class="scan-layout">
         <!-- ===== COLUMNA IZQUIERDA: ESCÁNER ===== -->
         <div class="scan-column">
-          <div class="scanner-panel">
+          <div class="scanner-panel animate-in">
+            <div class="panel-heading">
+              <div>
+                <p class="panel-kicker">Captura en tiempo real</p>
+                <h3 class="panel-title">Escaner logistico</h3>
+              </div>
+              @if (getModoInfo(); as modo) {
+                <span class="panel-mode">
+                  <span class="material-symbols-outlined">{{ modo.icono }}</span>
+                  {{ modo.etiqueta }}
+                </span>
+              }
+            </div>
             <app-barcode-scanner
               [alturaScanner]="260"
               [continuoMode]="true"

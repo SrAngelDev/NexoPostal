@@ -99,12 +99,20 @@ public class RepartoController : ControllerBase
         [FromQuery] string? fecha,
         [FromQuery] int? repartidorId)
     {
-        DateOnly? fechaParsed = null;
-        if (!string.IsNullOrEmpty(fecha) && DateOnly.TryParse(fecha, out var f))
-            fechaParsed = f;
+        try
+        {
+            DateOnly? fechaParsed = null;
+            if (!string.IsNullOrEmpty(fecha) && DateOnly.TryParse(fecha, out var f))
+                fechaParsed = f;
 
-        var rutas = await _repartoService.ObtenerRutas(fechaParsed, repartidorId);
-        return Ok(rutas);
+            var rutas = await _repartoService.ObtenerRutas(fechaParsed, repartidorId);
+            return Ok(rutas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo rutas (fecha={Fecha}, repartidorId={RepartidorId})", fecha, repartidorId);
+            return StatusCode(500, new { message = "Error obteniendo rutas de reparto.", detail = ex.Message });
+        }
     }
 
     /// <summary>
@@ -114,18 +122,26 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Repartidor,JefeReparto")]
     public async Task<IActionResult> ObtenerMiRuta()
     {
-        var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
+        try
+        {
+            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
-        var repartidor = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
-        if (repartidor == null)
-            return NotFound(new { message = "No existe perfil de repartidor" });
+            var repartidor = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
+            if (repartidor == null)
+                return NotFound(new { message = "No existe perfil de repartidor" });
 
-        var hoy = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
-        var rutas = await _repartoService.ObtenerRutas(DateOnly.FromDateTime(DateTime.UtcNow), repartidor.Id);
+            var hoy = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
+            var rutas = await _repartoService.ObtenerRutas(DateOnly.FromDateTime(DateTime.UtcNow), repartidor.Id);
 
-        return Ok(rutas);
+            return Ok(rutas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo ruta del repartidor autenticado");
+            return StatusCode(500, new { message = "Error obteniendo ruta del repartidor.", detail = ex.Message });
+        }
     }
 
     /// <summary>
@@ -280,8 +296,16 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> ObtenerDashboard([FromQuery] int? oficinaJsonId)
     {
-        var dashboard = await _repartoService.ObtenerDashboard(oficinaJsonId);
-        return Ok(dashboard);
+        try
+        {
+            var dashboard = await _repartoService.ObtenerDashboard(oficinaJsonId);
+            return Ok(dashboard);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo dashboard de reparto (oficinaJsonId={OficinaJsonId})", oficinaJsonId);
+            return StatusCode(500, new { message = "Error obteniendo dashboard de reparto.", detail = ex.Message });
+        }
     }
 
     /// <summary>

@@ -31,6 +31,7 @@ public interface IOperarioCtaRepository
     Task<OperarioCta?> GetByIdAsync(int id);
     Task<OperarioCta?> GetByIdentityUserIdAsync(string identityUserId);
     Task<List<OperarioCta>> GetAllByIdentityUserIdAsync(string identityUserId);
+    Task<List<OperarioCta>> GetAllByIdentityUserIdIncludingInactiveAsync(string identityUserId);
     Task<OperarioCta?> GetWithCtaAsync(int id);
     Task<List<OperarioCta>> GetByCtaIdAsync(int ctaId, bool? soloActivos = true);
     Task<int> CountByCtaIdAsync(int ctaId, bool? soloActivos = null);

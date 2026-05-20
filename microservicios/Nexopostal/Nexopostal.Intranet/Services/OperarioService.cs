@@ -205,79 +205,94 @@ public class OperarioService : IOperarioService
         if (string.IsNullOrWhiteSpace(identityUserId))
             return (false, "IdentityUserId no válido.", false);
 
-        var asignaciones = await _operarioRepo.GetAllByIdentityUserIdAsync(identityUserId);
-        if (asignaciones.Count == 0)
+        // Cargar todas las asignaciones (activas e inactivas) — necesario para reactivar
+        // una asignación previa al CTA destino si ya existía.
+        var todasLasAsignaciones = await _operarioRepo.GetAllByIdentityUserIdIncludingInactiveAsync(identityUserId);
+        if (todasLasAsignaciones.Count == 0)
             return (false, "No hay asignaciones CTA para este usuario.", false);
 
-        OperarioCta? asignacion = null;
-        if (dto.OperarioCtaId.HasValue)
-        {
-            asignacion = asignaciones.FirstOrDefault(o => o.Id == dto.OperarioCtaId.Value);
-            if (asignacion == null)
-                return (false, "La asignación indicada no existe para este usuario.", false);
-        }
-        else if (asignaciones.Count == 1)
-        {
-            asignacion = asignaciones[0];
-        }
-        else
-        {
-            return (false, "Debes indicar OperarioCtaId cuando el usuario tenga múltiples asignaciones.", false);
-        }
+        var activas = todasLasAsignaciones.Where(a => a.Activo).ToList();
 
-        if (asignacion.CentroTratamientoId == dto.NuevoCtaId)
-            return (true, null, false);
-
+        // Verificar que el CTA destino existe
         var ctaDestino = await _ctaRepo.GetByIdAsync(dto.NuevoCtaId);
         if (ctaDestino == null)
             return (false, $"CTA con ID {dto.NuevoCtaId} no encontrado.", false);
 
-        var tareasPendientes = await _asignacionRepo.CountByOperarioAndEstadoAsync(asignacion.Id, EstadoTarea.Pendiente);
-        var tareasEnProgreso = await _asignacionRepo.CountByOperarioAndEstadoAsync(asignacion.Id, EstadoTarea.EnProgreso);
-        if (tareasPendientes > 0 || tareasEnProgreso > 0)
-            return (false, "No se puede mover de CTA mientras tenga tareas pendientes o en progreso.", false);
+        // Caso idempotente: ya tiene EXACTAMENTE una asignación activa y es la del destino.
+        if (activas.Count == 1 && activas[0].CentroTratamientoId == dto.NuevoCtaId)
+            return (true, null, false);
 
-        // Capture source info before any mutation
-        var ctaOrigenId = asignacion.CentroTratamientoId;
-        var ctaOrigenCodigo = asignacion.CentroTratamiento?.Codigo ?? "?";
-        var sourceOperarioCtaId = asignacion.Id;
+        // Bloqueo: cualquier asignación activa con tareas pendientes/en progreso impide el cambio.
+        foreach (var activa in activas)
+        {
+            var pendientes = await _asignacionRepo.CountByOperarioAndEstadoAsync(activa.Id, EstadoTarea.Pendiente);
+            var enProgreso = await _asignacionRepo.CountByOperarioAndEstadoAsync(activa.Id, EstadoTarea.EnProgreso);
+            if (pendientes > 0 || enProgreso > 0)
+                return (false, $"No se puede mover: la asignación al CTA {activa.CentroTratamiento?.Codigo ?? "?"} tiene tareas pendientes/en progreso.", true);
+        }
 
-        // Check if user already has an active assignment at the destination CTA.
-        // (asignaciones only contains active records — see GetAllByIdentityUserIdAsync)
-        var asignacionDestino = asignaciones.FirstOrDefault(o => o.CentroTratamientoId == dto.NuevoCtaId);
+        // Capturar info origen (la primera activa, para log)
+        var origen = activas.FirstOrDefault();
+        var ctaOrigenCodigo = origen?.CentroTratamiento?.Codigo ?? "?";
+        var ctaOrigenId = origen?.CentroTratamientoId ?? 0;
+
+        // 1) Desactivar TODAS las asignaciones activas que no sean el destino
+        foreach (var activa in activas.Where(a => a.CentroTratamientoId != dto.NuevoCtaId))
+        {
+            activa.Activo = false;
+            await _operarioRepo.UpdateAsync(activa);
+        }
+
+        // 2) Obtener o crear la asignación al CTA destino
+        var asignacionDestino = todasLasAsignaciones.FirstOrDefault(a => a.CentroTratamientoId == dto.NuevoCtaId);
+        int destinoId;
         if (asignacionDestino != null)
         {
-            // Destination already active (e.g. seeder assigns every worker to all CTAs).
-            // Deactivate the source record so only the destination remains.
-            asignacion.Activo = false;
-            await _operarioRepo.UpdateAsync(asignacion);
+            // Existía (activa o inactiva): reactivarla y actualizar fecha
+            asignacionDestino.Activo = true;
+            asignacionDestino.FechaAsignacion = DateTime.UtcNow;
+            await _operarioRepo.UpdateAsync(asignacionDestino);
+            destinoId = asignacionDestino.Id;
         }
         else
         {
-            // Normal move: reassign source record to the destination CTA.
-            asignacion.CentroTratamientoId = dto.NuevoCtaId;
-            asignacion.FechaAsignacion = DateTime.UtcNow;
-            await _operarioRepo.UpdateAsync(asignacion);
+            // No existía: crear una nueva tomando datos del operario (de la primera asignación previa)
+            var plantilla = todasLasAsignaciones.First();
+            var nueva = new OperarioCta
+            {
+                IdentityUserId = identityUserId,
+                NombreCompleto = plantilla.NombreCompleto,
+                CodigoEmpleado = plantilla.CodigoEmpleado,
+                Rol = plantilla.Rol,
+                CentroTratamientoId = dto.NuevoCtaId,
+                FechaAsignacion = DateTime.UtcNow,
+                Activo = true
+            };
+            var creada = await _operarioRepo.CreateAsync(nueva);
+            destinoId = creada.Id;
         }
 
         _logger.LogInformation(
-            "Admin movió usuario {IdentityUserId} de CTA {CtaOrigen} a {CtaDestino}",
+            "Admin movió usuario {IdentityUserId} a CTA único {CtaDestino} (origen previa: {CtaOrigen})",
             identityUserId,
-            ctaOrigenCodigo,
-            ctaDestino.Codigo);
+            ctaDestino.Codigo,
+            ctaOrigenCodigo);
 
-        // Notify the worker in real time via SignalR
-        await _hubContext.Clients.Group($"operario-{sourceOperarioCtaId}")
-            .SendAsync("CtaCambiada", new
-            {
-                operarioCtaId = sourceOperarioCtaId,
-                ctaAnteriorId = ctaOrigenId,
-                ctaAnteriorCodigo = ctaOrigenCodigo,
-                ctaNuevoId = dto.NuevoCtaId,
-                ctaNuevoCodigo = ctaDestino.Codigo,
-                ctaNuevoNombre = ctaDestino.Nombre,
-                mensaje = $"Has sido movido al CTA {ctaDestino.Codigo} ({ctaDestino.Nombre})"
-            });
+        // Notificar en tiempo real (si el operario tenía sesión en alguna asignación origen)
+        if (origen != null)
+        {
+            await _hubContext.Clients.Group($"operario-{origen.Id}")
+                .SendAsync("CtaCambiada", new
+                {
+                    operarioCtaId = destinoId,
+                    ctaAnteriorId = ctaOrigenId,
+                    ctaAnteriorCodigo = ctaOrigenCodigo,
+                    ctaNuevoId = dto.NuevoCtaId,
+                    ctaNuevoCodigo = ctaDestino.Codigo,
+                    ctaNuevoNombre = ctaDestino.Nombre,
+                    mensaje = $"Has sido reasignado al CTA {ctaDestino.Codigo} ({ctaDestino.Nombre})"
+                });
+        }
 
         return (true, null, false);
     }

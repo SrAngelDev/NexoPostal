@@ -189,10 +189,10 @@ app.UseAuthorization();
 app.MapControllers();
 
 // ===== INICIALIZACIÓN DE BASE DE DATOS =====
+// Migraciones se aplican en TODOS los entornos. El seeding solo en Development.
 
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<RepartoDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
@@ -201,7 +201,10 @@ if (app.Environment.IsDevelopment())
         await dbContext.Database.MigrateAsync();
         logger.LogInformation("Migraciones de Reparto aplicadas correctamente");
 
-        await RepartoDataSeeder.SeedAsync(dbContext, logger);
+        if (app.Environment.IsDevelopment())
+        {
+            await RepartoDataSeeder.SeedAsync(dbContext, logger);
+        }
     }
     catch (Exception ex)
     {
