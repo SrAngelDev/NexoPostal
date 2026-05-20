@@ -28,9 +28,10 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    // Ruta deprecada: el escaneo ahora vive integrado dentro de Asignaciones.
     path: 'escaneo',
-    loadComponent: () => import('./pages/escaneo/escaneo.component').then(m => m.EscaneoComponent),
-    canActivate: [authGuard]
+    redirectTo: 'asignaciones',
+    pathMatch: 'full'
   },
   {
     path: 'gestion-usuarios/:id',

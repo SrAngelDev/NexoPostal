@@ -93,24 +93,6 @@
         </button>
       }
 
-      <!-- Escaneo de paquetes — OperarioOficina y OperarioCTA (no Supervisor) -->
-      <button class="dashboard-card" (click)="navigateTo('/escaneo')">
-        <div class="card-icon-wrapper card-icon-scan">
-          <span class="material-symbols-outlined">qr_code_scanner</span>
-        </div>
-        <div class="card-body">
-          <h3 class="card-title">Escaneo</h3>
-          <p class="card-desc">
-            @if (isOperarioOficina) {
-              Escanea códigos de barras para registrar recogidas y entregas en tu oficina.
-            } @else {
-              Escanea códigos para procesar paquetes automáticamente en tu CTA.
-            }
-          </p>
-        </div>
-        <span class="material-symbols-outlined card-arrow">arrow_forward</span>
-      </button>
-
       <!-- Seguimiento interno — todos los operarios -->
       <button class="dashboard-card" (click)="navigateTo('/seguimiento-interno')">
         <div class="card-icon-wrapper card-icon-tracking">
