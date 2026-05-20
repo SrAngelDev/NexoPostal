@@ -147,5 +147,20 @@ export class AdminService {
     if (operarioCtaId !== undefined) payload.operarioCtaId = operarioCtaId;
     return this.http.put<void>(`${this.USUARIOS_URL}/${id}/cta`, payload);
   }
+
+  asignarPrimeraCtaUsuario(
+    id: string,
+    nuevoCtaId: number,
+    nombreCompleto: string,
+    codigoEmpleado: string,
+    rol: string
+  ): Observable<void> {
+    return this.http.put<void>(`${this.USUARIOS_URL}/${id}/cta`, {
+      nuevoCtaId,
+      nombreCompleto,
+      codigoEmpleado,
+      rol
+    });
+  }
 }
 

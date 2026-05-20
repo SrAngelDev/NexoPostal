@@ -208,15 +208,51 @@ public class OperarioService : IOperarioService
         // Cargar todas las asignaciones (activas e inactivas) — necesario para reactivar
         // una asignación previa al CTA destino si ya existía.
         var todasLasAsignaciones = await _operarioRepo.GetAllByIdentityUserIdIncludingInactiveAsync(identityUserId);
-        if (todasLasAsignaciones.Count == 0)
-            return (false, "No hay asignaciones CTA para este usuario.", false);
-
-        var activas = todasLasAsignaciones.Where(a => a.Activo).ToList();
 
         // Verificar que el CTA destino existe
         var ctaDestino = await _ctaRepo.GetByIdAsync(dto.NuevoCtaId);
         if (ctaDestino == null)
             return (false, $"CTA con ID {dto.NuevoCtaId} no encontrado.", false);
+
+        // ─── Caso especial: PRIMERA ASIGNACIÓN ───
+        // El usuario aún no tiene ninguna asignación CTA. Para crearla necesitamos
+        // los datos de identidad operativa que el front nos envía desde el detalle de usuario.
+        if (todasLasAsignaciones.Count == 0)
+        {
+            if (string.IsNullOrWhiteSpace(dto.NombreCompleto)
+                || string.IsNullOrWhiteSpace(dto.CodigoEmpleado)
+                || string.IsNullOrWhiteSpace(dto.Rol))
+            {
+                return (false,
+                    "El usuario no tiene asignación previa. Para crear la primera se requieren NombreCompleto, CodigoEmpleado y Rol.",
+                    false);
+            }
+
+            if (!Enum.TryParse<RolOperario>(dto.Rol, true, out var rolOp))
+                return (false, $"Rol operativo no válido: {dto.Rol}.", false);
+
+            var nuevaPrimera = new OperarioCta
+            {
+                IdentityUserId = identityUserId,
+                NombreCompleto = dto.NombreCompleto!,
+                CodigoEmpleado = dto.CodigoEmpleado!,
+                Rol = rolOp,
+                CentroTratamientoId = dto.NuevoCtaId,
+                FechaAsignacion = DateTime.UtcNow,
+                Activo = true
+            };
+            await _operarioRepo.CreateAsync(nuevaPrimera);
+
+            _logger.LogInformation(
+                "Admin asignó por primera vez al usuario {IdentityUserId} al CTA {CtaDestino} (rol {Rol})",
+                identityUserId,
+                ctaDestino.Codigo,
+                rolOp);
+
+            return (true, null, false);
+        }
+
+        var activas = todasLasAsignaciones.Where(a => a.Activo).ToList();
 
         // Caso idempotente: ya tiene EXACTAMENTE una asignación activa y es la del destino.
         if (activas.Count == 1 && activas[0].CentroTratamientoId == dto.NuevoCtaId)

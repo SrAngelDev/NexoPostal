@@ -56,6 +56,13 @@ export class UsuarioDetalleComponent implements OnInit {
     return !!asignacion && destino !== null && destino > 0 && destino !== asignacion.ctaId && !this.saving();
   });
 
+  readonly puedeAsignarPrimera = computed(() => {
+    const detalle = this.detalleOperativo();
+    const yaTiene = !!detalle && detalle.asignacionesCta.length > 0;
+    const destino = this.nuevoCtaId();
+    return !yaTiene && destino !== null && destino > 0 && !this.saving();
+  });
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -150,6 +157,34 @@ export class UsuarioDetalleComponent implements OnInit {
       },
       error: (err) => {
         this.actionError.set(err.error?.message ?? 'No se pudo mover la asignación de CTA.');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  asignarPrimera(): void {
+    const usuario = this.usuario();
+    const nuevoCtaId = this.nuevoCtaId();
+
+    if (!usuario || nuevoCtaId === null) return;
+
+    this.saving.set(true);
+    this.actionError.set(null);
+    this.actionOk.set(null);
+
+    this.adminService.asignarPrimeraCtaUsuario(
+      usuario.id,
+      nuevoCtaId,
+      usuario.nombreCompleto,
+      usuario.codigoEmpleado ?? '',
+      usuario.rol
+    ).subscribe({
+      next: () => {
+        this.actionOk.set('CTA asignado correctamente.');
+        this.recargarDetalleOperativo(nuevoCtaId);
+      },
+      error: (err) => {
+        this.actionError.set(err.error?.message ?? 'No se pudo asignar el CTA.');
         this.saving.set(false);
       }
     });

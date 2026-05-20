@@ -136,15 +136,27 @@ public class AdminOperarioDetalleDto
 
 /// <summary>
 /// Solicitud para mover la asignación de CTA de un trabajador.
+/// Si el usuario aún no tiene ninguna asignación, los tres campos opcionales
+/// (NombreCompleto, CodigoEmpleado, Rol) son obligatorios para crear la primera.
 /// </summary>
 public class AdminActualizarCtaDto
 {
     /// <summary>
-    /// OperarioCtaId a mover. Opcional si el usuario solo tiene una asignación activa.
+    /// OperarioCtaId a mover. Opcional si el usuario solo tiene una asignación activa
+    /// o si todavía no tiene ninguna (primera asignación).
     /// </summary>
     public int? OperarioCtaId { get; set; }
 
     [Required]
     [Range(1, int.MaxValue)]
     public int NuevoCtaId { get; set; }
+
+    /// <summary>Nombre completo. Solo se usa cuando se crea la primera asignación.</summary>
+    public string? NombreCompleto { get; set; }
+
+    /// <summary>Código de empleado. Solo se usa cuando se crea la primera asignación.</summary>
+    public string? CodigoEmpleado { get; set; }
+
+    /// <summary>Rol operativo (OperarioOficina, OperarioCTA, Supervisor). Solo cuando es la primera asignación.</summary>
+    public string? Rol { get; set; }
 }
