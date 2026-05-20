@@ -80,7 +80,8 @@ builder.Services.AddScoped<IReintentoEntregaService, ReintentoEntregaService>();
 builder.Services.AddScoped<IBalanceoCargaService, BalanceoCargaService>();
 
 var ciudadanoTrackingBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoTrackingSettings:BaseUrl"]);
-if (string.IsNullOrWhiteSpace(ciudadanoTrackingBaseUrl))
+// Fallback: vacío o placeholder sin resolver (${...}) — usar valor por defecto en red Docker.
+if (string.IsNullOrWhiteSpace(ciudadanoTrackingBaseUrl) || ciudadanoTrackingBaseUrl.Contains("${"))
 {
     ciudadanoTrackingBaseUrl = "http://modulo-ciudadano:80";
 }
