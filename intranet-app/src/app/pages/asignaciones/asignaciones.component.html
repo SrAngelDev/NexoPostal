@@ -78,6 +78,15 @@
             (keydown.enter)="buscarYConfirmar()"
             [disabled]="buscando()" />
           <button
+            class="btn-scan-cam"
+            type="button"
+            (click)="abrirScanner()"
+            [disabled]="buscando()"
+            title="Escanear con la cámara">
+            <span class="material-symbols-outlined">photo_camera</span>
+            Cámara
+          </button>
+          <button
             class="btn-scan"
             (click)="buscarYConfirmar()"
             [disabled]="buscando() || !codigoBusqueda.trim()">
@@ -298,6 +307,29 @@
             }
             Reportar incidencia
           </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ===== MODAL: ESCÁNER DE CÁMARA ===== -->
+  @if (mostrarScanner()) {
+    <div class="modal-overlay" (click)="cerrarScanner()">
+      <div class="modal modal-scanner" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">
+            <span class="material-symbols-outlined">photo_camera</span>
+            Escanear código
+          </h3>
+          <button class="modal-close" (click)="cerrarScanner()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <app-barcode-scanner (codigoDetectado)="onCodigoEscaneado($event)"></app-barcode-scanner>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" (click)="cerrarScanner()">Cerrar</button>
         </div>
       </div>
     </div>

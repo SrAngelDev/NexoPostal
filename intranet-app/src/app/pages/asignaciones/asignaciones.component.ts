@@ -13,11 +13,12 @@ import {
 } from '../../services/intranet-api.service';
 import { ScanService, ScanResult } from '../../services/scan.service';
 import { SignalrService } from '../../services/signalr.service';
+import { BarcodeScannerComponent } from '../../components/barcode-scanner/barcode-scanner.component';
 
 @Component({
   selector: 'app-asignaciones',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BarcodeScannerComponent],
   templateUrl: './asignaciones.component.html',
   styleUrl: './asignaciones.component.css'
 })
@@ -52,6 +53,7 @@ export class AsignacionesComponent implements OnInit {
   buscando = signal(false);
   scanError = signal('');
   scanOk = signal('');
+  mostrarScanner = signal(false);
 
   // Modal "paquete fuera de tus tareas"
   fueraTareasVisible = signal(false);
@@ -244,6 +246,22 @@ export class AsignacionesComponent implements OnInit {
   }
 
   // ─── Buscador / escáner integrado ───
+
+  abrirScanner(): void {
+    this.scanError.set('');
+    this.scanOk.set('');
+    this.mostrarScanner.set(true);
+  }
+
+  cerrarScanner(): void {
+    this.mostrarScanner.set(false);
+  }
+
+  onCodigoEscaneado(codigo: string): void {
+    this.codigoBusqueda = codigo;
+    this.mostrarScanner.set(false);
+    this.buscarYConfirmar();
+  }
 
   /**
    * Busca el código escaneado/tecleado en las tareas del operario.

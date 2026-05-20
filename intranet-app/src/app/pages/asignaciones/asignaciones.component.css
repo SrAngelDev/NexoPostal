@@ -344,6 +344,35 @@
   cursor: not-allowed;
 }
 
+.btn-scan-cam {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.5rem;
+  padding: 0 0.875rem;
+  border: 1px solid #6366f1;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #4f46e5;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-scan-cam:hover:not(:disabled) {
+  background: #eef2ff;
+}
+
+.btn-scan-cam:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-scanner {
+  max-width: 520px;
+  width: 95%;
+}
+
 .scan-feedback {
   margin: 0.6rem 0 0;
   font-size: 0.875rem;
