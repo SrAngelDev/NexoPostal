@@ -21,9 +21,9 @@ import { ConfirmacionService } from '../../services/confirmacion.service';
           <!-- Icono + Título -->
           <div class="p-6 pb-3 text-center">
             <div class="mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4"
-                 [class]="confirmacion.config().tipo === 'peligro' ? 'bg-red-100' : 'bg-indigo-100'">
+                 [ngClass]="confirmacion.config().tipo === 'peligro' ? 'bg-red-100' : 'bg-indigo-100'">
               <span class="material-symbols-outlined text-3xl"
-                    [class]="confirmacion.config().tipo === 'peligro' ? 'text-red-600' : 'text-[#1A237E]'">
+                    [ngClass]="confirmacion.config().tipo === 'peligro' ? 'text-red-600' : 'text-[#1A237E]'">
                 {{ confirmacion.config().tipo === 'peligro' ? 'warning' : 'help' }}
               </span>
             </div>
@@ -42,7 +42,7 @@ import { ConfirmacionService } from '../../services/confirmacion.service';
             <button
               (click)="confirmacion.resolver(true)"
               class="flex-1 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-colors cursor-pointer"
-              [class]="confirmacion.config().tipo === 'peligro' 
+              [ngClass]="confirmacion.config().tipo === 'peligro' 
                 ? 'bg-red-600 hover:bg-red-700' 
                 : 'bg-[#1A237E] hover:bg-[#0D1B5E]'"
             >

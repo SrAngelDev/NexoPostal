@@ -1,23 +1,5 @@
 <div class="min-h-screen bg-gray-50">
-  <!-- Navbar -->
-  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
-    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
-      <!-- Logo -->
-      <div class="flex items-center gap-2 text-2xl font-bold cursor-pointer" (click)="volverInicio()">
-        <span class="material-symbols-outlined text-3xl">local_shipping</span>
-        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
-      </div>
-
-      <!-- Volver -->
-      <button 
-        (click)="volverInicio()"
-        class="text-white hover:text-[#FFC107] transition-colors flex items-center gap-2"
-      >
-        <span class="material-symbols-outlined">arrow_back</span>
-        Volver al Inicio
-      </button>
-    </div>
-  </nav>
+  <app-navbar-publico activeLink="oficinas" [backLabel]="'Volver al Inicio'" backRoute="/" [showLinks]="false" [showAuth]="false" />
 
   <!-- Main Content -->
   <div class="max-w-7xl mx-auto px-5 py-10">
@@ -39,33 +21,33 @@
         <!-- Mensaje de advertencia NO bloqueante -->
         @if (mensajeAdvertencia()) {
           <div 
-            [class]="'mb-6 p-4 rounded-lg flex items-start gap-3 animate-slideDown ' + 
-              (tipoMensaje() === 'info' ? 'bg-blue-50 border-2 border-blue-200' : 
-               tipoMensaje() === 'warning' ? 'bg-yellow-50 border-2 border-yellow-300' : 
-               'bg-red-50 border-2 border-red-200')"
+            class="mb-6 p-4 rounded-lg flex items-start gap-3 animate-slideDown"
+            [ngClass]="tipoMensaje() === 'info' ? 'bg-blue-50 border-2 border-blue-200' : 
+              tipoMensaje() === 'warning' ? 'bg-yellow-50 border-2 border-yellow-300' : 
+              'bg-red-50 border-2 border-red-200'"
           >
             <span 
-              [class]="'material-symbols-outlined text-2xl ' + 
-                (tipoMensaje() === 'info' ? 'text-blue-600' : 
-                 tipoMensaje() === 'warning' ? 'text-yellow-600' : 
-                 'text-red-600')"
+              class="material-symbols-outlined text-2xl"
+              [ngClass]="tipoMensaje() === 'info' ? 'text-blue-600' : 
+                tipoMensaje() === 'warning' ? 'text-yellow-600' : 
+                'text-red-600'"
             >
               {{ tipoMensaje() === 'info' ? 'info' : tipoMensaje() === 'warning' ? 'warning' : 'error' }}
             </span>
             <p 
-              [class]="'flex-1 text-sm font-medium ' + 
-                (tipoMensaje() === 'info' ? 'text-blue-800' : 
-                 tipoMensaje() === 'warning' ? 'text-yellow-800' : 
-                 'text-red-800')"
+              class="flex-1 text-sm font-medium"
+              [ngClass]="tipoMensaje() === 'info' ? 'text-blue-800' : 
+                tipoMensaje() === 'warning' ? 'text-yellow-800' : 
+                'text-red-800'"
             >
               {{ mensajeAdvertencia() }}
             </p>
             <button 
               (click)="cerrarMensaje()"
-              [class]="'hover:opacity-70 transition-opacity ' + 
-                (tipoMensaje() === 'info' ? 'text-blue-600' : 
-                 tipoMensaje() === 'warning' ? 'text-yellow-600' : 
-                 'text-red-600')"
+              class="hover:opacity-70 transition-opacity"
+              [ngClass]="tipoMensaje() === 'info' ? 'text-blue-600' : 
+                tipoMensaje() === 'warning' ? 'text-yellow-600' : 
+                'text-red-600'"
             >
               <span class="material-symbols-outlined">close</span>
             </button>
@@ -76,10 +58,7 @@
         <div class="flex gap-3 mb-6">
           <button 
             (click)="cambiarTipoBusqueda('codigoPostal')"
-            [class.bg-[#1A237E]]="searchType() === 'codigoPostal'"
-            [class.text-white]="searchType() === 'codigoPostal'"
-            [class.bg-gray-100]="searchType() !== 'codigoPostal'"
-            [class.text-gray-700]="searchType() !== 'codigoPostal'"
+            [ngClass]="searchType() === 'codigoPostal' ? 'bg-[#1A237E] text-white' : 'bg-gray-100 text-gray-700'"
             class="flex-1 py-3 px-4 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
           >
             <span class="material-symbols-outlined text-xl">pin_drop</span>
@@ -87,10 +66,7 @@
           </button>
           <button 
             (click)="cambiarTipoBusqueda('direccion')"
-            [class.bg-[#1A237E]]="searchType() === 'direccion'"
-            [class.text-white]="searchType() === 'direccion'"
-            [class.bg-gray-100]="searchType() !== 'direccion'"
-            [class.text-gray-700]="searchType() !== 'direccion'"
+            [ngClass]="searchType() === 'direccion' ? 'bg-[#1A237E] text-white' : 'bg-gray-100 text-gray-700'"
             class="flex-1 py-3 px-4 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
           >
             <span class="material-symbols-outlined text-xl">home</span>
@@ -98,10 +74,7 @@
           </button>
           <button 
             (click)="cambiarTipoBusqueda('ubicacionActual')"
-            [class.bg-[#1A237E]]="searchType() === 'ubicacionActual'"
-            [class.text-white]="searchType() === 'ubicacionActual'"
-            [class.bg-gray-100]="searchType() !== 'ubicacionActual'"
-            [class.text-gray-700]="searchType() !== 'ubicacionActual'"
+            [ngClass]="searchType() === 'ubicacionActual' ? 'bg-[#1A237E] text-white' : 'bg-gray-100 text-gray-700'"
             class="flex-1 py-3 px-4 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
           >
             <span class="material-symbols-outlined text-xl">my_location</span>
@@ -246,10 +219,8 @@
               @for (oficina of oficinas(); track oficina.id) {
                 <div 
                   (click)="seleccionarOficina(oficina)"
-                  [class.border-[#FFC107]]="oficinaSeleccionada()?.id === oficina.id"
-                  [class.border-2]="oficinaSeleccionada()?.id === oficina.id"
-                  [class.border]="oficinaSeleccionada()?.id !== oficina.id"
-                  class="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer border-gray-200"
+                  [ngClass]="oficinaSeleccionada()?.id === oficina.id ? 'border-2 border-[#FFC107]' : 'border border-gray-200'"
+                  class="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer"
                 >
                   <div class="flex items-start justify-between mb-3">
                     <div class="flex-1">

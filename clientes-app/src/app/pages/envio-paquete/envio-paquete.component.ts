@@ -10,6 +10,7 @@ import { PagosService, CrearSesionPagoRequest, SesionPagoCreadaResponse } from '
 import { AuthService } from '../../services/auth.service';
 import { PerfilService, DireccionFavoritaDto } from '../../services/perfil.service';
 import { TarifasService } from '../../services/tarifas.service';
+import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
 
 interface RateOption {
   tipoTarifa: 'Estandar' | 'Premium';
@@ -43,7 +44,7 @@ interface DatosPersona {
 @Component({
   selector: 'app-envio-paquete',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NavbarPublicoComponent],
   templateUrl: './envio-paquete.component.html',
   styleUrls: ['./envio-paquete.component.css']
 })

@@ -1,23 +1,5 @@
 <div class="min-h-screen bg-gray-50">
-  <!-- Navbar -->
-  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
-    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
-      <!-- Logo -->
-      <div class="flex items-center gap-2 text-2xl font-bold cursor-pointer" (click)="volverInicio()">
-        <span class="material-symbols-outlined text-3xl">local_shipping</span>
-        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
-      </div>
-
-      <!-- Volver -->
-      <button 
-        (click)="volverInicio()"
-        class="text-white hover:text-[#FFC107] transition-colors flex items-center gap-2"
-      >
-        <span class="material-symbols-outlined">arrow_back</span>
-        Volver al Inicio
-      </button>
-    </div>
-  </nav>
+  <app-navbar-publico activeLink="tarifas" [backLabel]="'Volver al Inicio'" backRoute="/" [showLinks]="false" [showAuth]="false" />
 
   <!-- Main Content -->
   <div class="max-w-6xl mx-auto px-5 py-10">

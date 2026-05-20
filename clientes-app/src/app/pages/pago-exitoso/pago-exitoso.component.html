@@ -1,13 +1,5 @@
 <div class="min-h-screen bg-gray-50">
-  <!-- Navbar -->
-  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
-    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
-      <div class="flex items-center gap-2 text-2xl font-bold cursor-pointer" (click)="irAlInicio()">
-        <span class="material-symbols-outlined text-3xl">local_shipping</span>
-        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
-      </div>
-    </div>
-  </nav>
+  <app-navbar-publico [showLinks]="false" [showAuth]="false" />
 
   <div class="max-w-2xl mx-auto px-5 mt-16 mb-16">
 

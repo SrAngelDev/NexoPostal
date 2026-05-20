@@ -2,11 +2,12 @@ import { Component, signal, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { PagosService, VerificarPagoResponse } from '../../services/pagos.service';
+import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
 
 @Component({
   selector: 'app-pago-exitoso',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NavbarPublicoComponent],
   templateUrl: './pago-exitoso.component.html',
   styleUrls: ['./pago-exitoso.component.css']
 })

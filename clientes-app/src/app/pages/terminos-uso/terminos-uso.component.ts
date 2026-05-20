@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
 
 @Component({
   selector: 'app-terminos-uso',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NavbarPublicoComponent],
   templateUrl: './terminos-uso.component.html'
 })
 export class TerminosUsoComponent {

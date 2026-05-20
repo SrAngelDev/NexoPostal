@@ -49,23 +49,16 @@
     </div>
   }
   <!-- Navbar -->
-  <nav class="bg-[#1A237E] text-white h-17.5 sticky top-0 z-50 shadow-lg">
-    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
-      <!-- Logo -->
-      <div class="flex items-center gap-2 text-2xl font-bold">
-        <span class="material-symbols-outlined text-3xl">local_shipping</span>
-        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
-      </div>
-
-      <!-- Cancel Button -->
-      <button 
-        (click)="cancelShipment()"
-        class="text-white hover:text-[#FFC107] transition-colors"
-      >
-        Cancelar Envío
-      </button>
-    </div>
-  </nav>
+  <app-navbar-publico [showLinks]="false" [showAuth]="false">
+    <button 
+      (click)="cancelShipment()"
+      type="button"
+      class="navbar-cancel-btn"
+    >
+      <span class="material-symbols-outlined">close</span>
+      <span class="hidden sm:inline">Cancelar Envío</span>
+    </button>
+  </app-navbar-publico>
 
   <!-- Wizard Container -->
   <div class="max-w-4xl mx-auto px-5 mt-10 mb-10">
@@ -74,12 +67,10 @@
       <!-- Progress Bar -->
       <div class="flex items-center justify-between mb-12 relative">
         @for (step of [1, 2, 3]; track step; let i = $index) {
-          <div class="flex flex-col items-center relative z-10" [class.text-[#1A237E]]="currentStep() >= step" [class.text-gray-400]="currentStep() < step">
+          <div class="flex flex-col items-center relative z-10" [ngClass]="currentStep() >= step ? 'text-[#1A237E]' : 'text-gray-400'">
             <div 
               class="w-10 h-10 rounded-full flex items-center justify-center font-bold mb-2 transition-all"
-              [class.bg-[#FFC107]]="currentStep() >= step"
-              [class.text-[#1A237E]]="currentStep() >= step"
-              [class.bg-gray-300]="currentStep() < step"
+              [ngClass]="currentStep() >= step ? 'bg-[#FFC107] text-[#1A237E]' : 'bg-gray-300'"
             >
               {{ step }}
             </div>
@@ -165,21 +156,13 @@
             <div class="flex gap-3 mb-4">
               <button (click)="setTipoEntrega('remitente', 'direccion')" type="button"
                 class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                [class.border-[#1A237E]]="remitente().tipoEntrega === 'direccion'"
-                [class.bg-[#1A237E]]="remitente().tipoEntrega === 'direccion'"
-                [class.text-white]="remitente().tipoEntrega === 'direccion'"
-                [class.border-gray-300]="remitente().tipoEntrega !== 'direccion'"
-                [class.text-gray-600]="remitente().tipoEntrega !== 'direccion'">
+                [ngClass]="remitente().tipoEntrega === 'direccion' ? 'border-[#1A237E] bg-[#1A237E] text-white' : 'border-gray-300 text-gray-600'">
                 <span class="material-symbols-outlined text-lg">home</span>
                 Dirección
               </button>
               <button (click)="setTipoEntrega('remitente', 'oficina')" type="button"
                 class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                [class.border-[#1A237E]]="remitente().tipoEntrega === 'oficina'"
-                [class.bg-[#1A237E]]="remitente().tipoEntrega === 'oficina'"
-                [class.text-white]="remitente().tipoEntrega === 'oficina'"
-                [class.border-gray-300]="remitente().tipoEntrega !== 'oficina'"
-                [class.text-gray-600]="remitente().tipoEntrega !== 'oficina'">
+                [ngClass]="remitente().tipoEntrega === 'oficina' ? 'border-[#1A237E] bg-[#1A237E] text-white' : 'border-gray-300 text-gray-600'">
                 <span class="material-symbols-outlined text-lg">location_on</span>
                 Oficina
               </button>
@@ -347,21 +330,13 @@
             <div class="flex gap-3 mb-4">
               <button (click)="setTipoEntrega('destinatario', 'direccion')" type="button"
                 class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                [class.border-[#1A237E]]="destinatario().tipoEntrega === 'direccion'"
-                [class.bg-[#1A237E]]="destinatario().tipoEntrega === 'direccion'"
-                [class.text-white]="destinatario().tipoEntrega === 'direccion'"
-                [class.border-gray-300]="destinatario().tipoEntrega !== 'direccion'"
-                [class.text-gray-600]="destinatario().tipoEntrega !== 'direccion'">
+                [ngClass]="destinatario().tipoEntrega === 'direccion' ? 'border-[#1A237E] bg-[#1A237E] text-white' : 'border-gray-300 text-gray-600'">
                 <span class="material-symbols-outlined text-lg">home</span>
                 Dirección
               </button>
               <button (click)="setTipoEntrega('destinatario', 'oficina')" type="button"
                 class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                [class.border-[#1A237E]]="destinatario().tipoEntrega === 'oficina'"
-                [class.bg-[#1A237E]]="destinatario().tipoEntrega === 'oficina'"
-                [class.text-white]="destinatario().tipoEntrega === 'oficina'"
-                [class.border-gray-300]="destinatario().tipoEntrega !== 'oficina'"
-                [class.text-gray-600]="destinatario().tipoEntrega !== 'oficina'">
+                [ngClass]="destinatario().tipoEntrega === 'oficina' ? 'border-[#1A237E] bg-[#1A237E] text-white' : 'border-gray-300 text-gray-600'">
                 <span class="material-symbols-outlined text-lg">location_on</span>
                 Oficina
               </button>
@@ -537,10 +512,7 @@
                 @for (rate of ratesOptions(); track rate.name) {
                   <div (click)="selectRate(rate)"
                     class="border-2 rounded-lg p-5 cursor-pointer transition-all flex justify-between items-start"
-                    [class.border-gray-300]="selectedRate()?.name !== rate.name"
-                    [class.bg-white]="selectedRate()?.name !== rate.name"
-                    [class.border-[#FFC107]]="selectedRate()?.name === rate.name"
-                    [class.bg-yellow-50]="selectedRate()?.name === rate.name">
+                    [ngClass]="selectedRate()?.name === rate.name ? 'border-[#FFC107] bg-yellow-50' : 'border-gray-300 bg-white'">
                     <div class="flex-1">
                       <h4 class="text-lg font-bold text-[#1A237E] mb-1">{{ rate.name }} ({{ rate.deliveryTime }})</h4>
                       <p class="text-gray-600 text-sm mb-2">{{ rate.description }}</p>

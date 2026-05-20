@@ -2,11 +2,12 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PagosService } from '../../services/pagos.service';
+import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
 
 @Component({
   selector: 'app-pago-cancelado',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NavbarPublicoComponent],
   templateUrl: './pago-cancelado.component.html',
   styleUrl: './pago-cancelado.component.css'
 })

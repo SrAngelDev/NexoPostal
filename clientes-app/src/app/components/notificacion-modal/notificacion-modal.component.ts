@@ -12,20 +12,20 @@ import { NotificacionService, Notificacion } from '../../services/notificacion.s
       @for (n of notificacionService.notificaciones(); track n.id) {
         <div 
           class="pointer-events-auto rounded-xl shadow-2xl border-l-4 backdrop-blur-sm animate-slide-in"
-          [class]="getClases(n)"
+          [ngClass]="getClases(n)"
           role="alert"
         >
           <!-- Header -->
           <div class="flex items-start gap-3 p-4 pb-2">
-            <span class="material-symbols-outlined text-2xl mt-0.5 shrink-0" [class]="getIconColor(n)">
+            <span class="material-symbols-outlined text-2xl mt-0.5 shrink-0" [ngClass]="getIconColor(n)">
               {{ getIcono(n) }}
             </span>
             <div class="flex-1 min-w-0">
-              <h4 class="font-semibold text-sm leading-tight" [class]="getTituloColor(n)">
+              <h4 class="font-semibold text-sm leading-tight" [ngClass]="getTituloColor(n)">
                 {{ n.titulo }}
               </h4>
               @if (n.mensaje) {
-                <p class="text-sm mt-1 leading-snug" [class]="getMensajeColor(n)">
+                <p class="text-sm mt-1 leading-snug" [ngClass]="getMensajeColor(n)">
                   {{ n.mensaje }}
                 </p>
               }
@@ -33,7 +33,7 @@ import { NotificacionService, Notificacion } from '../../services/notificacion.s
             <button 
               (click)="notificacionService.cerrar(n.id)"
               class="shrink-0 p-0.5 rounded-lg hover:bg-black/10 transition-colors cursor-pointer"
-              [class]="getBotonColor(n)"
+              [ngClass]="getBotonColor(n)"
               aria-label="Cerrar notificación"
             >
               <span class="material-symbols-outlined text-lg">close</span>
@@ -44,16 +44,16 @@ import { NotificacionService, Notificacion } from '../../services/notificacion.s
           @if (n.detalles) {
             <div class="px-4 pb-3 pl-[3.25rem]">
               <pre class="text-xs whitespace-pre-wrap font-sans leading-relaxed rounded-lg p-2.5 mt-1"
-                   [class]="getDetallesClases(n)">{{ n.detalles }}</pre>
+                   [ngClass]="getDetallesClases(n)">{{ n.detalles }}</pre>
             </div>
           }
 
           <!-- Barra de progreso para auto-cerrar -->
           @if (n.autoCerrar) {
-            <div class="h-1 rounded-b-xl overflow-hidden" [class]="getBarraFondo(n)">
+            <div class="h-1 rounded-b-xl overflow-hidden" [ngClass]="getBarraFondo(n)">
               <div 
                 class="h-full rounded-b-xl transition-none"
-                [class]="getBarraColor(n)"
+                [ngClass]="getBarraColor(n)"
                 [style.animation]="'shrink ' + n.duracion + 'ms linear forwards'"
               ></div>
             </div>

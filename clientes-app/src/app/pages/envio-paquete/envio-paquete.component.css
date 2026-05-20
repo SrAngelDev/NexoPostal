@@ -9,6 +9,26 @@
   }
 }
 
+:host ::ng-deep .navbar-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+:host ::ng-deep .navbar-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.9);
+  border-color: transparent;
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.4s ease;
 }

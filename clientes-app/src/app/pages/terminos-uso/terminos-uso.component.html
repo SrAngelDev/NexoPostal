@@ -1,21 +1,5 @@
 <div class="min-h-screen bg-gray-50">
-  <!-- Navbar -->
-  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
-    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
-      <a (click)="navigateTo('/')" class="flex items-center gap-2 text-2xl font-bold cursor-pointer">
-        <span class="material-symbols-outlined text-3xl">local_shipping</span>
-        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
-      </a>
-      <ul class="hidden md:flex gap-8">
-        <li><a (click)="navigateTo('/particulares')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Particulares</a></li>
-        <li><a (click)="navigateTo('/empresas')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Empresas</a></li>
-        <li><a (click)="navigateTo('/ayuda')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Ayuda</a></li>
-      </ul>
-      <button (click)="navigateTo('/')" class="px-6 py-2 rounded-lg bg-[#FFC107] text-black hover:bg-[#FFB300] transition-all font-semibold text-sm">
-        Ir al inicio
-      </button>
-    </div>
-  </nav>
+  <app-navbar-publico />
 
   <!-- Hero -->
   <header class="bg-gradient-to-br from-[#1A237E] to-[#283593] text-white py-12 text-center">

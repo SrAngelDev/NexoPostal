@@ -8,11 +8,12 @@ import { UsuarioService, UsuarioInfoDto, ActualizarUsuarioDto, CambiarPasswordDt
 import { EnviosService, EnvioResponse } from '../../services/envios.service';
 import { NotificacionService } from '../../services/notificacion.service';
 import { ConfirmacionService } from '../../services/confirmacion.service';
+import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
 
 @Component({
   selector: 'app-panel-usuario',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NavbarPublicoComponent],
   templateUrl: './panel-usuario.component.html',
   styleUrl: './panel-usuario.component.css'
 })
