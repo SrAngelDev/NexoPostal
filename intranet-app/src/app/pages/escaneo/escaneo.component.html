@@ -111,20 +111,53 @@
         <div class="context-section animate-in">
           <h3 class="section-title">
             <span class="material-symbols-outlined">store</span>
-            Datos de oficina
+            Oficina
+            @if (miOficinaFija()) {
+              <span class="badge badge-locked" title="Oficina fija asignada por administración">
+                <span class="material-symbols-outlined">lock</span>
+                fija
+              </span>
+            }
           </h3>
+
           <div class="context-fields">
-            <div class="field-group">
-              <label for="oficinaId">ID Oficina (JSON)</label>
-              <input id="oficinaId" type="text" [(ngModel)]="oficinaJsonId"
-                     placeholder="Ej: 1001" class="field-input"/>
-            </div>
-            <div class="field-group">
-              <label for="oficinaNombre">Nombre oficina</label>
-              <input id="oficinaNombre" type="text" [(ngModel)]="oficinaNombre"
-                     placeholder="Ej: Oficina Moncloa" class="field-input"/>
+            <div class="field-group field-group-wide">
+              <label for="oficinaSelect">Oficina del CTA</label>
+              <select id="oficinaSelect"
+                      class="field-input"
+                      [(ngModel)]="oficinaJsonId"
+                      (ngModelChange)="onOficinaChange()"
+                      [disabled]="!!miOficinaFija() || cargandoOficinas() || oficinasDelCta().length === 0">
+                <option value="" disabled>
+                  @if (cargandoOficinas()) {
+                    Cargando oficinas...
+                  } @else if (oficinasDelCta().length === 0) {
+                    No hay oficinas en este CTA
+                  } @else {
+                    -- Selecciona una oficina --
+                  }
+                </option>
+                @for (of of oficinasDelCta(); track of.id) {
+                  <option [value]="of.id">
+                    {{ of.nombre }} — {{ of.codigoPostal }} {{ of.ciudad }}
+                  </option>
+                }
+              </select>
             </div>
           </div>
+
+          @if (!miOficinaFija()) {
+            <label class="oficina-recordar">
+              <input type="checkbox"
+                     [(ngModel)]="recordarOficina"
+                     (ngModelChange)="onToggleRecordarOficina()" />
+              Recordar esta oficina en este equipo
+            </label>
+          } @else {
+            <p class="oficina-fija-msg">
+              Tu oficina asignada ({{ miOficinaFija()!.oficinaNombre }}) está fijada por administración.
+            </p>
+          }
         </div>
       }
 

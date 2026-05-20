@@ -215,6 +215,100 @@
         }
       </section>
 
+      <!-- ===== Asignación de oficina (solo OperarioOficina) ===== -->
+      @if (esOperarioOficina()) {
+        <section class="card">
+          <header class="card-header">
+            <div>
+              <h2>Oficina asignada</h2>
+              <p class="card-subtitle">El operario de oficina opera siempre desde una única oficina postal.</p>
+            </div>
+          </header>
+
+          @if (oficinaActual(); as oficina) {
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Oficina</span>
+                <span class="info-value">{{ oficina.oficinaNombre }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Código postal</span>
+                <span class="info-value">{{ oficina.codigoPostal }} · {{ oficina.ciudad }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Dirección</span>
+                <span class="info-value">{{ oficina.direccion || '—' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Estado</span>
+                <span class="info-value">
+                  @if (oficina.activo) {
+                    <span class="state-chip active">Activa</span>
+                  } @else {
+                    <span class="state-chip blocked">Inactiva</span>
+                  }
+                </span>
+              </div>
+            </div>
+          } @else {
+            <div class="alert alert-info">
+              <span class="material-symbols-outlined">info</span>
+              El operario aún no tiene oficina asignada. Asigna una para que pueda escanear desde la app de intranet.
+            </div>
+          }
+
+          <div class="action-bar">
+            <div class="action-row">
+              <label class="action-label" for="oficinaSelectAdmin">Cambiar a:</label>
+              <select id="oficinaSelectAdmin"
+                      class="select-input"
+                      [ngModel]="nuevoOficinaJsonId()"
+                      (ngModelChange)="onNuevoOficinaChange($event)"
+                      [disabled]="savingOficina() || cargandoOficinas() || oficinasDisponibles().length === 0">
+                <option [ngValue]="null" disabled>
+                  @if (cargandoOficinas()) {
+                    Cargando oficinas del CTA...
+                  } @else if (oficinasDisponibles().length === 0) {
+                    No hay oficinas en el CTA del operario
+                  } @else {
+                    -- Selecciona una oficina --
+                  }
+                </option>
+                @for (of of oficinasDisponibles(); track of.id) {
+                  <option [ngValue]="of.id">
+                    {{ of.nombre }} — {{ of.codigoPostal }} {{ of.ciudad }}
+                  </option>
+                }
+              </select>
+              <button class="btn-primary move-btn"
+                      [disabled]="!puedeGuardarOficina()"
+                      (click)="guardarOficina()">
+                <span class="material-symbols-outlined">save</span>
+                @if (savingOficina()) {
+                  Guardando...
+                } @else {
+                  Guardar oficina
+                }
+              </button>
+            </div>
+          </div>
+
+          @if (actionOficinaError()) {
+            <div class="alert alert-error">
+              <span class="material-symbols-outlined">error</span>
+              {{ actionOficinaError() }}
+            </div>
+          }
+
+          @if (actionOficinaOk()) {
+            <div class="alert alert-success">
+              <span class="material-symbols-outlined">check_circle</span>
+              {{ actionOficinaOk() }}
+            </div>
+          }
+        </section>
+      }
+
     </div>
   }
 </div>

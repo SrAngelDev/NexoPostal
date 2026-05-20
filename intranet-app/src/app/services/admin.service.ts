@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface DashboardCtaDto {
   ctaId: number;
@@ -83,6 +84,25 @@ export interface AdminOperarioDetalleDto {
   asignacionesCta: AdminOperarioCtaAsignacionDto[];
 }
 
+export interface AdminOperarioOficinaDto {
+  oficinaJsonId: number;
+  oficinaNombre: string;
+  codigoPostal: string;
+  ciudad: string;
+  direccion: string;
+  rol: string;
+  activo: boolean;
+  fechaAsignacion: string;
+}
+
+export interface OficinaJsonResumen {
+  id: number;
+  nombre: string;
+  direccion: string;
+  codigoPostal: string;
+  ciudad: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -161,6 +181,34 @@ export class AdminService {
       codigoEmpleado,
       rol
     });
+  }
+
+  // ─── Asignación de oficina (solo OperarioOficina) ───
+
+  obtenerOficinaUsuario(id: string): Observable<AdminOperarioOficinaDto | null> {
+    return this.http
+      .get<AdminOperarioOficinaDto>(`${this.USUARIOS_URL}/${id}/oficina`, { observe: 'response' })
+      .pipe(map(r => (r.status === 204 ? null : r.body)));
+  }
+
+  /** Cambia (o crea por primera vez) la oficina asignada al operario. */
+  actualizarOficinaUsuario(
+    id: string,
+    nuevoOficinaJsonId: number,
+    primeraVez?: { nombreCompleto: string; codigoEmpleado: string; rol?: string }
+  ): Observable<AdminOperarioOficinaDto> {
+    const payload: Record<string, unknown> = { nuevoOficinaJsonId };
+    if (primeraVez) {
+      payload['nombreCompleto'] = primeraVez.nombreCompleto;
+      payload['codigoEmpleado'] = primeraVez.codigoEmpleado;
+      if (primeraVez.rol) payload['rol'] = primeraVez.rol;
+    }
+    return this.http.put<AdminOperarioOficinaDto>(`${this.USUARIOS_URL}/${id}/oficina`, payload);
+  }
+
+  /** Lista las oficinas del catálogo cuyo CP encaja con las rutas del CTA. */
+  obtenerOficinasPorCta(ctaId: number): Observable<OficinaJsonResumen[]> {
+    return this.http.get<OficinaJsonResumen[]>(`/api/nexopostal/oficinaspostales/por-cta/${ctaId}`);
   }
 }
 

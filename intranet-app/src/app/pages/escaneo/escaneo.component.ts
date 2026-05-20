@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { SignalrService, CtaCambiadaPayload } from '../../services/signalr.service';
 import { IntranetApiService, MisCtasInfo, CtaAsignacion } from '../../services/intranet-api.service';
-import { ScanService, ScanRequest, ScanResult, ModoEscaneo } from '../../services/scan.service';
+import { ScanService, ScanRequest, ScanResult, ModoEscaneo, OficinaJsonDto, MiOficinaInfoDto } from '../../services/scan.service';
 import { BarcodeScannerComponent } from '../../components/barcode-scanner/barcode-scanner.component';
 
 interface ScanHistoryItem {
@@ -48,6 +48,13 @@ export class EscaneoComponent implements OnInit {
   oficinaJsonId = '';
   oficinaNombre = '';
 
+  // Oficinas disponibles para el CTA seleccionado y oficina fija/recordada
+  oficinasDelCta = signal<OficinaJsonDto[]>([]);
+  cargandoOficinas = signal(false);
+  miOficinaFija = signal<MiOficinaInfoDto | null>(null);
+  recordarOficina = false;
+  private static readonly STORAGE_KEY_PREFIX = 'nxp.oficinaPreferida.cta.';
+
   // CTA change notification banner
   ctaCambiadaBanner = signal<CtaCambiadaPayload | null>(null);
 
@@ -76,6 +83,7 @@ export class EscaneoComponent implements OnInit {
   ngOnInit(): void {
     this.signalr.conectar();
     this.cargarDatos();
+    this.cargarMiOficina();
   }
 
   cargarDatos(): void {
@@ -88,6 +96,7 @@ export class EscaneoComponent implements OnInit {
         this.misCtasInfo.set(info);
         if (info.ctas.length > 0) {
           this.ctaSeleccionado.set(info.ctas[0]);
+          this.cargarOficinasDelCta(info.ctas[0].ctaId);
         }
         this.cargarModos();
       },
@@ -96,6 +105,93 @@ export class EscaneoComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  /** Carga la oficina fija del operario (si la tiene asignada) y la aplica como selección bloqueada. */
+  private cargarMiOficina(): void {
+    this.scanService.obtenerMiOficina().subscribe({
+      next: (info) => {
+        if (info && info.activo) {
+          this.miOficinaFija.set(info);
+          this.oficinaJsonId = String(info.oficinaJsonId);
+          this.oficinaNombre = info.oficinaNombre;
+        }
+      },
+      error: () => {
+        // Silencioso: el usuario podría no ser OperarioOficina.
+      }
+    });
+  }
+
+  /** Carga las oficinas del CTA y aplica la oficina recordada/fija si procede. */
+  private cargarOficinasDelCta(ctaId: number): void {
+    this.cargandoOficinas.set(true);
+    this.scanService.obtenerOficinasPorCta(ctaId).subscribe({
+      next: (oficinas) => {
+        this.oficinasDelCta.set(oficinas);
+        this.aplicarOficinaPreferida(ctaId);
+        this.cargandoOficinas.set(false);
+      },
+      error: () => {
+        this.oficinasDelCta.set([]);
+        this.cargandoOficinas.set(false);
+      }
+    });
+  }
+
+  private aplicarOficinaPreferida(ctaId: number): void {
+    const fija = this.miOficinaFija();
+    if (fija) {
+      // Oficina fija del operario tiene prioridad absoluta.
+      this.oficinaJsonId = String(fija.oficinaJsonId);
+      this.oficinaNombre = fija.oficinaNombre;
+      this.recordarOficina = true;
+      return;
+    }
+
+    const guardada = localStorage.getItem(EscaneoComponent.STORAGE_KEY_PREFIX + ctaId);
+    if (guardada) {
+      const oficina = this.oficinasDelCta().find(o => String(o.id) === guardada);
+      if (oficina) {
+        this.oficinaJsonId = String(oficina.id);
+        this.oficinaNombre = oficina.nombre;
+        this.recordarOficina = true;
+        return;
+      }
+    }
+
+    // Sin preferencia: limpiar selección.
+    this.oficinaJsonId = '';
+    this.oficinaNombre = '';
+    this.recordarOficina = false;
+  }
+
+  /** Maneja el cambio en el dropdown de oficinas. */
+  onOficinaChange(): void {
+    const oficina = this.oficinasDelCta().find(o => String(o.id) === this.oficinaJsonId);
+    this.oficinaNombre = oficina?.nombre ?? '';
+
+    const cta = this.ctaSeleccionado();
+    if (!cta) return;
+    const key = EscaneoComponent.STORAGE_KEY_PREFIX + cta.ctaId;
+
+    if (this.recordarOficina && this.oficinaJsonId) {
+      localStorage.setItem(key, this.oficinaJsonId);
+    } else {
+      localStorage.removeItem(key);
+    }
+  }
+
+  /** Maneja el toggle "Recordar esta oficina". */
+  onToggleRecordarOficina(): void {
+    const cta = this.ctaSeleccionado();
+    if (!cta) return;
+    const key = EscaneoComponent.STORAGE_KEY_PREFIX + cta.ctaId;
+    if (this.recordarOficina && this.oficinaJsonId) {
+      localStorage.setItem(key, this.oficinaJsonId);
+    } else {
+      localStorage.removeItem(key);
+    }
   }
 
   cargarModos(): void {
@@ -128,7 +224,10 @@ export class EscaneoComponent implements OnInit {
     const info = this.misCtasInfo();
     if (info) {
       const cta = info.ctas.find(c => c.ctaId === +ctaId);
-      if (cta) this.ctaSeleccionado.set(cta);
+      if (cta) {
+        this.ctaSeleccionado.set(cta);
+        this.cargarOficinasDelCta(cta.ctaId);
+      }
     }
   }
 

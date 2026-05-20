@@ -1,4 +1,5 @@
 using Nexopostal.Intranet.DTOs;
+using Nexopostal.Intranet.Models;
 using Nexopostal.Intranet.Repositories;
 
 namespace Nexopostal.Intranet.Services;
@@ -38,6 +39,18 @@ public interface IOficinaPostalService
 
     /// <summary>Obtiene los operarios asignados a una oficina</summary>
     Task<List<OperarioOficinaResumenDto>> ObtenerOperariosOficina(int oficinaJsonId);
+
+    /// <summary>Obtiene las oficinas cuyo prefijo de CP coincide con alguna ruta del CTA dado.</summary>
+    Task<List<OficinaJsonDto>> ObtenerOficinasPorCta(int ctaId);
+
+    /// <summary>Obtiene la oficina asignada activa al operario autenticado.</summary>
+    Task<MiOficinaInfoDto?> ObtenerMiOficina(string identityUserId);
+
+    /// <summary>Obtiene la asignación de oficina (activa o no) de un usuario, vista admin.</summary>
+    Task<MiOficinaInfoDto?> ObtenerOficinaAdmin(string identityUserId);
+
+    /// <summary>Crea o cambia la oficina asignada a un operario (acción admin).</summary>
+    Task<(bool Ok, string? Error, MiOficinaInfoDto? Resultado)> ActualizarOficinaAdmin(string identityUserId, AdminActualizarOficinaDto dto);
 }
 
 public class OficinaPostalService : IOficinaPostalService
@@ -45,17 +58,20 @@ public class OficinaPostalService : IOficinaPostalService
     private readonly OficinasJsonService _oficinasJson;
     private readonly IClasificacionService _clasificacionService;
     private readonly IOperarioOficinaRepository _operarioOficinaRepo;
+    private readonly IRutaCtaRepository _rutaRepo;
     private readonly ILogger<OficinaPostalService> _logger;
 
     public OficinaPostalService(
         OficinasJsonService oficinasJson,
         IClasificacionService clasificacionService,
         IOperarioOficinaRepository operarioOficinaRepo,
+        IRutaCtaRepository rutaRepo,
         ILogger<OficinaPostalService> logger)
     {
         _oficinasJson = oficinasJson;
         _clasificacionService = clasificacionService;
         _operarioOficinaRepo = operarioOficinaRepo;
+        _rutaRepo = rutaRepo;
         _logger = logger;
     }
 
@@ -138,5 +154,116 @@ public class OficinaPostalService : IOficinaPostalService
             OficinaJsonId = o.OficinaJsonId,
             OficinaNombre = o.OficinaNombre
         }).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<OficinaJsonDto>> ObtenerOficinasPorCta(int ctaId)
+    {
+        var rutas = await _rutaRepo.GetByCtaIdAsync(ctaId);
+        if (rutas.Count == 0) return new List<OficinaJsonDto>();
+
+        var prefijos = rutas
+            .Select(r => r.PrefijoCp)
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Distinct()
+            .ToList();
+
+        return _oficinasJson.ObtenerTodas()
+            .Where(o => prefijos.Any(p => o.CodigoPostal.StartsWith(p)))
+            .OrderBy(o => o.CodigoPostal)
+            .ThenBy(o => o.Nombre)
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<MiOficinaInfoDto?> ObtenerMiOficina(string identityUserId)
+    {
+        var operario = await _operarioOficinaRepo.GetByIdentityUserIdAsync(identityUserId);
+        return operario == null ? null : MapearMiOficina(operario);
+    }
+
+    /// <inheritdoc />
+    public async Task<MiOficinaInfoDto?> ObtenerOficinaAdmin(string identityUserId)
+    {
+        var operario = await _operarioOficinaRepo.GetByIdentityUserIdAnyAsync(identityUserId);
+        return operario == null ? null : MapearMiOficina(operario);
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Ok, string? Error, MiOficinaInfoDto? Resultado)> ActualizarOficinaAdmin(string identityUserId, AdminActualizarOficinaDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(identityUserId))
+            return (false, "IdentityUserId no válido.", null);
+
+        var oficina = _oficinasJson.ObtenerPorId(dto.NuevoOficinaJsonId);
+        if (oficina == null)
+            return (false, $"Oficina con ID {dto.NuevoOficinaJsonId} no encontrada en el catálogo.", null);
+
+        var existente = await _operarioOficinaRepo.GetByIdentityUserIdAnyAsync(identityUserId);
+
+        if (existente == null)
+        {
+            if (string.IsNullOrWhiteSpace(dto.NombreCompleto)
+                || string.IsNullOrWhiteSpace(dto.CodigoEmpleado))
+            {
+                return (false,
+                    "El usuario no tiene asignación previa de oficina. Para crear la primera se requieren NombreCompleto y CodigoEmpleado.",
+                    null);
+            }
+
+            var rolOp = RolOperario.OperarioOficina;
+            if (!string.IsNullOrWhiteSpace(dto.Rol)
+                && !Enum.TryParse<RolOperario>(dto.Rol, true, out rolOp))
+            {
+                return (false, $"Rol operativo no válido: {dto.Rol}.", null);
+            }
+
+            var nueva = new OperarioOficina
+            {
+                IdentityUserId = identityUserId,
+                NombreCompleto = dto.NombreCompleto!,
+                CodigoEmpleado = dto.CodigoEmpleado!,
+                Rol = rolOp,
+                OficinaJsonId = oficina.Id,
+                OficinaNombre = oficina.Nombre,
+                Activo = true,
+                FechaAsignacion = DateTime.UtcNow
+            };
+            await _operarioOficinaRepo.CreateAsync(nueva);
+
+            _logger.LogInformation(
+                "Admin asignó por primera vez la oficina {Oficina} ({OficinaId}) al usuario {IdentityUserId}",
+                oficina.Nombre, oficina.Id, identityUserId);
+
+            return (true, null, MapearMiOficina(nueva));
+        }
+
+        existente.OficinaJsonId = oficina.Id;
+        existente.OficinaNombre = oficina.Nombre;
+        existente.Activo = true;
+        existente.FechaAsignacion = DateTime.UtcNow;
+        await _operarioOficinaRepo.UpdateAsync(existente);
+
+        _logger.LogInformation(
+            "Admin cambió la oficina del usuario {IdentityUserId} a {Oficina} ({OficinaId})",
+            identityUserId, oficina.Nombre, oficina.Id);
+
+        return (true, null, MapearMiOficina(existente));
+    }
+
+    private MiOficinaInfoDto MapearMiOficina(OperarioOficina operario)
+    {
+        var oficina = _oficinasJson.ObtenerPorId(operario.OficinaJsonId);
+        return new MiOficinaInfoDto
+        {
+            OficinaJsonId = operario.OficinaJsonId,
+            OficinaNombre = operario.OficinaNombre,
+            CodigoPostal = oficina?.CodigoPostal ?? string.Empty,
+            Ciudad = oficina?.Ciudad ?? string.Empty,
+            Direccion = oficina?.Direccion ?? string.Empty,
+            Rol = operario.Rol.ToString(),
+            Activo = operario.Activo,
+            FechaAsignacion = operario.FechaAsignacion
+        };
     }
 }

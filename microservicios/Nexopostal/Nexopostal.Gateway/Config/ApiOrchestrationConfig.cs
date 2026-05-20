@@ -237,6 +237,7 @@ public static class ApiOrchestrationConfig
         orchestrator.AddApi("operarios", url + "/")
             .AddRoute("mi-cta", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/mi-cta" })
             .AddRoute("mis-ctas", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/mis-ctas" })
+            .AddRoute("mi-oficina", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/mi-oficina" })
             .AddRoute("operarios-cta", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/cta/" })
             .AddRoute("operarios-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/" })
             .AddRoute("operario-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/" })
@@ -268,6 +269,7 @@ public static class ApiOrchestrationConfig
             .AddRoute("oficinaspostales-buscar", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/buscar" })
             .AddRoute("oficinaspostales-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/" })
             .AddRoute("oficinaspostales-resolver", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/resolver/" })
+            .AddRoute("por-cta", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/por-cta/" })
             .AddRoute("operarios", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/" });
     }
 }

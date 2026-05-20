@@ -68,3 +68,37 @@ public class AsignarOperarioOficinaDto
     public string Rol { get; set; } = string.Empty;
     public int OficinaJsonId { get; set; }
 }
+
+/// <summary>
+/// Información de la oficina asignada al operario autenticado.
+/// </summary>
+public class MiOficinaInfoDto
+{
+    public int OficinaJsonId { get; set; }
+    public string OficinaNombre { get; set; } = string.Empty;
+    public string CodigoPostal { get; set; } = string.Empty;
+    public string Ciudad { get; set; } = string.Empty;
+    public string Direccion { get; set; } = string.Empty;
+    public string Rol { get; set; } = string.Empty;
+    public bool Activo { get; set; }
+    public DateTime FechaAsignacion { get; set; }
+}
+
+/// <summary>
+/// DTO para que un admin cree o cambie la oficina asignada a un operario.
+/// </summary>
+public class AdminActualizarOficinaDto
+{
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+    public int NuevoOficinaJsonId { get; set; }
+
+    /// <summary>Nombre completo. Solo se usa cuando se crea la primera asignación.</summary>
+    public string? NombreCompleto { get; set; }
+
+    /// <summary>Código de empleado. Solo se usa cuando se crea la primera asignación.</summary>
+    public string? CodigoEmpleado { get; set; }
+
+    /// <summary>Rol operativo (OperarioOficina). Solo cuando es la primera asignación.</summary>
+    public string? Rol { get; set; }
+}

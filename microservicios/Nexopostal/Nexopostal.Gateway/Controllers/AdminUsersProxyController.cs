@@ -70,6 +70,16 @@ public class AdminUsersProxyController : ControllerBase
     public Task<IActionResult> ActualizarCta(string id) =>
         Proxy(HttpMethod.Put, _logisticaUrl, $"api/operarios/admin/identity/{id}/cta");
 
+    /// <summary>Obtiene la oficina asignada a un usuario interno.</summary>
+    [HttpGet("{id}/oficina")]
+    public Task<IActionResult> ObtenerOficina(string id) =>
+        Proxy(HttpMethod.Get, _logisticaUrl, $"api/operarios/admin/identity/{id}/oficina");
+
+    /// <summary>Crea o cambia la oficina asignada a un usuario interno.</summary>
+    [HttpPut("{id}/oficina")]
+    public Task<IActionResult> ActualizarOficina(string id) =>
+        Proxy(HttpMethod.Put, _logisticaUrl, $"api/operarios/admin/identity/{id}/oficina");
+
     // ─── Helper ───
 
     private async Task<IActionResult> Proxy(HttpMethod method, string baseUrl, string path)

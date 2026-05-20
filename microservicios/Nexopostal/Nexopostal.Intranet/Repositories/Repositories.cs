@@ -112,12 +112,28 @@ public class OperarioOficinaRepository : IOperarioOficinaRepository
         => await _context.OperariosOficina.FindAsync(id);
 
     public async Task<OperarioOficina?> GetByIdentityUserIdAsync(string identityUserId)
+        => await _context.OperariosOficina.FirstOrDefaultAsync(o => o.IdentityUserId == identityUserId && o.Activo);
+
+    public async Task<OperarioOficina?> GetByIdentityUserIdAnyAsync(string identityUserId)
         => await _context.OperariosOficina.FirstOrDefaultAsync(o => o.IdentityUserId == identityUserId);
 
     public async Task<List<OperarioOficina>> GetByOficinaAsync(int oficinaJsonId, bool soloActivos = true)
         => await _context.OperariosOficina
             .Where(o => o.OficinaJsonId == oficinaJsonId && (!soloActivos || o.Activo))
             .ToListAsync();
+
+    public async Task<OperarioOficina> CreateAsync(OperarioOficina entity)
+    {
+        _context.OperariosOficina.Add(entity);
+        await _context.SaveChangesAsync();
+        return entity;
+    }
+
+    public async Task UpdateAsync(OperarioOficina entity)
+    {
+        _context.OperariosOficina.Update(entity);
+        await _context.SaveChangesAsync();
+    }
 }
 
 public class AsignacionPaqueteRepository : IAsignacionPaqueteRepository

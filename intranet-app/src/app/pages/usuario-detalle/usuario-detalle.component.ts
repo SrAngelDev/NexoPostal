@@ -8,7 +8,9 @@ import {
   UsuarioAdminDto,
   CtaResumenDto,
   AdminOperarioDetalleDto,
-  AdminOperarioCtaAsignacionDto
+  AdminOperarioCtaAsignacionDto,
+  AdminOperarioOficinaDto,
+  OficinaJsonResumen
 } from '../../services/admin.service';
 
 const ROLES_CON_CONFIG_CTA = ['OperarioOficina', 'OperarioCTA', 'Supervisor'];
@@ -36,6 +38,25 @@ export class UsuarioDetalleComponent implements OnInit {
 
   asignacionSeleccionadaId = signal<number | null>(null);
   nuevoCtaId = signal<number | null>(null);
+
+  // Asignación de oficina (solo OperarioOficina)
+  oficinaActual = signal<AdminOperarioOficinaDto | null>(null);
+  oficinasDisponibles = signal<OficinaJsonResumen[]>([]);
+  oficinaCtaContexto = signal<number | null>(null);
+  cargandoOficinas = signal(false);
+  nuevoOficinaJsonId = signal<number | null>(null);
+  savingOficina = signal(false);
+  actionOficinaError = signal<string | null>(null);
+  actionOficinaOk = signal<string | null>(null);
+
+  readonly esOperarioOficina = computed(() => this.usuario()?.rol === 'OperarioOficina');
+
+  readonly puedeGuardarOficina = computed(() => {
+    const destino = this.nuevoOficinaJsonId();
+    if (destino === null || destino <= 0 || this.savingOficina()) return false;
+    const actual = this.oficinaActual();
+    return !actual || actual.oficinaJsonId !== destino;
+  });
 
   readonly esRolConConfigCta = computed(() => {
     const rol = this.usuario()?.rol;
@@ -109,6 +130,11 @@ export class UsuarioDetalleComponent implements OnInit {
         } else {
           this.asignacionSeleccionadaId.set(null);
           this.nuevoCtaId.set(null);
+        }
+
+        // Cargar oficina solo si es OperarioOficina
+        if (usuario.rol === 'OperarioOficina') {
+          this.cargarOficinaUsuario();
         }
 
         this.loading.set(false);
@@ -243,5 +269,79 @@ export class UsuarioDetalleComponent implements OnInit {
     };
 
     return map[rol] ?? 'badge-default';
+  }
+
+  // ─── Asignación de oficina (solo OperarioOficina) ───
+
+  private cargarOficinaUsuario(): void {
+    this.adminService.obtenerOficinaUsuario(this.userId).subscribe({
+      next: (oficina) => {
+        this.oficinaActual.set(oficina);
+        this.nuevoOficinaJsonId.set(oficina?.oficinaJsonId ?? null);
+
+        // Cargar la lista de oficinas del CTA principal del usuario (la primera asignación).
+        const operativo = this.detalleOperativo();
+        const primerCta = operativo?.asignacionesCta?.[0];
+        if (primerCta) {
+          this.cargarOficinasParaCta(primerCta.ctaId);
+        }
+      },
+      error: () => {
+        this.oficinaActual.set(null);
+      }
+    });
+  }
+
+  private cargarOficinasParaCta(ctaId: number): void {
+    this.cargandoOficinas.set(true);
+    this.oficinaCtaContexto.set(ctaId);
+    this.adminService.obtenerOficinasPorCta(ctaId).subscribe({
+      next: (oficinas) => {
+        this.oficinasDisponibles.set(oficinas);
+        this.cargandoOficinas.set(false);
+      },
+      error: () => {
+        this.oficinasDisponibles.set([]);
+        this.cargandoOficinas.set(false);
+      }
+    });
+  }
+
+  onNuevoOficinaChange(oficinaId: number): void {
+    this.nuevoOficinaJsonId.set(+oficinaId);
+    this.actionOficinaError.set(null);
+    this.actionOficinaOk.set(null);
+  }
+
+  guardarOficina(): void {
+    const usuario = this.usuario();
+    const destino = this.nuevoOficinaJsonId();
+    if (!usuario || destino === null) return;
+
+    this.savingOficina.set(true);
+    this.actionOficinaError.set(null);
+    this.actionOficinaOk.set(null);
+
+    const yaTiene = !!this.oficinaActual();
+    const obs = yaTiene
+      ? this.adminService.actualizarOficinaUsuario(usuario.id, destino)
+      : this.adminService.actualizarOficinaUsuario(usuario.id, destino, {
+          nombreCompleto: usuario.nombreCompleto,
+          codigoEmpleado: usuario.codigoEmpleado ?? '',
+          rol: 'OperarioOficina'
+        });
+
+    obs.subscribe({
+      next: (resultado) => {
+        this.oficinaActual.set(resultado);
+        this.nuevoOficinaJsonId.set(resultado.oficinaJsonId);
+        this.actionOficinaOk.set('Oficina actualizada correctamente.');
+        this.savingOficina.set(false);
+      },
+      error: (err) => {
+        this.actionOficinaError.set(err.error?.message ?? 'No se pudo actualizar la oficina.');
+        this.savingOficina.set(false);
+      }
+    });
   }
 }

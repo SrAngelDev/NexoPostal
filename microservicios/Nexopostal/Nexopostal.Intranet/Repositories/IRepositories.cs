@@ -47,7 +47,10 @@ public interface IOperarioOficinaRepository
 {
     Task<OperarioOficina?> GetByIdAsync(int id);
     Task<OperarioOficina?> GetByIdentityUserIdAsync(string identityUserId);
+    Task<OperarioOficina?> GetByIdentityUserIdAnyAsync(string identityUserId);
     Task<List<OperarioOficina>> GetByOficinaAsync(int oficinaJsonId, bool soloActivos = true);
+    Task<OperarioOficina> CreateAsync(OperarioOficina entity);
+    Task UpdateAsync(OperarioOficina entity);
 }
 
 /// <summary>
