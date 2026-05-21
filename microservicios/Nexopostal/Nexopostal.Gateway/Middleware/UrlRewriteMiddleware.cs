@@ -29,7 +29,8 @@ public class UrlRewriteMiddleware
         "/api/nexopostal/envios/etiqueta/",
         "/api/nexopostal/envios/factura/",
         "/api/nexopostal/oficinas/",
-        "/api/nexopostal/admin-usuarios"   // IDs son GUIDs (strings), no enteros
+        "/api/nexopostal/admin-usuarios",  // IDs son GUIDs (strings), no enteros
+        "/api/nexopostal/tarifas"          // El gateway pierde los query params en GET
     ];
 
     // Compatibilidad para endpoints raíz /api/{apiKey} sin routeKey explícito.
