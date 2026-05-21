@@ -77,8 +77,11 @@ Estas cuentas se crean automaticamente en el seed del modulo Auth.
 |-----|-----|-------|----------|
 | Intranet | Admin | admin@nexopostal.es | Admin123! |
 | Intranet | OperarioOficina | operario@nexopostal.es | Operario123! |
+| Intranet | OperarioOficina | operario2@nexopostal.es | Operario123! |
 | Intranet | OperarioCTA | operario.cta@nexopostal.es | Operario123! |
+| Intranet | OperarioCTA | operario.cta2@nexopostal.es | Operario123! |
 | Intranet | Supervisor | supervisor@nexopostal.es | Operario123! |
+| Intranet | Supervisor | supervisor2@nexopostal.es | Operario123! |
 | Driver | Repartidor | repartidor@nexopostal.es | Repartidor123! |
 | Driver | Repartidor | repartidor2@nexopostal.es | Repartidor123! |
 | Driver | JefeReparto | jefe.reparto@nexopostal.es | Repartidor123! |

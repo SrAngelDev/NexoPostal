@@ -46,11 +46,44 @@ public static class SeedData
 
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
         {
+            Id = "operario-logistico-sergio-romero-seed-id",
+            UserName = "operario.cta2@nexopostal.es",
+            Email = "operario.cta2@nexopostal.es",
+            NombreCompleto = "Sergio Romero Vega",
+            CodigoEmpleado = "OPL002",
+            Rol = Rol.OperarioCTA,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "operario-oficina-diego-herrera-seed-id",
+            UserName = "operario2@nexopostal.es",
+            Email = "operario2@nexopostal.es",
+            NombreCompleto = "Diego Herrera Ortiz",
+            CodigoEmpleado = "OPE002",
+            Rol = Rol.OperarioOficina,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
             Id = "operario-jefe-laura-fernandez-seed-id",
             UserName = "supervisor@nexopostal.es",
             Email = "supervisor@nexopostal.es",
             NombreCompleto = "Laura Fernández Díaz",
             CodigoEmpleado = "OPJ001",
+            Rol = Rol.Supervisor,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "operario-jefe-marta-jimenez-seed-id",
+            UserName = "supervisor2@nexopostal.es",
+            Email = "supervisor2@nexopostal.es",
+            NombreCompleto = "Marta Jiménez Castro",
+            CodigoEmpleado = "OPJ002",
             Rol = Rol.Supervisor,
             EmailConfirmed = true
         }, "Operario123!");

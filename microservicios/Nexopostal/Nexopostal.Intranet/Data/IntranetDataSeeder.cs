@@ -10,22 +10,25 @@ namespace Nexopostal.Intranet.Data;
 /// Siembra:
 ///   - 17 CTAs distribuidos en las 7 Áreas Zonales de España
 ///   - 52 rutas de enrutamiento (prefijos CP → CTA)
-///   - 3 usuarios asignados a CTAs (Admin, OperarioCTA, Supervisor)
-///   - 2 usuarios asignados a TODAS las oficinas del JSON (OperarioOficina, Supervisor)
+///   - 5 usuarios asignados a CTAs (Admin, 2 OperarioCTA, 2 Supervisor)
+///   - 4 usuarios asignados a TODAS las oficinas del JSON (2 OperarioOficina, 2 Supervisor)
 /// 
 /// Roles:
 ///   - Admin: control total del sistema
-///   - OperarioOficina (María): mueve paquetes en las oficinas postales
-///   - OperarioCTA (Pedro): trabaja en los CTAs (clasificación, carga, movimientos troncales)
-///   - Supervisor (Laura): gestiona incidencias, altas de personal y métricas del CTA
+///   - OperarioOficina (María, Diego): mueve paquetes en las oficinas postales
+///   - OperarioCTA (Pedro, Sergio): trabaja en los CTAs (clasificación, carga, movimientos troncales)
+///   - Supervisor (Laura, Marta): gestiona incidencias, altas de personal y métricas del CTA
 /// </summary>
 public static class IntranetDataSeeder
 {
     // IDs fijos que coinciden con los del SeedData de Nexopostal.Auth
     private const string AdminSeedId = "admin-seed-id";
     private const string OperarioOficinaSeedId = "operario-maria-garcia-seed-id";
+    private const string OperarioOficina2SeedId = "operario-oficina-diego-herrera-seed-id";
     private const string OperarioCtaSeedId = "operario-logistico-pedro-martinez-seed-id";
+    private const string OperarioCta2SeedId = "operario-logistico-sergio-romero-seed-id";
     private const string SupervisorSeedId = "operario-jefe-laura-fernandez-seed-id";
+    private const string Supervisor2SeedId = "operario-jefe-marta-jimenez-seed-id";
 
     public static async Task SeedAsync(IntranetDbContext context, ILogger logger, OficinasJsonService oficinasService)
     {
@@ -54,17 +57,17 @@ public static class IntranetDataSeeder
         var operariosCta = CrearOperariosCta(ctas);
         context.OperariosCta.AddRange(operariosCta);
         await context.SaveChangesAsync();
-        logger.LogInformation("✓ {Count} asignaciones operario-CTA creadas (3 usuarios × {CtaCount} CTAs)",
+        logger.LogInformation("✓ {Count} asignaciones operario-CTA creadas (5 usuarios × {CtaCount} CTAs)",
             operariosCta.Count, ctas.Count);
 
         // 4. Asignar operarios de oficina a TODAS las oficinas del JSON
-        //    María García (OperarioOficina) y Laura Fernández (Supervisor)
+        //    María/Diego (OperarioOficina) y Laura/Marta (Supervisor)
         //    se asignan a todas las oficinas para poder probar el flujo completo.
         var todasLasOficinas = oficinasService.ObtenerTodas();
         var operariosOficina = CrearOperariosOficina(todasLasOficinas);
         context.OperariosOficina.AddRange(operariosOficina);
         await context.SaveChangesAsync();
-        logger.LogInformation("✓ {Count} asignaciones operario-oficina creadas (2 usuarios × {OficinaCount} oficinas)",
+        logger.LogInformation("✓ {Count} asignaciones operario-oficina creadas (4 usuarios × {OficinaCount} oficinas)",
             operariosOficina.Count, todasLasOficinas.Count);
 
         logger.LogInformation("Seeding completado exitosamente.");
@@ -382,9 +385,12 @@ public static class IntranetDataSeeder
     /// Usuarios CTA:
     ///   - Admin (admin@nexopostal.es) → Supervisor en todos los CTAs
     ///   - Pedro Martínez (operario.cta@nexopostal.es) → OperarioCTA en todos los CTAs
+    ///   - Pedro Martínez (operario.cta@nexopostal.es) → OperarioCTA en todos los CTAs
+    ///   - Sergio Romero (operario.cta2@nexopostal.es) → OperarioCTA en todos los CTAs
     ///   - Laura Fernández (supervisor@nexopostal.es) → Supervisor en todos los CTAs
+    ///   - Marta Jiménez (supervisor2@nexopostal.es) → Supervisor en todos los CTAs
     ///
-    /// María García NO se asigna a CTAs: ella es OperarioOficina y trabaja en oficinas.
+    /// Los OperarioOficina NO se asignan a CTAs: trabajan en oficinas.
     /// </summary>
     private static List<OperarioCta> CrearOperariosCta(List<CentroTratamiento> ctas)
     {
@@ -394,7 +400,9 @@ public static class IntranetDataSeeder
         {
             new { IdentityUserId = AdminSeedId, Nombre = "Administrador del Sistema", Codigo = "ADM001", Rol = RolOperario.Supervisor },
             new { IdentityUserId = OperarioCtaSeedId, Nombre = "Pedro Martínez Ruiz", Codigo = "OPL001", Rol = RolOperario.OperarioCTA },
+            new { IdentityUserId = OperarioCta2SeedId, Nombre = "Sergio Romero Vega", Codigo = "OPL002", Rol = RolOperario.OperarioCTA },
             new { IdentityUserId = SupervisorSeedId, Nombre = "Laura Fernández Díaz", Codigo = "OPJ001", Rol = RolOperario.Supervisor },
+            new { IdentityUserId = Supervisor2SeedId, Nombre = "Marta Jiménez Castro", Codigo = "OPJ002", Rol = RolOperario.Supervisor },
         };
 
         foreach (var usuario in usuariosCta)
@@ -420,7 +428,9 @@ public static class IntranetDataSeeder
     /// 
     /// Usuarios oficina:
     ///   - María García (operario@nexopostal.es) → OperarioOficina en TODAS las oficinas
+    ///   - Diego Herrera (operario2@nexopostal.es) → OperarioOficina en TODAS las oficinas
     ///   - Laura Fernández (supervisor@nexopostal.es) → Supervisor en TODAS las oficinas
+    ///   - Marta Jiménez (supervisor2@nexopostal.es) → Supervisor en TODAS las oficinas
     ///
     /// Esto permite probar el flujo completo oficina → CTA → CTA → oficina
     /// desde cualquier oficina de España.
@@ -432,7 +442,9 @@ public static class IntranetDataSeeder
         var usuariosOficina = new[]
         {
             new { IdentityUserId = OperarioOficinaSeedId, Nombre = "María García López", Codigo = "OPE001", Rol = RolOperario.OperarioOficina },
+            new { IdentityUserId = OperarioOficina2SeedId, Nombre = "Diego Herrera Ortiz", Codigo = "OPE002", Rol = RolOperario.OperarioOficina },
             new { IdentityUserId = SupervisorSeedId, Nombre = "Laura Fernández Díaz", Codigo = "OPJ001", Rol = RolOperario.Supervisor },
+            new { IdentityUserId = Supervisor2SeedId, Nombre = "Marta Jiménez Castro", Codigo = "OPJ002", Rol = RolOperario.Supervisor },
         };
 
         foreach (var usuario in usuariosOficina)
