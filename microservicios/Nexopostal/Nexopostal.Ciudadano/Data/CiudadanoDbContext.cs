@@ -19,6 +19,7 @@ public class CiudadanoDbContext : DbContext
     public DbSet<ClientePerfil> ClientePerfiles { get; set; }
     public DbSet<DireccionFavorita> DireccionesFavoritas { get; set; }
     public DbSet<Oficina> Oficinas { get; set; }
+    public DbSet<TarifaBanda> TarifasBandas { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -90,6 +91,38 @@ public class CiudadanoDbContext : DbContext
 
             entity.HasIndex(e => e.ClientePerfilId)
                 .HasDatabaseName("IX_DireccionFavorita_ClientePerfilId");
+        });
+
+        // Configuración + seed de TarifaBanda (4 series × 6 bandas = 24 filas)
+        modelBuilder.Entity<TarifaBanda>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.Serie, e.OrdenBanda }).IsUnique()
+                .HasDatabaseName("IX_TarifaBanda_Serie_Orden");
+
+            var bandas = new (decimal PesoHasta, decimal Local, decimal LocalPremium, decimal Pen, decimal PenPremium)[]
+            {
+                (1m,   4.50m,  6.50m,  5.95m,  8.95m),
+                (2m,   5.25m,  7.75m,  6.95m, 10.50m),
+                (5m,   6.95m, 10.50m,  8.95m, 13.95m),
+                (10m,  9.95m, 14.95m, 12.95m, 19.95m),
+                (20m, 14.95m, 21.95m, 18.95m, 28.95m),
+                (30m, 19.95m, 29.95m, 25.95m, 38.95m)
+            };
+
+            var seed = new List<TarifaBanda>();
+            var idCounter = 1;
+            var fechaSeed = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc);
+            for (var i = 0; i < bandas.Length; i++)
+            {
+                var b = bandas[i];
+                seed.Add(new TarifaBanda { Id = idCounter++, Serie = TarifaSerie.LocalEstandar,     OrdenBanda = i, PesoHastaKg = b.PesoHasta, PrecioBase = b.Local,        FechaModificacion = fechaSeed });
+                seed.Add(new TarifaBanda { Id = idCounter++, Serie = TarifaSerie.LocalPremium,      OrdenBanda = i, PesoHastaKg = b.PesoHasta, PrecioBase = b.LocalPremium, FechaModificacion = fechaSeed });
+                seed.Add(new TarifaBanda { Id = idCounter++, Serie = TarifaSerie.PeninsulaEstandar, OrdenBanda = i, PesoHastaKg = b.PesoHasta, PrecioBase = b.Pen,          FechaModificacion = fechaSeed });
+                seed.Add(new TarifaBanda { Id = idCounter++, Serie = TarifaSerie.PeninsulaPremium,  OrdenBanda = i, PesoHastaKg = b.PesoHasta, PrecioBase = b.PenPremium,   FechaModificacion = fechaSeed });
+            }
+
+            entity.HasData(seed);
         });
     }
 }

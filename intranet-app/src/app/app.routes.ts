@@ -64,6 +64,11 @@ export const routes: Routes = [
     canActivate: [adminGuard]
   },
   {
+    path: 'gestion-tarifas',
+    loadComponent: () => import('./pages/gestion-tarifas/gestion-tarifas.component').then(m => m.GestionTarifasComponent),
+    canActivate: [adminGuard]
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard]
