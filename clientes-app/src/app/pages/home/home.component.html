@@ -1,100 +1,8 @@
 <div class="home" [class.scrolled]="scrolled()">
-  <!-- ============ NAVBAR ============ -->
-  <nav class="home-nav">
-    <div class="home-nav-inner">
-      <button class="home-brand" (click)="navigateTo('/')" aria-label="Inicio">
-        <span class="brand-icon material-symbols-outlined">local_shipping</span>
-        <span class="brand-text">Nexo<span class="brand-accent">Postal</span></span>
-      </button>
-
-      <ul class="home-nav-links">
-        <li><a (click)="navigateTo('/particulares')">Particulares</a></li>
-        <li><a (click)="navigateTo('/empresas')">Empresas</a></li>
-        <li><a (click)="navigateTo('/calculadora-tarifas')">Tarifas</a></li>
-        <li><a (click)="navigateTo('/buscador-oficinas')">Oficinas</a></li>
-        <li><a (click)="navigateTo('/ayuda')">Ayuda</a></li>
-      </ul>
-
-      <div class="home-nav-actions">
-        @if (currentUser()) {
-          <div class="user-menu-container">
-            <button class="user-pill" (click)="toggleUserMenu()">
-              <span class="user-avatar"><span class="material-symbols-outlined">person</span></span>
-              <span class="user-name">{{ currentUser().user }}</span>
-              <span class="material-symbols-outlined chev">expand_more</span>
-            </button>
-            @if (showUserMenu()) {
-              <div class="dropdown fade-in">
-                <div class="dropdown-header">
-                  <p class="dropdown-name">{{ currentUser().user }}</p>
-                  <p class="dropdown-role">Cliente</p>
-                </div>
-                <button class="dropdown-item" (click)="navigateToPanel()">
-                  <span class="material-symbols-outlined">dashboard</span> Panel de usuario
-                </button>
-                <hr class="dropdown-sep" />
-                <button class="dropdown-item danger" (click)="logout()">
-                  <span class="material-symbols-outlined">logout</span> Cerrar sesión
-                </button>
-              </div>
-            }
-          </div>
-        } @else {
-          <div class="auth-buttons">
-            <button class="btn-link" (click)="openLoginModal()">Iniciar sesión</button>
-            <button class="btn btn-accent btn-sm" (click)="openRegisterModal()">Registrarse</button>
-          </div>
-        }
-
-        <div class="mobile-menu-container">
-          <button class="mobile-toggle" (click)="toggleMobileMenu()" [attr.aria-expanded]="showMobileMenu()" aria-label="Menú">
-            <span class="material-symbols-outlined">{{ showMobileMenu() ? 'close' : 'menu' }}</span>
-          </button>
-          @if (showMobileMenu()) {
-            <div class="mobile-sheet scale-in">
-              @if (currentUser()) {
-                <div class="dropdown-header">
-                  <p class="dropdown-name">{{ currentUser().user }}</p>
-                  <p class="dropdown-role">Cliente</p>
-                </div>
-              }
-              <button class="dropdown-item" (click)="navigateTo('/particulares')">
-                <span class="material-symbols-outlined">person</span> Particulares
-              </button>
-              <button class="dropdown-item" (click)="navigateTo('/empresas')">
-                <span class="material-symbols-outlined">business</span> Empresas
-              </button>
-              <button class="dropdown-item" (click)="navigateTo('/calculadora-tarifas')">
-                <span class="material-symbols-outlined">calculate</span> Tarifas
-              </button>
-              <button class="dropdown-item" (click)="navigateTo('/buscador-oficinas')">
-                <span class="material-symbols-outlined">storefront</span> Oficinas
-              </button>
-              <button class="dropdown-item" (click)="navigateTo('/ayuda')">
-                <span class="material-symbols-outlined">help</span> Ayuda
-              </button>
-              <hr class="dropdown-sep" />
-              @if (currentUser()) {
-                <button class="dropdown-item" (click)="navigateToPanel()">
-                  <span class="material-symbols-outlined">dashboard</span> Panel de usuario
-                </button>
-                <button class="dropdown-item danger" (click)="logout()">
-                  <span class="material-symbols-outlined">logout</span> Cerrar sesión
-                </button>
-              } @else {
-                <button class="dropdown-item" (click)="openLoginModal()">
-                  <span class="material-symbols-outlined">login</span> Iniciar sesión
-                </button>
-                <button class="dropdown-item highlight" (click)="openRegisterModal()">
-                  <span class="material-symbols-outlined">person_add</span> Registrarse
-                </button>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-  </nav>
+  <!-- ============ NAVBAR (compartido) ============ -->
+  <app-navbar-publico
+    (loginClick)="openLoginModal()"
+    (registerClick)="openRegisterModal()" />
 
   <!-- ============ BANNER PERFIL INCOMPLETO ============ -->
   @if (perfilIncompleto()) {
@@ -406,40 +314,8 @@
     </div>
   </section>
 
-  <!-- ============ FOOTER ============ -->
-  <footer class="footer">
-    <div class="footer-inner">
-      <div class="footer-cols">
-        <div class="footer-brand">
-          <div class="footer-logo">
-            <span class="material-symbols-outlined">local_shipping</span>
-            <span>Nexo<span class="brand-accent">Postal</span></span>
-          </div>
-          <p>Operador logístico nacional líder en tecnología y rapidez.</p>
-        </div>
-        <div class="footer-col">
-          <h4>Servicios</h4>
-          <a (click)="navigateTo('/nuevo-envio')">Enviar paquete</a>
-          <a (click)="navigateTo('/calculadora-tarifas')">Calculadora</a>
-          <a (click)="navigateTo('/buscador-oficinas')">Oficinas</a>
-        </div>
-        <div class="footer-col">
-          <h4>Compañía</h4>
-          <a (click)="navigateTo('/particulares')">Particulares</a>
-          <a (click)="navigateTo('/empresas')">Empresas</a>
-          <a (click)="navigateTo('/ayuda')">Ayuda</a>
-        </div>
-        <div class="footer-col">
-          <h4>Legal</h4>
-          <a (click)="navigateTo('/politica-privacidad')">Política de privacidad</a>
-          <a (click)="navigateTo('/terminos-uso')">Términos de uso</a>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>&copy; 2026 NexoPostal S.A. Todos los derechos reservados.</p>
-      </div>
-    </div>
-  </footer>
+  <!-- ============ FOOTER (compartido) ============ -->
+  <app-footer-publico />
 </div>
 
 <!-- Modales -->

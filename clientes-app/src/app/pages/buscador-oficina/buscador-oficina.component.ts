@@ -6,11 +6,12 @@ import { OficinasService, Oficina, SugerenciaLocal } from '../../services/oficin
 import { Subject, debounceTime, distinctUntilChanged, switchMap, of, map } from 'rxjs';
 import * as L from 'leaflet';
 import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
+import { FooterPublicoComponent } from '../../components/footer-publico/footer-publico.component';
 
 @Component({
   selector: 'app-buscador-oficina',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavbarPublicoComponent],
+  imports: [CommonModule, FormsModule, NavbarPublicoComponent, FooterPublicoComponent],
   templateUrl: './buscador-oficina.component.html',
   styleUrl: './buscador-oficina.component.css'
 })

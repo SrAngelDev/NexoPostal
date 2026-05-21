@@ -4,6 +4,8 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LoginComponent } from '../login/login.component';
 import { RegisterComponent } from '../register/register.component';
+import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
+import { FooterPublicoComponent } from '../../components/footer-publico/footer-publico.component';
 import { AuthService } from '../../services/auth.service';
 import { PerfilService } from '../../services/perfil.service';
 import { UsuarioService } from '../../services/usuario.service';
@@ -15,7 +17,7 @@ import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoginComponent, RegisterComponent],
+  imports: [CommonModule, FormsModule, LoginComponent, RegisterComponent, NavbarPublicoComponent, FooterPublicoComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
 })
