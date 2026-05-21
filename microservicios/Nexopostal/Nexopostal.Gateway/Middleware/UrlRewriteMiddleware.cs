@@ -33,6 +33,8 @@ public class UrlRewriteMiddleware
         "/api/nexopostal/admin-repartidores",  // rutas mixtas con identity/{guid} y {id}/reactivar
         "/api/nexopostal/admin-ctas",      // CRUD admin de CTAs con {id}/reactivar
         "/api/nexopostal/admin-tarifas",   // CRUD admin de tarifas (bandas de precio)
+        "/api/nexopostal/admin-oficinas",  // CRUD admin de oficinas postales
+        "/api/nexopostal/admin-vehiculos", // CRUD admin de vehículos (flota)
         "/api/nexopostal/tarifas"          // El gateway pierde los query params en GET
     ];
 

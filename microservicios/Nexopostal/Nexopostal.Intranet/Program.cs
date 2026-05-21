@@ -96,6 +96,7 @@ builder.Services.AddScoped<IAsignacionPaqueteRepository, AsignacionPaqueteReposi
 builder.Services.AddScoped<IMovimientoPaqueteRepository, MovimientoPaqueteRepository>();
 builder.Services.AddScoped<IIncidenciaRepository, IncidenciaRepository>();
 builder.Services.AddScoped<IHistorialEstadoRepository, HistorialEstadoRepository>();
+builder.Services.AddScoped<IOficinaRepository, OficinaRepository>();
 
 // 4. Registrar servicios propios
 builder.Services.AddScoped<IClasificacionService, ClasificacionService>();

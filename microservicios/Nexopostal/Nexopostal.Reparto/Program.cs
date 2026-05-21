@@ -79,6 +79,8 @@ builder.Services.AddScoped<IRepartoService, RepartoService>();
 builder.Services.AddScoped<IOptimizacionRutasService, OptimizacionRutasService>();
 builder.Services.AddScoped<IReintentoEntregaService, ReintentoEntregaService>();
 builder.Services.AddScoped<IBalanceoCargaService, BalanceoCargaService>();
+builder.Services.AddScoped<IVehiculoRepository, VehiculoRepository>();
+builder.Services.AddScoped<IVehiculoService, VehiculoService>();
 
 var ciudadanoTrackingBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoTrackingSettings:BaseUrl"]);
 // Fallback: vacío o placeholder sin resolver (${...}) — usar valor por defecto en red Docker.

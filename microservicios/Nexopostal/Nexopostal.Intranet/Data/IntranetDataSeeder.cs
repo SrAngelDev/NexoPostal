@@ -32,10 +32,56 @@ public static class IntranetDataSeeder
 
     public static async Task SeedAsync(IntranetDbContext context, ILogger logger, OficinasJsonService oficinasService)
     {
-        // Solo sembrar si no hay datos
+        // ── 0. Sembrar oficinas postales desde JSON (idempotente) ──
+        if (!await context.OficinasPostales.AnyAsync())
+        {
+            logger.LogInformation("Sembrando OficinasPostales desde JSON...");
+            var desdeJson = oficinasService.CargarDesdeJsonFile();
+            var ahora = DateTime.UtcNow;
+
+            foreach (var o in desdeJson)
+            {
+                context.OficinasPostales.Add(new OficinaPostal
+                {
+                    Id = o.Id,
+                    Nombre = o.Nombre,
+                    Direccion = o.Direccion,
+                    CodigoPostal = o.CodigoPostal,
+                    Ciudad = o.Ciudad,
+                    Provincia = null,
+                    Telefono = null,
+                    Horario = o.Horario,
+                    Servicios = o.Servicios,
+                    Latitud = o.Latitud,
+                    Longitud = o.Longitud,
+                    Activo = true,
+                    FechaAlta = ahora,
+                    FechaModificacion = ahora,
+                    ModificadoPorUserId = AdminSeedId
+                });
+            }
+            await context.SaveChangesAsync();
+
+            // Resync de la secuencia Identity de Postgres tras inserts con Id explícito.
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(
+                    "SELECT setval(pg_get_serial_sequence('\"OficinasPostales\"', 'Id'), " +
+                    "(SELECT COALESCE(MAX(\"Id\"), 1) FROM \"OficinasPostales\"));");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "No se pudo resyncronizar la secuencia de OficinasPostales (puede ser por dialecto no-Postgres)");
+            }
+
+            oficinasService.Invalidar();
+            logger.LogInformation("✓ {Count} oficinas postales sembradas en BD", desdeJson.Count);
+        }
+
+        // Solo sembrar el resto si no hay CTAs
         if (await context.CentrosTratamiento.AnyAsync())
         {
-            logger.LogInformation("La base de datos ya contiene datos. Seeding omitido.");
+            logger.LogInformation("La base de datos ya contiene datos logísticos. Seeding de CTAs/operarios omitido.");
             return;
         }
 

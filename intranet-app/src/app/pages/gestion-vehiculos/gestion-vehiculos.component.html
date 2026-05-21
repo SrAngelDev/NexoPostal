@@ -1,0 +1,273 @@
+<div class="page-container">
+  <div class="page-header">
+    <button class="btn-back" (click)="volver()" type="button">
+      <span class="material-symbols-outlined">arrow_back</span>
+      Volver
+    </button>
+    <h1>
+      <span class="material-symbols-outlined">local_shipping</span>
+      Gestión de Vehículos
+    </h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading()">
+        <span class="material-symbols-outlined">refresh</span>
+        Recargar
+      </button>
+      <button class="btn btn-secondary" (click)="toggleInactivos()" [disabled]="loading()">
+        <span class="material-symbols-outlined">{{ incluirInactivos() ? 'visibility_off' : 'visibility' }}</span>
+        {{ incluirInactivos() ? 'Ocultar inactivos' : 'Mostrar inactivos' }}
+      </button>
+      <button class="btn btn-secondary" (click)="importar()" [disabled]="importando()">
+        <span class="material-symbols-outlined">download</span>
+        Importar desde repartidores
+      </button>
+      <button class="btn btn-primary" (click)="abrirCrear()">
+        <span class="material-symbols-outlined">add</span>
+        Nuevo vehículo
+      </button>
+    </div>
+  </div>
+
+  <p class="page-description">
+    Inventario de la flota de NexoPostal. Permite asignar vehículos a repartidores; la asignación
+    sincroniza automáticamente el tipo de vehículo y matrícula del repartidor.
+    Los vehículos asignados no pueden desactivarse hasta liberarlos.
+  </p>
+
+  <div class="kpi-row">
+    <div class="kpi">
+      <span class="kpi-label">Total</span>
+      <span class="kpi-value">{{ vehiculos().length }}</span>
+    </div>
+    <div class="kpi kpi-ok">
+      <span class="kpi-label">Activos</span>
+      <span class="kpi-value">{{ totalActivos() }}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Asignados</span>
+      <span class="kpi-value">{{ totalAsignados() }}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Libres</span>
+      <span class="kpi-value">{{ totalLibres() }}</span>
+    </div>
+    <div class="kpi kpi-muted">
+      <span class="kpi-label">Inactivos</span>
+      <span class="kpi-value">{{ totalInactivos() }}</span>
+    </div>
+  </div>
+
+  <div class="filtros">
+    <div class="search-wrap">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text"
+             placeholder="Buscar por matrícula, marca, modelo o repartidor..."
+             [ngModel]="filtroTexto()"
+             (ngModelChange)="filtroTexto.set($event)" />
+    </div>
+    <select class="filtro-select"
+            [ngModel]="filtroTipo()"
+            (ngModelChange)="setFiltroTipo($event)">
+      <option value="todos">Todos los tipos</option>
+      @for (opt of tipoOptions; track opt.value) {
+        <option [value]="opt.value">{{ opt.label }}</option>
+      }
+    </select>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert-error">
+      <span class="material-symbols-outlined">error</span>
+      {{ error() }}
+      <button class="alert-close" (click)="error.set(null)">×</button>
+    </div>
+  }
+  @if (success()) {
+    <div class="alert alert-success">
+      <span class="material-symbols-outlined">check_circle</span>
+      {{ success() }}
+      <button class="alert-close" (click)="success.set(null)">×</button>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="material-symbols-outlined spin">progress_activity</span>
+      Cargando vehículos…
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Matrícula</th>
+            <th>Tipo</th>
+            <th>Marca/Modelo</th>
+            <th>Color</th>
+            <th>Año</th>
+            <th>Asignado a</th>
+            <th>Estado</th>
+            <th class="col-acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (v of vehiculosFiltrados(); track v.id) {
+            <tr [class.row-inactive]="!v.activo">
+              <td class="mono">{{ v.id }}</td>
+              <td class="mono"><strong>{{ v.matricula }}</strong></td>
+              <td>{{ tipoLabel(v.tipo) }}</td>
+              <td>
+                @if (v.marca || v.modelo) {
+                  {{ v.marca }} {{ v.modelo }}
+                } @else { <span class="muted">—</span> }
+              </td>
+              <td>{{ v.color || '—' }}</td>
+              <td>{{ v.anioFabricacion || '—' }}</td>
+              <td>
+                @if (v.repartidorAsignadoId) {
+                  <span class="badge badge-info">{{ v.repartidorAsignadoNombre }}</span>
+                } @else {
+                  <span class="muted">Libre</span>
+                }
+              </td>
+              <td>
+                @if (v.activo) {
+                  <span class="badge badge-success">Activo</span>
+                } @else {
+                  <span class="badge badge-muted">Inactivo</span>
+                }
+              </td>
+              <td class="col-acciones">
+                @if (v.activo) {
+                  <button class="btn-icon" (click)="abrirAsignar(v)" title="Asignar/Reasignar">
+                    <span class="material-symbols-outlined">person_pin</span>
+                  </button>
+                  @if (v.repartidorAsignadoId) {
+                    <button class="btn-icon" (click)="desasignarRapido(v)" title="Desasignar">
+                      <span class="material-symbols-outlined">person_off</span>
+                    </button>
+                  }
+                  <button class="btn-icon" (click)="abrirEditar(v)" title="Editar">
+                    <span class="material-symbols-outlined">edit</span>
+                  </button>
+                  <button class="btn-icon btn-icon-danger" (click)="desactivar(v)" title="Desactivar">
+                    <span class="material-symbols-outlined">block</span>
+                  </button>
+                } @else {
+                  <button class="btn-icon" (click)="reactivar(v)" title="Reactivar">
+                    <span class="material-symbols-outlined">restart_alt</span>
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="9" class="empty-state">No hay vehículos que coincidan con los filtros.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Modal Crear/Editar -->
+  @if (modalAbierto()) {
+    <div class="modal-backdrop" (click)="cerrarModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ modoEdicion() ? 'Editar vehículo' : 'Nuevo vehículo' }}</h2>
+          <button class="btn-close" (click)="cerrarModal()" type="button">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Matrícula *</label>
+              <input type="text" [ngModel]="form().matricula"
+                     (ngModelChange)="actualizarCampo('matricula', $event)" maxlength="20" />
+            </div>
+            <div class="form-field">
+              <label>Tipo *</label>
+              <select [ngModel]="form().tipo"
+                      (ngModelChange)="actualizarCampo('tipo', +$event)">
+                @for (opt of tipoOptions; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Marca</label>
+              <input type="text" [ngModel]="form().marca"
+                     (ngModelChange)="actualizarCampo('marca', $event)" maxlength="60" />
+            </div>
+            <div class="form-field">
+              <label>Modelo</label>
+              <input type="text" [ngModel]="form().modelo"
+                     (ngModelChange)="actualizarCampo('modelo', $event)" maxlength="60" />
+            </div>
+            <div class="form-field">
+              <label>Color</label>
+              <input type="text" [ngModel]="form().color"
+                     (ngModelChange)="actualizarCampo('color', $event)" maxlength="40" />
+            </div>
+            <div class="form-field">
+              <label>Año de fabricación</label>
+              <input type="number" [ngModel]="form().anioFabricacion"
+                     (ngModelChange)="actualizarCampo('anioFabricacion', $event)" min="1950" max="2099" />
+            </div>
+            <div class="form-field">
+              <label>Oficina (ID)</label>
+              <input type="number" [ngModel]="form().oficinaJsonId"
+                     (ngModelChange)="actualizarCampo('oficinaJsonId', $event)" />
+            </div>
+            <div class="form-field form-field-full">
+              <label>Notas</label>
+              <textarea rows="3" [ngModel]="form().notas"
+                        (ngModelChange)="actualizarCampo('notas', $event)" maxlength="500"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarModal()" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardar()" [disabled]="saving()">
+            @if (saving()) { Guardando… } @else { Guardar }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Asignar -->
+  @if (modalAsignarAbierto()) {
+    <div class="modal-backdrop" (click)="cerrarAsignar()">
+      <div class="modal modal-small" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Asignar vehículo {{ vehiculoAsignando()?.matricula }}</h2>
+          <button class="btn-close" (click)="cerrarAsignar()" type="button">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label>Repartidor</label>
+            <select [ngModel]="repartidorSeleccionado()"
+                    (ngModelChange)="repartidorSeleccionado.set($event === '' || $event == null ? null : +$event)">
+              <option [ngValue]="null">— Sin asignar —</option>
+              @for (r of repartidoresDisponibles(); track r.id) {
+                <option [ngValue]="r.id">{{ r.nombreCompleto }} ({{ r.codigoEmpleado }} · {{ r.oficinaNombre }})</option>
+              }
+            </select>
+          </div>
+          <p class="hint">
+            Asignar un vehículo actualizará automáticamente el tipo y matrícula registrados en
+            el repartidor.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarAsignar()" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary" (click)="confirmarAsignacion()" [disabled]="saving()">
+            @if (saving()) { Guardando… } @else { Confirmar }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

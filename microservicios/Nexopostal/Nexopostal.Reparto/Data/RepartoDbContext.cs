@@ -18,6 +18,7 @@ public class RepartoDbContext : DbContext
     public DbSet<RutaReparto> RutasReparto { get; set; }
     public DbSet<EntregaPaquete> EntregasPaquetes { get; set; }
     public DbSet<UbicacionRepartidor> UbicacionesRepartidores { get; set; }
+    public DbSet<Vehiculo> Vehiculos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -116,6 +117,27 @@ public class RepartoDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.RepartidorId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ===== Vehiculo =====
+        modelBuilder.Entity<Vehiculo>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Matricula).HasMaxLength(20).IsRequired();
+
+            entity.HasIndex(e => e.Matricula)
+                .IsUnique()
+                .HasDatabaseName("IX_Vehiculos_Matricula");
+
+            entity.HasIndex(e => e.RepartidorAsignadoId)
+                .HasDatabaseName("IX_Vehiculos_RepartidorAsignadoId");
+
+            entity.HasIndex(e => e.OficinaJsonId)
+                .HasDatabaseName("IX_Vehiculos_OficinaJsonId");
+
+            entity.HasIndex(e => e.Activo)
+                .HasDatabaseName("IX_Vehiculos_Activo");
         });
     }
 }

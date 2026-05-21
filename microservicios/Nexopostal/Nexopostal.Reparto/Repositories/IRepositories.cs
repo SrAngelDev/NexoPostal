@@ -48,3 +48,15 @@ public interface IUbicacionRepartidorRepository
     Task UpsertAsync(int repartidorId, double latitud, double longitud, int? rutaActivaId);
     Task<List<UbicacionRepartidor>> GetActivasAsync(TimeSpan ventana, int? oficinaJsonId = null);
 }
+
+/// <summary>Repositorio para Vehículos de la flota.</summary>
+public interface IVehiculoRepository
+{
+    Task<List<Vehiculo>> GetAllAsync(bool incluirInactivos = false, int? oficinaJsonId = null, int? repartidorId = null);
+    Task<Vehiculo?> GetByIdAsync(int id);
+    Task<Vehiculo?> GetByMatriculaAsync(string matricula);
+    Task<Vehiculo?> GetByRepartidorAsync(int repartidorId);
+    Task<bool> MatriculaExistsAsync(string matricula, int? excluyendoId = null);
+    Task<Vehiculo> CreateAsync(Vehiculo vehiculo);
+    Task UpdateAsync(Vehiculo vehiculo);
+}

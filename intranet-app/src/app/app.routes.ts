@@ -69,6 +69,16 @@ export const routes: Routes = [
     canActivate: [adminGuard]
   },
   {
+    path: 'gestion-oficinas',
+    loadComponent: () => import('./pages/gestion-oficinas/gestion-oficinas.component').then(m => m.GestionOficinasComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-vehiculos',
+    loadComponent: () => import('./pages/gestion-vehiculos/gestion-vehiculos.component').then(m => m.GestionVehiculosComponent),
+    canActivate: [adminGuard]
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard]
