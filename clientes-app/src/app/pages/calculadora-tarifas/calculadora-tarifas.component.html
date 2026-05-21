@@ -25,7 +25,8 @@
             <label class="text-sm font-semibold text-gray-700">Código Postal Origen</label>
             <input 
               type="text" 
-              [(ngModel)]="cpOrigen"
+              [ngModel]="cpOrigen()"
+              (ngModelChange)="cpOrigen.set($event)"
               placeholder="Ej: 28001" 
               maxlength="5" pattern="\d{5}"
               (keypress)="$event.charCode >= 48 && $event.charCode <= 57 || $event.preventDefault()"
@@ -36,7 +37,8 @@
             <label class="text-sm font-semibold text-gray-700">Código Postal Destino</label>
             <input 
               type="text" 
-              [(ngModel)]="cpDestino"
+              [ngModel]="cpDestino()"
+              (ngModelChange)="cpDestino.set($event)"
               placeholder="Ej: 08001" 
               maxlength="5" pattern="\d{5}"
               (keypress)="$event.charCode >= 48 && $event.charCode <= 57 || $event.preventDefault()"
@@ -54,7 +56,8 @@
             <label class="text-sm font-semibold text-gray-700">Peso (kg)</label>
             <input 
               type="number" 
-              [(ngModel)]="peso"
+              [ngModel]="peso()"
+              (ngModelChange)="peso.set($event)"
               step="0.1" 
               min="0.1"
               max="30"
@@ -67,7 +70,8 @@
             <label class="text-sm font-semibold text-gray-700">Largo (cm)</label>
             <input 
               type="number" 
-              [(ngModel)]="largo"
+              [ngModel]="largo()"
+              (ngModelChange)="largo.set($event)"
               min="10"
               max="170"
               placeholder="30" 
@@ -79,7 +83,8 @@
             <label class="text-sm font-semibold text-gray-700">Ancho (cm)</label>
             <input 
               type="number" 
-              [(ngModel)]="ancho"
+              [ngModel]="ancho()"
+              (ngModelChange)="ancho.set($event)"
               min="10"
               placeholder="20" 
               class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"
@@ -90,7 +95,8 @@
             <label class="text-sm font-semibold text-gray-700">Alto (cm)</label>
             <input 
               type="number" 
-              [(ngModel)]="alto"
+              [ngModel]="alto()"
+              (ngModelChange)="alto.set($event)"
               min="10"
               placeholder="10" 
               class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E] transition-colors"

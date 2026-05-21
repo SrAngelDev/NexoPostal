@@ -223,8 +223,13 @@ export type NavbarActiveLink =
 
     .home-nav-actions { display: flex; align-items: center; gap: 0.6rem; color: #fff; }
 
-    .auth-buttons { display: none; gap: 0.5rem; align-items: center; }
-    @media (min-width: 1024px) { .auth-buttons { display: inline-flex; } }
+    /* En móvil sólo mostramos la hamburguesa: ocultamos user-pill y botones de auth */
+    .user-menu-container,
+    .auth-buttons { display: none; }
+    @media (min-width: 1024px) {
+      .user-menu-container { display: inline-block; position: relative; }
+      .auth-buttons { display: inline-flex; gap: 0.5rem; align-items: center; }
+    }
     .btn-link {
       background: transparent; border: 0; color: #fff;
       font: 600 0.875rem var(--font-sans, system-ui);
@@ -261,7 +266,6 @@ export type NavbarActiveLink =
     @media (min-width: 640px) { .navbar-back-text { display: inline; } }
 
     /* User pill */
-    .user-menu-container { position: relative; }
     .user-pill {
       display: inline-flex; align-items: center; gap: 0.55rem;
       background: rgba(255,255,255,0.08);
