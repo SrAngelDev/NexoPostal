@@ -247,6 +247,7 @@
 }
 
 .row-blocked td { opacity: 0.6; background: #fafafa; }
+.row-deleted td { opacity: 0.5; background: #fef2f2; text-decoration: line-through; }
 
 .cell-email { color: #6b7280; font-size: 0.85rem; }
 .cell-codigo { color: #9ca3af; font-size: 0.85rem; font-family: monospace; }

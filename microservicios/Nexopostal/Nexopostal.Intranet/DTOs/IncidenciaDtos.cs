@@ -72,6 +72,11 @@ public class IncidenciaResumenDto
     public string ReportadaPor { get; set; } = string.Empty;
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaResolucion { get; set; }
+    // Opcional: contexto de CTA (sólo se rellena en vistas globales)
+    public int? CtaId { get; set; }
+    public string? CtaCodigo { get; set; }
+    public string? CtaNombre { get; set; }
+    public string? Descripcion { get; set; }
 }
 
 /// <summary>

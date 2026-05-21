@@ -19,6 +19,9 @@ public interface IIncidenciaService
     /// <summary>Obtiene las incidencias de un CTA</summary>
     Task<List<IncidenciaResumenDto>> ObtenerIncidenciasCta(int ctaId, EstadoIncidencia? filtroEstado = null);
 
+    /// <summary>Obtiene incidencias globales (Admin)</summary>
+    Task<List<IncidenciaResumenDto>> ObtenerIncidenciasGlobales(EstadoIncidencia? filtroEstado = null, int? ctaId = null, TipoIncidencia? tipo = null);
+
     /// <summary>Obtiene el detalle de una incidencia</summary>
     Task<IncidenciaDetalleDto?> ObtenerDetalle(int incidenciaId);
 
@@ -135,6 +138,26 @@ public class IncidenciaService : IIncidenciaService
             ReportadaPor = i.ReportadaPor.NombreCompleto,
             FechaCreacion = i.FechaCreacion,
             FechaResolucion = i.FechaResolucion
+        }).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<IncidenciaResumenDto>> ObtenerIncidenciasGlobales(EstadoIncidencia? filtroEstado = null, int? ctaId = null, TipoIncidencia? tipo = null)
+    {
+        var incidencias = await _incidenciaRepo.GetAllAsync(filtroEstado, ctaId, tipo);
+        return incidencias.Select(i => new IncidenciaResumenDto
+        {
+            Id = i.Id,
+            NumeroExpedicion = i.NumeroExpedicion,
+            Tipo = i.Tipo.ToString(),
+            Estado = i.Estado.ToString(),
+            ReportadaPor = i.ReportadaPor.NombreCompleto,
+            FechaCreacion = i.FechaCreacion,
+            FechaResolucion = i.FechaResolucion,
+            CtaId = i.CtaId,
+            CtaCodigo = i.Cta?.Codigo,
+            CtaNombre = i.Cta?.Nombre,
+            Descripcion = i.Descripcion
         }).ToList();
     }
 

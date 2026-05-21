@@ -1,0 +1,115 @@
+<div class="page-container">
+  <header class="page-header">
+    <button class="btn-back" (click)="volver()" title="Volver al panel">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+    <h1 class="page-title">
+      <span class="material-symbols-outlined title-icon">route</span>
+      Movimientos troncales globales
+    </h1>
+    <button class="btn-secondary" (click)="cargar()">
+      <span class="material-symbols-outlined">refresh</span>
+      Recargar
+    </button>
+  </header>
+
+  <div class="kpi-grid">
+    <div class="kpi-card"><span class="kpi-label">Total</span><span class="kpi-value">{{ resumen().total }}</span></div>
+    <div class="kpi-card kpi-info"><span class="kpi-label">Programados</span><span class="kpi-value">{{ resumen().programados }}</span></div>
+    <div class="kpi-card kpi-warning"><span class="kpi-label">En tránsito</span><span class="kpi-value">{{ resumen().enTransito }}</span></div>
+    <div class="kpi-card"><span class="kpi-label">Recibidos</span><span class="kpi-value">{{ resumen().recibidos }}</span></div>
+    <div class="kpi-card kpi-danger"><span class="kpi-label">Urgentes</span><span class="kpi-value">{{ resumen().urgentes }}</span></div>
+  </div>
+
+  <div class="filters-bar">
+    <div class="filter-group">
+      <label>Estado</label>
+      <select class="input-select"
+              [ngModel]="filtroEstado()"
+              (ngModelChange)="filtroEstado.set($event); cargar()">
+        @for (e of ESTADOS; track e) {
+          <option [value]="e">{{ e || 'Todos' }}</option>
+        }
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>CTA origen</label>
+      <select class="input-select"
+              [ngModel]="filtroOrigen()"
+              (ngModelChange)="filtroOrigen.set($event); cargar()">
+        <option [ngValue]="null">Todos</option>
+        @for (c of ctas(); track c.id) {
+          <option [ngValue]="c.id">{{ c.codigo }}</option>
+        }
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>CTA destino</label>
+      <select class="input-select"
+              [ngModel]="filtroDestino()"
+              (ngModelChange)="filtroDestino.set($event); cargar()">
+        <option [ngValue]="null">Todos</option>
+        @for (c of ctas(); track c.id) {
+          <option [ngValue]="c.id">{{ c.codigo }}</option>
+        }
+      </select>
+    </div>
+    <button class="btn-secondary" (click)="limpiarFiltros()">Limpiar</button>
+  </div>
+
+  @if (error(); as msg) {
+    <div class="alert alert-error">
+      <span class="material-symbols-outlined">error</span> {{ msg }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+      Cargando movimientos…
+    </div>
+  } @else if (movimientos().length === 0) {
+    <div class="empty-state">
+      <span class="material-symbols-outlined">route</span>
+      No hay movimientos que coincidan con los filtros.
+    </div>
+  } @else {
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Expedición</th>
+            <th>Origen</th>
+            <th>Destino</th>
+            <th>Transporte</th>
+            <th>Estado</th>
+            <th class="text-center">Urgente</th>
+            <th>Creado</th>
+            <th>Salida</th>
+            <th>Llegada</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of movimientos(); track m.id) {
+            <tr [class.row-urgent]="m.esUrgente">
+              <td>{{ m.id }}</td>
+              <td class="cell-strong">{{ m.numeroExpedicion }}</td>
+              <td>{{ m.ctaOrigenCodigo }}</td>
+              <td>{{ m.ctaDestinoCodigo }}</td>
+              <td>
+                <span class="material-symbols-outlined transporte-icon">{{ iconTransporte(m.tipoTransporte) }}</span>
+                {{ m.tipoTransporte }}
+              </td>
+              <td><span class="badge" [class]="badgeClass(m.estado)">{{ m.estado }}</span></td>
+              <td class="text-center">{{ m.esUrgente ? '⚡' : '—' }}</td>
+              <td>{{ m.fechaCreacion | date:'short' }}</td>
+              <td>{{ m.fechaSalida ? (m.fechaSalida | date:'short') : '—' }}</td>
+              <td>{{ m.fechaLlegada ? (m.fechaLlegada | date:'short') : '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

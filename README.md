@@ -85,6 +85,7 @@ Estas cuentas se crean automaticamente en el seed del modulo Auth.
 | Driver | Repartidor | repartidor@nexopostal.es | Repartidor123! |
 | Driver | Repartidor | repartidor2@nexopostal.es | Repartidor123! |
 | Driver | JefeReparto | jefe.reparto@nexopostal.es | Repartidor123! |
+| Driver | JefeReparto | jefe.reparto2@nexopostal.es | Repartidor123! |
 | Clientes | Cliente demo | cliente@example.com | Cliente123! |
 
 ---

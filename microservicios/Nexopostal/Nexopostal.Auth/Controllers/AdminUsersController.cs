@@ -24,13 +24,14 @@ public class AdminUsersController : ControllerBase
     public async Task<IActionResult> Listar(
         [FromQuery] string? rol,
         [FromQuery] bool? bloqueado,
-        [FromQuery] string? q)
+        [FromQuery] string? q,
+        [FromQuery] bool incluirEliminados = false)
     {
         Rol? rolEnum = null;
         if (!string.IsNullOrWhiteSpace(rol) && Enum.TryParse<Rol>(rol, out var parsed))
             rolEnum = parsed;
 
-        var usuarios = await _adminUserService.ListarUsuariosAsync(rolEnum, bloqueado, q);
+        var usuarios = await _adminUserService.ListarUsuariosAsync(rolEnum, bloqueado, q, incluirEliminados);
         return Ok(usuarios);
     }
 
@@ -95,5 +96,36 @@ public class AdminUsersController : ControllerBase
             return BadRequest(new { message = error });
 
         return CreatedAtAction(nameof(Detalle), new { id = user.Id }, user);
+    }
+
+    /// <summary>Edita los datos básicos de un empleado (nombre, email, código, teléfono y rol).</summary>
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Editar(string id, [FromBody] AdminEditarEmpleadoDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var (user, error) = await _adminUserService.EditarEmpleadoAsync(id, dto, adminId);
+        if (user == null)
+            return BadRequest(new { message = error });
+
+        return Ok(user);
+    }
+
+    /// <summary>Borrado lógico del usuario: bloquea sesión, invalida refresh tokens y lo oculta de los listados.</summary>
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Eliminar(string id)
+    {
+        var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var (ok, error) = await _adminUserService.EliminarAsync(id, adminId);
+        return ok ? NoContent() : BadRequest(new { message = error });
+    }
+
+    /// <summary>Revierte el borrado lógico de un usuario.</summary>
+    [HttpPost("{id}/restaurar")]
+    public async Task<IActionResult> Restaurar(string id)
+    {
+        var (ok, error) = await _adminUserService.RestaurarAsync(id);
+        return ok ? NoContent() : BadRequest(new { message = error });
     }
 }

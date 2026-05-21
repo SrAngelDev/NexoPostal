@@ -60,6 +60,17 @@
       </label>
     </div>
 
+    <div class="filter-group filter-checkbox">
+      <label>
+        <input
+          type="checkbox"
+          [ngModel]="filtroIncluirEliminados()"
+          (ngModelChange)="filtroIncluirEliminados.set($event); cargar()"
+        />
+        Incluir eliminados
+      </label>
+    </div>
+
     <button class="btn-secondary" (click)="cargar()" title="Actualizar">
       <span class="material-symbols-outlined">refresh</span>
     </button>
@@ -94,7 +105,10 @@
         </thead>
         <tbody>
           @for (u of usuarios(); track u.id) {
-            <tr class="clickable-row" [class.row-blocked]="u.bloqueado" (click)="verDetalle(u)">
+            <tr class="clickable-row"
+                [class.row-blocked]="u.bloqueado"
+                [class.row-deleted]="u.eliminado"
+                (click)="verDetalle(u)">
               <td class="cell-nombre">{{ u.nombreCompleto }}</td>
               <td class="cell-email">{{ u.email }}</td>
               <td class="cell-codigo">{{ u.codigoEmpleado || '—' }}</td>
@@ -103,7 +117,12 @@
               </td>
               <td class="cell-fecha">{{ u.fechaRegistro | date:'dd/MM/yyyy' }}</td>
               <td>
-                @if (u.bloqueado) {
+                @if (u.eliminado) {
+                  <span class="status-badge status-blocked" title="Eliminado">
+                    <span class="material-symbols-outlined">delete</span>
+                    Eliminado
+                  </span>
+                } @else if (u.bloqueado) {
                   <span class="status-badge status-blocked">
                     <span class="material-symbols-outlined">block</span>
                     Bloqueado

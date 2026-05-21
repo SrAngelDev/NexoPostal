@@ -10,9 +10,12 @@ namespace Nexopostal.Reparto.Services;
 public interface IRepartoService
 {
     // ─── Repartidores ───
-    Task<List<RepartidorResumenDto>> ObtenerRepartidores(int? oficinaJsonId = null);
+    Task<List<RepartidorResumenDto>> ObtenerRepartidores(int? oficinaJsonId = null, bool incluirInactivos = false);
     Task<RepartidorResumenDto?> ObtenerRepartidorPorIdentityId(string identityUserId);
     Task<RepartidorResumenDto> CrearRepartidor(CrearRepartidorDto dto);
+    Task<(RepartidorResumenDto? Repartidor, string? Error)> EditarRepartidor(int id, EditarRepartidorDto dto);
+    Task<(bool Ok, string? Error)> DesactivarRepartidor(int id);
+    Task<(bool Ok, string? Error)> ReactivarRepartidor(int id);
 
     // ─── Rutas ───
     Task<List<RutaRepartoResumenDto>> ObtenerRutas(DateOnly? fecha = null, int? repartidorId = null);
@@ -70,10 +73,10 @@ public class RepartoService : IRepartoService
     //  REPARTIDORES
     // ═══════════════════════════════════════════
 
-    public async Task<List<RepartidorResumenDto>> ObtenerRepartidores(int? oficinaJsonId = null)
+    public async Task<List<RepartidorResumenDto>> ObtenerRepartidores(int? oficinaJsonId = null, bool incluirInactivos = false)
     {
         var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
-        var repartidores = await _repartidorRepo.GetAllAsync(oficinaJsonId);
+        var repartidores = await _repartidorRepo.GetAllAsync(oficinaJsonId, incluirInactivos);
 
         return repartidores.Select(r => new RepartidorResumenDto
         {
@@ -139,6 +142,76 @@ public class RepartoService : IRepartoService
             Activo = repartidor.Activo,
             RutasHoy = 0
         };
+    }
+
+    public async Task<(RepartidorResumenDto? Repartidor, string? Error)> EditarRepartidor(int id, EditarRepartidorDto dto)
+    {
+        var repartidor = await _repartidorRepo.GetByIdAsync(id);
+        if (repartidor == null)
+            return (null, "Repartidor no encontrado.");
+
+        if (!Enum.TryParse<TipoVehiculo>(dto.TipoVehiculo, ignoreCase: true, out var tipo))
+            return (null, $"Tipo de vehículo no válido: {dto.TipoVehiculo}.");
+
+        repartidor.NombreCompleto    = string.IsNullOrWhiteSpace(dto.NombreCompleto) ? repartidor.NombreCompleto : dto.NombreCompleto.Trim();
+        repartidor.Telefono          = string.IsNullOrWhiteSpace(dto.Telefono) ? null : dto.Telefono.Trim();
+        repartidor.OficinaJsonId     = dto.OficinaJsonId;
+        repartidor.OficinaNombre     = dto.OficinaNombre?.Trim() ?? string.Empty;
+        repartidor.TipoVehiculo      = tipo;
+        repartidor.MatriculaVehiculo = string.IsNullOrWhiteSpace(dto.MatriculaVehiculo) ? null : dto.MatriculaVehiculo.Trim().ToUpperInvariant();
+
+        await _repartidorRepo.UpdateAsync(repartidor);
+
+        _logger.LogInformation("Repartidor {Id} actualizado por administrador", id);
+
+        var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+        return (new RepartidorResumenDto
+        {
+            Id = repartidor.Id,
+            NombreCompleto = repartidor.NombreCompleto,
+            CodigoEmpleado = repartidor.CodigoEmpleado,
+            Telefono = repartidor.Telefono,
+            OficinaJsonId = repartidor.OficinaJsonId,
+            OficinaNombre = repartidor.OficinaNombre,
+            TipoVehiculo = repartidor.TipoVehiculo.ToString(),
+            Activo = repartidor.Activo,
+            RutasHoy = repartidor.Rutas.Count(rt => rt.FechaReparto == hoy)
+        }, null);
+    }
+
+    public async Task<(bool Ok, string? Error)> DesactivarRepartidor(int id)
+    {
+        var repartidor = await _repartidorRepo.GetByIdAsync(id);
+        if (repartidor == null)
+            return (false, "Repartidor no encontrado.");
+
+        if (!repartidor.Activo)
+            return (true, null); // idempotente
+
+        if (await _repartidorRepo.TieneRutasActivasAsync(id))
+            return (false, "No se puede desactivar: el repartidor tiene rutas planificadas o en curso. Reasigna o cancela esas rutas primero.");
+
+        repartidor.Activo = false;
+        await _repartidorRepo.UpdateAsync(repartidor);
+
+        _logger.LogInformation("Repartidor {Id} desactivado", id);
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, string? Error)> ReactivarRepartidor(int id)
+    {
+        var repartidor = await _repartidorRepo.GetByIdAsync(id);
+        if (repartidor == null)
+            return (false, "Repartidor no encontrado.");
+
+        if (repartidor.Activo)
+            return (true, null);
+
+        repartidor.Activo = true;
+        await _repartidorRepo.UpdateAsync(repartidor);
+
+        _logger.LogInformation("Repartidor {Id} reactivado", id);
+        return (true, null);
     }
 
     // ═══════════════════════════════════════════

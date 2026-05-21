@@ -28,39 +28,150 @@
           Cuenta
         </h2>
 
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">Nombre</span>
-            <span class="value">{{ u.nombreCompleto }}</span>
+        @if (u.eliminado) {
+          <div class="alert alert-warning">
+            <span class="material-symbols-outlined">delete</span>
+            Usuario eliminado el {{ u.eliminadoEnUtc | date:'dd/MM/yyyy HH:mm' }}.
+            Está oculto de los listados y no puede iniciar sesión.
           </div>
-          <div class="info-item">
-            <span class="label">Email</span>
-            <span class="value">{{ u.email }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Código empleado</span>
-            <span class="value">{{ u.codigoEmpleado || '—' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Registro</span>
-            <span class="value">{{ u.fechaRegistro | date:'dd/MM/yyyy HH:mm' }}</span>
-          </div>
-        </div>
+        }
 
-        <div class="status-row">
-          <span class="badge" [ngClass]="rolBadgeClass(u.rol)">{{ u.rol }}</span>
-          @if (u.bloqueado) {
-            <span class="state-chip blocked">
-              <span class="material-symbols-outlined">block</span>
-              Bloqueado
-            </span>
-          } @else {
-            <span class="state-chip active">
-              <span class="material-symbols-outlined">check_circle</span>
-              Activo
-            </span>
+        @if (!editando()) {
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">Nombre</span>
+              <span class="value">{{ u.nombreCompleto }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Email</span>
+              <span class="value">{{ u.email }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Código empleado</span>
+              <span class="value">{{ u.codigoEmpleado || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Teléfono</span>
+              <span class="value">{{ u.phoneNumber || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Registro</span>
+              <span class="value">{{ u.fechaRegistro | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+          </div>
+
+          <div class="status-row">
+            <span class="badge" [ngClass]="rolBadgeClass(u.rol)">{{ u.rol }}</span>
+            @if (u.bloqueado) {
+              <span class="state-chip blocked">
+                <span class="material-symbols-outlined">block</span>
+                Bloqueado
+              </span>
+            } @else {
+              <span class="state-chip active">
+                <span class="material-symbols-outlined">check_circle</span>
+                Activo
+              </span>
+            }
+          </div>
+
+          <div class="actions-row">
+            @if (!u.eliminado) {
+              <button class="btn-primary" (click)="iniciarEdicion()">
+                <span class="material-symbols-outlined">edit</span>
+                Editar datos
+              </button>
+              <button class="btn-danger"
+                      [disabled]="savingEliminar()"
+                      (click)="eliminarUsuario()">
+                <span class="material-symbols-outlined">delete</span>
+                @if (savingEliminar()) { Eliminando... } @else { Eliminar usuario }
+              </button>
+            } @else {
+              <button class="btn-primary"
+                      [disabled]="savingEliminar()"
+                      (click)="restaurarUsuario()">
+                <span class="material-symbols-outlined">restore</span>
+                @if (savingEliminar()) { Restaurando... } @else { Restaurar usuario }
+              </button>
+            }
+          </div>
+
+          @if (actionEliminarError()) {
+            <div class="alert alert-error">
+              <span class="material-symbols-outlined">error</span>
+              {{ actionEliminarError() }}
+            </div>
           }
-        </div>
+          @if (actionEdicionOk()) {
+            <div class="alert alert-success">
+              <span class="material-symbols-outlined">check_circle</span>
+              {{ actionEdicionOk() }}
+            </div>
+          }
+        } @else {
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nombre completo *</label>
+              <input type="text"
+                     class="input-text"
+                     [ngModel]="formEdicion().nombreCompleto"
+                     (ngModelChange)="actualizarFormEdicion('nombreCompleto', $event)" />
+            </div>
+            <div class="form-group">
+              <label>Email *</label>
+              <input type="email"
+                     class="input-text"
+                     [ngModel]="formEdicion().email"
+                     (ngModelChange)="actualizarFormEdicion('email', $event)" />
+            </div>
+            <div class="form-group">
+              <label>Código empleado</label>
+              <input type="text"
+                     class="input-text"
+                     [ngModel]="formEdicion().codigoEmpleado"
+                     (ngModelChange)="actualizarFormEdicion('codigoEmpleado', $event)" />
+            </div>
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input type="tel"
+                     class="input-text"
+                     [ngModel]="formEdicion().phoneNumber"
+                     (ngModelChange)="actualizarFormEdicion('phoneNumber', $event)" />
+            </div>
+            <div class="form-group">
+              <label>Rol *</label>
+              <select class="input-select"
+                      [ngModel]="formEdicion().rol"
+                      (ngModelChange)="actualizarFormEdicion('rol', $event)">
+                @for (r of rolesEmpleado; track r) {
+                  <option [ngValue]="r">{{ r }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          @if (actionEdicionError()) {
+            <div class="alert alert-error">
+              <span class="material-symbols-outlined">error</span>
+              {{ actionEdicionError() }}
+            </div>
+          }
+
+          <div class="actions-row">
+            <button class="btn-primary"
+                    [disabled]="savingEdicion()"
+                    (click)="guardarEdicion()">
+              <span class="material-symbols-outlined">save</span>
+              @if (savingEdicion()) { Guardando... } @else { Guardar cambios }
+            </button>
+            <button class="btn-secondary"
+                    [disabled]="savingEdicion()"
+                    (click)="cancelarEdicion()">
+              Cancelar
+            </button>
+          </div>
+        }
       </section>
 
       <section class="card">

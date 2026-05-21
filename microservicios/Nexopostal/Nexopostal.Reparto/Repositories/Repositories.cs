@@ -17,9 +17,11 @@ public class RepartidorRepository : IRepartidorRepository
             .Include(r => r.Rutas)
             .FirstOrDefaultAsync(r => r.IdentityUserId == identityUserId);
 
-    public async Task<List<Repartidor>> GetAllAsync(int? oficinaJsonId = null)
+    public async Task<List<Repartidor>> GetAllAsync(int? oficinaJsonId = null, bool incluirInactivos = false)
     {
         var query = _context.Repartidores.Include(r => r.Rutas).AsQueryable();
+        if (!incluirInactivos)
+            query = query.Where(r => r.Activo);
         if (oficinaJsonId.HasValue)
             query = query.Where(r => r.OficinaJsonId == oficinaJsonId.Value);
         return await query.OrderBy(r => r.NombreCompleto).ToListAsync();
@@ -30,6 +32,19 @@ public class RepartidorRepository : IRepartidorRepository
         _context.Repartidores.Add(repartidor);
         await _context.SaveChangesAsync();
         return repartidor;
+    }
+
+    public async Task UpdateAsync(Repartidor repartidor)
+    {
+        _context.Repartidores.Update(repartidor);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> TieneRutasActivasAsync(int repartidorId)
+    {
+        return await _context.RutasReparto
+            .AnyAsync(r => r.RepartidorId == repartidorId
+                        && (r.Estado == EstadoRuta.Planificada || r.Estado == EstadoRuta.EnCurso));
     }
 }
 

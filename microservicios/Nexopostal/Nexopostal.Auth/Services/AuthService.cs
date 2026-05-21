@@ -54,7 +54,9 @@ public class AuthService : IAuthService
         if (user == null || !await _userRepository.CheckPasswordAsync(user, dto.Password))
             return (null, false);
 
-        if (await _userRepository.IsLockedOutAsync(user))
+        // Tratamos a los usuarios eliminados (borrado lógico) como bloqueados
+        // para no revelar la existencia de la cuenta y para forzar al admin a restaurar.
+        if (user.Eliminado || await _userRepository.IsLockedOutAsync(user))
             return (null, true);
 
         return (await EmitTokenPairAsync(user), false);
@@ -91,7 +93,7 @@ public class AuthService : IAuthService
         if (user == null)
             return null;
 
-        if (await _userRepository.IsLockedOutAsync(user))
+        if (user.Eliminado || await _userRepository.IsLockedOutAsync(user))
         {
             await RevokeRefreshTokenAsync(user);
             return null;

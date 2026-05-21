@@ -35,6 +35,7 @@ export class GestionUsuariosComponent implements OnInit {
   filtroRol      = signal('');
   filtroBloqueado = signal<boolean | undefined>(undefined);
   filtroQ        = signal('');
+  filtroIncluirEliminados = signal(false);
 
   // Modales
   modalCrear   = signal(false);
@@ -70,8 +71,9 @@ export class GestionUsuariosComponent implements OnInit {
     const rol      = this.filtroRol() || undefined;
     const bloqueado = this.filtroBloqueado();
     const q        = this.filtroQ() || undefined;
+    const incluirEliminados = this.filtroIncluirEliminados();
 
-    this.adminService.listarUsuarios(rol, bloqueado, q).subscribe({
+    this.adminService.listarUsuarios(rol, bloqueado, q, incluirEliminados).subscribe({
       next: (lista) => {
         this.usuarios.set(lista);
         this.loading.set(false);

@@ -18,10 +18,14 @@ namespace Nexopostal.Intranet.Controllers;
 public class CtasController : ControllerBase
 {
     private readonly IClasificacionService _clasificacionService;
+    private readonly IAdminCtaService _adminCtaService;
 
-    public CtasController(IClasificacionService clasificacionService)
+    public CtasController(
+        IClasificacionService clasificacionService,
+        IAdminCtaService adminCtaService)
     {
         _clasificacionService = clasificacionService;
+        _adminCtaService = adminCtaService;
     }
 
     /// <summary>
@@ -89,5 +93,70 @@ public class CtasController : ControllerBase
     {
         var dashboard = await _clasificacionService.ObtenerDashboardAdmin();
         return Ok(dashboard);
+    }
+
+    // ============================================================
+    //  Endpoints administrativos (Admin) — CRUD de CTAs
+    // ============================================================
+
+    /// <summary>
+    /// Crea un nuevo Centro de Tratamiento Automatizado. Solo Admin.
+    /// </summary>
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(CtaDetalleDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<CtaDetalleDto>> Crear([FromBody] CrearCtaDto dto)
+    {
+        var (cta, error) = await _adminCtaService.CrearCta(dto);
+        if (cta == null) return BadRequest(new { message = error ?? "No se pudo crear el CTA." });
+        return CreatedAtAction(nameof(ObtenerDetalle), new { id = cta.Id }, cta);
+    }
+
+    /// <summary>
+    /// Edita los datos de un CTA existente (excepto el código). Solo Admin.
+    /// </summary>
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(CtaDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<CtaDetalleDto>> Editar(int id, [FromBody] EditarCtaDto dto)
+    {
+        var (cta, error) = await _adminCtaService.EditarCta(id, dto);
+        if (cta == null)
+        {
+            if (error == "CTA no encontrado.") return NotFound(new { message = error });
+            return BadRequest(new { message = error });
+        }
+        return Ok(cta);
+    }
+
+    /// <summary>
+    /// Desactiva un CTA (soft delete). Falla si hay operarios, tareas o movimientos activos.
+    /// </summary>
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Desactivar(int id)
+    {
+        var (ok, error) = await _adminCtaService.DesactivarCta(id);
+        if (!ok) return BadRequest(new { message = error });
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Reactiva un CTA previamente desactivado.
+    /// </summary>
+    [HttpPost("{id:int}/reactivar")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Reactivar(int id)
+    {
+        var (ok, error) = await _adminCtaService.ReactivarCta(id);
+        if (!ok) return BadRequest(new { message = error });
+        return NoContent();
     }
 }

@@ -7,8 +7,12 @@ public interface IRepartidorRepository
 {
     Task<Repartidor?> GetByIdAsync(int id);
     Task<Repartidor?> GetByIdentityUserIdAsync(string identityUserId);
-    Task<List<Repartidor>> GetAllAsync(int? oficinaJsonId = null);
+    Task<List<Repartidor>> GetAllAsync(int? oficinaJsonId = null, bool incluirInactivos = false);
     Task<Repartidor> CreateAsync(Repartidor repartidor);
+    Task UpdateAsync(Repartidor repartidor);
+
+    /// <summary>True si el repartidor tiene rutas en estado Planificada o EnCurso.</summary>
+    Task<bool> TieneRutasActivasAsync(int repartidorId);
 }
 
 /// <summary>Repositorio para RutasReparto</summary>

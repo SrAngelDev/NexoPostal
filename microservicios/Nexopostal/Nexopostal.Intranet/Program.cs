@@ -99,6 +99,7 @@ builder.Services.AddScoped<IHistorialEstadoRepository, HistorialEstadoRepository
 
 // 4. Registrar servicios propios
 builder.Services.AddScoped<IClasificacionService, ClasificacionService>();
+builder.Services.AddScoped<IAdminCtaService, AdminCtaService>();
 builder.Services.AddScoped<IOperarioService, OperarioService>();
 builder.Services.AddScoped<IAsignacionService, AsignacionService>();
 builder.Services.AddScoped<IMovimientoService, MovimientoService>();

@@ -40,6 +40,21 @@ public class AdminUsersProxyController : ControllerBase
     public Task<IActionResult> Crear() =>
         Proxy(HttpMethod.Post, _authUrl, "api/admin-usuarios");
 
+    /// <summary>Edita datos básicos de un empleado (nombre/email/codigo/teléfono/rol).</summary>
+    [HttpPut("{id}")]
+    public Task<IActionResult> Editar(string id) =>
+        Proxy(HttpMethod.Put, _authUrl, $"api/admin-usuarios/{id}");
+
+    /// <summary>Borrado lógico de un empleado.</summary>
+    [HttpDelete("{id}")]
+    public Task<IActionResult> Eliminar(string id) =>
+        Proxy(HttpMethod.Delete, _authUrl, $"api/admin-usuarios/{id}");
+
+    /// <summary>Restaura un empleado borrado lógicamente.</summary>
+    [HttpPost("{id}/restaurar")]
+    public Task<IActionResult> Restaurar(string id) =>
+        Proxy(HttpMethod.Post, _authUrl, $"api/admin-usuarios/{id}/restaurar");
+
     /// <summary>Cambia el rol de un usuario.</summary>
     [HttpPut("{id}/rol")]
     public Task<IActionResult> CambiarRol(string id) =>

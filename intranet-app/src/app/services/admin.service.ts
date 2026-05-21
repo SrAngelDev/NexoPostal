@@ -43,9 +43,12 @@ export interface UsuarioAdminDto {
   nombreCompleto: string;
   email: string;
   codigoEmpleado?: string;
+  phoneNumber?: string;
   rol: string;
   fechaRegistro: string;
   bloqueado: boolean;
+  eliminado: boolean;
+  eliminadoEnUtc?: string;
 }
 
 export interface AdminCrearEmpleadoDto {
@@ -56,11 +59,63 @@ export interface AdminCrearEmpleadoDto {
   password: string;
 }
 
+export interface AdminEditarEmpleadoDto {
+  nombreCompleto: string;
+  email: string;
+  codigoEmpleado?: string;
+  phoneNumber?: string;
+  rol: string;
+}
+
 export interface CtaResumenDto {
   id: number;
   codigo: string;
   nombre: string;
   area: string;
+  ciudad?: string;
+  provincia?: string;
+  esNodoAereo?: boolean;
+  esNodoMaritimo?: boolean;
+  activo?: boolean;
+  totalOperarios?: number;
+}
+
+export interface CtaDetalleAdminDto {
+  id: number;
+  codigo: string;
+  nombre: string;
+  area: string;
+  ciudad: string;
+  provincia: string;
+  direccion: string;
+  codigoPostal: string;
+  esNodoAereo: boolean;
+  esNodoMaritimo: boolean;
+  activo: boolean;
+  fechaCreacion: string;
+}
+
+export interface CrearCtaDto {
+  codigo: string;
+  nombre: string;
+  area: string;
+  provincia: string;
+  ciudad: string;
+  direccion: string;
+  codigoPostal: string;
+  esNodoAereo: boolean;
+  esNodoMaritimo: boolean;
+}
+
+export interface EditarCtaDto {
+  nombre: string;
+  area: string;
+  provincia: string;
+  ciudad: string;
+  direccion: string;
+  codigoPostal: string;
+  esNodoAereo: boolean;
+  esNodoMaritimo: boolean;
 }
 
 export interface AdminOperarioCtaAsignacionDto {
@@ -103,6 +158,27 @@ export interface OficinaJsonResumen {
   ciudad: string;
 }
 
+export interface RepartidorAdminDto {
+  id: number;
+  nombreCompleto: string;
+  codigoEmpleado: string;
+  telefono?: string;
+  oficinaJsonId: number;
+  oficinaNombre: string;
+  tipoVehiculo: string;
+  activo: boolean;
+  rutasHoy: number;
+}
+
+export interface EditarRepartidorDto {
+  nombreCompleto: string;
+  telefono?: string;
+  oficinaJsonId: number;
+  oficinaNombre: string;
+  tipoVehiculo: string;
+  matriculaVehiculo?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -126,11 +202,12 @@ export class AdminService {
 
   // ─── Gestión de usuarios (Admin) ───
 
-  listarUsuarios(rol?: string, bloqueado?: boolean, q?: string): Observable<UsuarioAdminDto[]> {
+  listarUsuarios(rol?: string, bloqueado?: boolean, q?: string, incluirEliminados?: boolean): Observable<UsuarioAdminDto[]> {
     let params = new HttpParams();
     if (rol) params = params.set('rol', rol);
     if (bloqueado !== undefined) params = params.set('bloqueado', bloqueado.toString());
     if (q) params = params.set('q', q);
+    if (incluirEliminados) params = params.set('incluirEliminados', 'true');
     return this.http.get<UsuarioAdminDto[]>(this.USUARIOS_URL, { params });
   }
 
@@ -140,6 +217,18 @@ export class AdminService {
 
   crearEmpleado(dto: AdminCrearEmpleadoDto): Observable<UsuarioAdminDto> {
     return this.http.post<UsuarioAdminDto>(this.USUARIOS_URL, dto);
+  }
+
+  editarEmpleado(id: string, dto: AdminEditarEmpleadoDto): Observable<UsuarioAdminDto> {
+    return this.http.put<UsuarioAdminDto>(`${this.USUARIOS_URL}/${id}`, dto);
+  }
+
+  eliminarUsuario(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.USUARIOS_URL}/${id}`);
+  }
+
+  restaurarUsuario(id: string): Observable<void> {
+    return this.http.post<void>(`${this.USUARIOS_URL}/${id}/restaurar`, {});
   }
 
   cambiarRol(id: string, nuevoRol: string): Observable<void> {
@@ -209,6 +298,59 @@ export class AdminService {
   /** Lista las oficinas del catálogo cuyo CP encaja con las rutas del CTA. */
   obtenerOficinasPorCta(ctaId: number): Observable<OficinaJsonResumen[]> {
     return this.http.get<OficinaJsonResumen[]>(`/api/nexopostal/oficinaspostales/por-cta/${ctaId}`);
+  }
+
+  // ─── Gestión administrativa de repartidores ───
+  private readonly REPARTIDORES_URL = '/api/nexopostal/admin-repartidores';
+
+  listarRepartidores(oficinaJsonId?: number, incluirInactivos?: boolean): Observable<RepartidorAdminDto[]> {
+    let params = new HttpParams();
+    if (oficinaJsonId !== undefined) params = params.set('oficinaJsonId', oficinaJsonId.toString());
+    if (incluirInactivos) params = params.set('incluirInactivos', 'true');
+    return this.http.get<RepartidorAdminDto[]>(this.REPARTIDORES_URL, { params });
+  }
+
+  obtenerRepartidorPorIdentity(userId: string): Observable<RepartidorAdminDto> {
+    return this.http.get<RepartidorAdminDto>(`${this.REPARTIDORES_URL}/identity/${userId}`);
+  }
+
+  editarRepartidor(id: number, dto: EditarRepartidorDto): Observable<RepartidorAdminDto> {
+    return this.http.put<RepartidorAdminDto>(`${this.REPARTIDORES_URL}/${id}`, dto);
+  }
+
+  desactivarRepartidor(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.REPARTIDORES_URL}/${id}`);
+  }
+
+  reactivarRepartidor(id: number): Observable<void> {
+    return this.http.post<void>(`${this.REPARTIDORES_URL}/${id}/reactivar`, {});
+  }
+
+  // ─── Gestión administrativa de CTAs ───
+  private readonly CTAS_ADMIN_URL = '/api/nexopostal/admin-ctas';
+
+  listarCtasAdmin(): Observable<CtaResumenDto[]> {
+    return this.http.get<CtaResumenDto[]>(this.CTAS_ADMIN_URL);
+  }
+
+  obtenerCtaDetalle(id: number): Observable<CtaDetalleAdminDto> {
+    return this.http.get<CtaDetalleAdminDto>(`${this.CTAS_ADMIN_URL}/${id}`);
+  }
+
+  crearCta(dto: CrearCtaDto): Observable<CtaDetalleAdminDto> {
+    return this.http.post<CtaDetalleAdminDto>(this.CTAS_ADMIN_URL, dto);
+  }
+
+  editarCta(id: number, dto: EditarCtaDto): Observable<CtaDetalleAdminDto> {
+    return this.http.put<CtaDetalleAdminDto>(`${this.CTAS_ADMIN_URL}/${id}`, dto);
+  }
+
+  desactivarCta(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.CTAS_ADMIN_URL}/${id}`);
+  }
+
+  reactivarCta(id: number): Observable<void> {
+    return this.http.post<void>(`${this.CTAS_ADMIN_URL}/${id}/reactivar`, {});
   }
 }
 

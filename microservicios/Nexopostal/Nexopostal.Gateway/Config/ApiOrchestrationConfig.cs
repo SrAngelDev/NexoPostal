@@ -197,6 +197,7 @@ public static class ApiOrchestrationConfig
         orchestrator.AddApi("movimientos", url + "/")
             .AddRoute("movimientos-crear", GatewayVerb.POST, new RouteInfo { Path = "api/movimientos" })
             .AddRoute("movimientos-cta", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/cta/" })
+            .AddRoute("movimientos-global", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/global" })
             .AddRoute("movimientos-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/" })
             .AddRoute("movimientos-paquete", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/paquete/" })
             .AddRoute("despachar", GatewayVerb.PUT, new RouteInfo { Path = "api/movimientos/" })
@@ -212,6 +213,7 @@ public static class ApiOrchestrationConfig
         orchestrator.AddApi("incidencias", url + "/")
             .AddRoute("incidencias-crear", GatewayVerb.POST, new RouteInfo { Path = "api/incidencias" })
             .AddRoute("incidencias-cta", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/cta/" })
+            .AddRoute("incidencias-global", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/global" })
             .AddRoute("incidencias-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/" })
             .AddRoute("incidencias-paquete", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/paquete/" })
             .AddRoute("actualizar", GatewayVerb.PUT, new RouteInfo { Path = "api/incidencias/" });

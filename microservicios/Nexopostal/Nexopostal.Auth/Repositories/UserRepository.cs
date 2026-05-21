@@ -86,9 +86,12 @@ public class UserRepository : IUserRepository
     // ─── Gestión de usuarios (Admin) ───
 
     /// <inheritdoc />
-    public async Task<List<ApplicationUser>> GetAllAsync(NexoPostal.Auth.Models.Rol? rol, bool? bloqueado)
+    public async Task<List<ApplicationUser>> GetAllAsync(NexoPostal.Auth.Models.Rol? rol, bool? bloqueado, bool incluirEliminados = false)
     {
         var query = _userManager.Users.AsQueryable();
+
+        if (!incluirEliminados)
+            query = query.Where(u => !u.Eliminado);
 
         if (rol.HasValue)
             query = query.Where(u => u.Rol == rol.Value);
@@ -124,5 +127,25 @@ public class UserRepository : IUserRepository
     {
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         return await _userManager.ResetPasswordAsync(user, token, newPassword);
+    }
+
+    /// <inheritdoc />
+    public async Task<IdentityResult> SetEmailAsync(ApplicationUser user, string newEmail)
+    {
+        var setEmail = await _userManager.SetEmailAsync(user, newEmail);
+        if (!setEmail.Succeeded) return setEmail;
+
+        // Mantener UserName sincronizado con el email (convención del proyecto)
+        var setUserName = await _userManager.SetUserNameAsync(user, newEmail);
+        if (!setUserName.Succeeded) return setUserName;
+
+        // Confirmar email automáticamente para no romper el login (admin lo establece)
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            await _userManager.UpdateAsync(user);
+        }
+
+        return IdentityResult.Success;
     }
 }

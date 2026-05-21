@@ -44,10 +44,23 @@ public class RepartoController : ControllerBase
     /// </summary>
     [HttpGet("repartidores")]
     [Authorize(Roles = "Admin,JefeReparto")]
-    public async Task<IActionResult> ObtenerRepartidores([FromQuery] int? oficinaJsonId)
+    public async Task<IActionResult> ObtenerRepartidores([FromQuery] int? oficinaJsonId, [FromQuery] bool incluirInactivos = false)
     {
-        var repartidores = await _repartoService.ObtenerRepartidores(oficinaJsonId);
+        var repartidores = await _repartoService.ObtenerRepartidores(oficinaJsonId, incluirInactivos);
         return Ok(repartidores);
+    }
+
+    /// <summary>
+    /// Obtiene la ficha de un repartidor por su IdentityUserId (uso administrativo).
+    /// </summary>
+    [HttpGet("repartidores/identity/{userId}")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ObtenerRepartidorPorIdentity(string userId)
+    {
+        var repartidor = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
+        if (repartidor == null)
+            return NotFound(new { message = "No existe perfil de repartidor para ese usuario" });
+        return Ok(repartidor);
     }
 
     /// <summary>
@@ -87,6 +100,41 @@ public class RepartoController : ControllerBase
             _logger.LogError(ex, "Error al crear repartidor");
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Edita la ficha de un repartidor (oficina, vehículo, contacto).
+    /// </summary>
+    [HttpPut("repartidores/{id:int}")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> EditarRepartidor(int id, [FromBody] EditarRepartidorDto dto)
+    {
+        var (repartidor, error) = await _repartoService.EditarRepartidor(id, dto);
+        if (repartidor == null)
+            return BadRequest(new { message = error });
+        return Ok(repartidor);
+    }
+
+    /// <summary>
+    /// Desactiva un repartidor (soft). Falla si tiene rutas planificadas o en curso.
+    /// </summary>
+    [HttpDelete("repartidores/{id:int}")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> DesactivarRepartidor(int id)
+    {
+        var (ok, error) = await _repartoService.DesactivarRepartidor(id);
+        return ok ? NoContent() : BadRequest(new { message = error });
+    }
+
+    /// <summary>
+    /// Reactiva un repartidor previamente desactivado.
+    /// </summary>
+    [HttpPost("repartidores/{id:int}/reactivar")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ReactivarRepartidor(int id)
+    {
+        var (ok, error) = await _repartoService.ReactivarRepartidor(id);
+        return ok ? NoContent() : BadRequest(new { message = error });
     }
 
     // ═══════════════════════════════════════════

@@ -1,0 +1,212 @@
+<div class="page-container">
+  <header class="page-header">
+    <button class="btn-back" (click)="volver()" title="Volver">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+    <h1 class="page-title">
+      <span class="material-symbols-outlined title-icon">local_shipping</span>
+      Gestión de Repartidores
+    </h1>
+  </header>
+
+  <!-- Filtros -->
+  <div class="filters-bar">
+    <div class="filter-group">
+      <label>Búsqueda</label>
+      <input
+        type="text"
+        class="input-text"
+        placeholder="Nombre, código u oficina"
+        [ngModel]="filtroTexto()"
+        (ngModelChange)="filtroTexto.set($event)" />
+    </div>
+
+    <div class="filter-group">
+      <label>Oficina (ID)</label>
+      <input
+        type="number"
+        class="input-text"
+        placeholder="ID oficina"
+        [ngModel]="filtroOficina()"
+        (ngModelChange)="filtroOficina.set($event); cargar()" />
+    </div>
+
+    <div class="filter-group filter-checkbox">
+      <label>
+        <input type="checkbox" [checked]="filtroInactivos()" (change)="toggleInactivos()" />
+        Incluir inactivos
+      </label>
+    </div>
+
+    <button class="btn-secondary" (click)="cargar()">
+      <span class="material-symbols-outlined">refresh</span>
+      Recargar
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert-error">
+      <span class="material-symbols-outlined">error</span>
+      {{ error() }}
+    </div>
+  }
+  @if (actionError()) {
+    <div class="alert alert-error">
+      <span class="material-symbols-outlined">error</span>
+      {{ actionError() }}
+    </div>
+  }
+
+  <!-- Estados -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+      Cargando repartidores...
+    </div>
+  } @else if (repartidoresFiltrados().length === 0) {
+    <div class="empty-state">
+      <span class="material-symbols-outlined">person_off</span>
+      No hay repartidores que coincidan con los filtros.
+    </div>
+  } @else {
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Repartidor</th>
+            <th>Código</th>
+            <th>Oficina</th>
+            <th>Vehículo</th>
+            <th>Teléfono</th>
+            <th>Rutas hoy</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of repartidoresFiltrados(); track r.id) {
+            <tr [class.row-inactive]="!r.activo">
+              <td class="cell-strong">{{ r.nombreCompleto }}</td>
+              <td>{{ r.codigoEmpleado }}</td>
+              <td>{{ r.oficinaNombre }} <span class="muted">#{{ r.oficinaJsonId }}</span></td>
+              <td>{{ r.tipoVehiculo }}</td>
+              <td>{{ r.telefono || '—' }}</td>
+              <td class="text-center">{{ r.rutasHoy }}</td>
+              <td>
+                @if (r.activo) {
+                  <span class="badge badge-ok">Activo</span>
+                } @else {
+                  <span class="badge badge-off">Inactivo</span>
+                }
+              </td>
+              <td>
+                <div class="actions-row">
+                  <button class="btn-icon btn-warning" (click)="iniciarEdicion(r)" title="Editar">
+                    <span class="material-symbols-outlined">edit</span>
+                  </button>
+                  @if (r.activo) {
+                    <button class="btn-icon btn-danger" (click)="desactivar(r)" title="Desactivar">
+                      <span class="material-symbols-outlined">person_off</span>
+                    </button>
+                  } @else {
+                    <button class="btn-icon btn-success" (click)="reactivar(r)" title="Reactivar">
+                      <span class="material-symbols-outlined">restore</span>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Modal Edición -->
+  @if (editando(); as r) {
+    <div class="modal-overlay" (click)="cancelarEdicion()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <h2>Editar repartidor</h2>
+          <button class="btn-close" (click)="cancelarEdicion()" title="Cerrar">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <p class="muted">Editando a <strong>{{ r.nombreCompleto }}</strong> ({{ r.codigoEmpleado }})</p>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Nombre completo</label>
+              <input
+                type="text"
+                class="input-text"
+                [ngModel]="formEdicion().nombreCompleto"
+                (ngModelChange)="actualizarFormEdicion('nombreCompleto', $event)" />
+            </div>
+            <div class="form-field">
+              <label>Teléfono</label>
+              <input
+                type="text"
+                class="input-text"
+                [ngModel]="formEdicion().telefono"
+                (ngModelChange)="actualizarFormEdicion('telefono', $event)" />
+            </div>
+            <div class="form-field">
+              <label>Oficina (ID JSON)</label>
+              <input
+                type="number"
+                class="input-text"
+                [ngModel]="formEdicion().oficinaJsonId"
+                (ngModelChange)="actualizarFormEdicion('oficinaJsonId', $event)" />
+            </div>
+            <div class="form-field">
+              <label>Nombre de la oficina</label>
+              <input
+                type="text"
+                class="input-text"
+                [ngModel]="formEdicion().oficinaNombre"
+                (ngModelChange)="actualizarFormEdicion('oficinaNombre', $event)" />
+            </div>
+            <div class="form-field">
+              <label>Tipo de vehículo</label>
+              <select
+                class="input-select"
+                [ngModel]="formEdicion().tipoVehiculo"
+                (ngModelChange)="actualizarFormEdicion('tipoVehiculo', $event)">
+                @for (t of tiposVehiculo; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Matrícula</label>
+              <input
+                type="text"
+                class="input-text"
+                [ngModel]="formEdicion().matriculaVehiculo"
+                (ngModelChange)="actualizarFormEdicion('matriculaVehiculo', $event)" />
+            </div>
+          </div>
+
+          @if (edicionError()) {
+            <div class="alert alert-error">{{ edicionError() }}</div>
+          }
+        </div>
+
+        <footer class="modal-footer">
+          <button class="btn-secondary" (click)="cancelarEdicion()" [disabled]="savingEdicion()">Cancelar</button>
+          <button class="btn-primary" (click)="guardarEdicion()" [disabled]="savingEdicion()">
+            @if (savingEdicion()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+            } @else {
+              <span class="material-symbols-outlined">save</span>
+            }
+            Guardar
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
+</div>

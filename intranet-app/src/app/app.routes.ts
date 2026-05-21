@@ -44,6 +44,26 @@ export const routes: Routes = [
     canActivate: [adminGuard]
   },
   {
+    path: 'gestion-repartidores',
+    loadComponent: () => import('./pages/gestion-repartidores/gestion-repartidores.component').then(m => m.GestionRepartidoresComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-ctas-admin',
+    loadComponent: () => import('./pages/gestion-ctas-admin/gestion-ctas-admin.component').then(m => m.GestionCtasAdminComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'incidencias-globales',
+    loadComponent: () => import('./pages/incidencias-globales/incidencias-globales.component').then(m => m.IncidenciasGlobalesComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'movimientos-globales',
+    loadComponent: () => import('./pages/movimientos-globales/movimientos-globales.component').then(m => m.MovimientosGlobalesComponent),
+    canActivate: [adminGuard]
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard]

@@ -109,6 +109,29 @@ public class IncidenciasController : ControllerBase
     }
 
     /// <summary>
+    /// Vista global de incidencias (solo Admin). Filtros opcionales por estado, CTA y tipo.
+    /// </summary>
+    [HttpGet("global")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(List<IncidenciaResumenDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<IncidenciaResumenDto>>> ObtenerGlobales(
+        [FromQuery] string? estado = null,
+        [FromQuery] int? ctaId = null,
+        [FromQuery] string? tipo = null)
+    {
+        EstadoIncidencia? filtroEstado = null;
+        if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoIncidencia>(estado, true, out var e))
+            filtroEstado = e;
+
+        TipoIncidencia? filtroTipo = null;
+        if (!string.IsNullOrEmpty(tipo) && Enum.TryParse<TipoIncidencia>(tipo, true, out var t))
+            filtroTipo = t;
+
+        var incidencias = await _incidenciaService.ObtenerIncidenciasGlobales(filtroEstado, ctaId, filtroTipo);
+        return Ok(incidencias);
+    }
+
+    /// <summary>
     /// Obtiene el detalle completo de una incidencia.
     /// </summary>
     [HttpGet("{id:int}")]

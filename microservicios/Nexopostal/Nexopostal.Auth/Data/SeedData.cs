@@ -122,6 +122,17 @@ public static class SeedData
             EmailConfirmed = true
         }, "Repartidor123!");
 
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "repartidor-jefe-cristina-vidal-seed-id",
+            UserName = "jefe.reparto2@nexopostal.es",
+            Email = "jefe.reparto2@nexopostal.es",
+            NombreCompleto = "Cristina Vidal Roca",
+            CodigoEmpleado = "RPJ002",
+            Rol = Rol.JefeReparto,
+            EmailConfirmed = true
+        }, "Repartidor123!");
+
         // ===== CLIENTE DE PRUEBA =====
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
         {

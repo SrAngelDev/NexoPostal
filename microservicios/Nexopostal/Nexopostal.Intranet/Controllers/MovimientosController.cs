@@ -69,6 +69,25 @@ public class MovimientosController : ControllerBase
     }
 
     /// <summary>
+    /// Vista global de movimientos troncales (solo Admin).
+    /// </summary>
+    [HttpGet("global")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(List<MovimientoResumenDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<MovimientoResumenDto>>> ObtenerGlobales(
+        [FromQuery] string? estado = null,
+        [FromQuery] int? ctaOrigenId = null,
+        [FromQuery] int? ctaDestinoId = null)
+    {
+        EstadoMovimiento? filtroEstado = null;
+        if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoMovimiento>(estado, true, out var e))
+            filtroEstado = e;
+
+        var movimientos = await _movimientoService.ObtenerMovimientosGlobales(filtroEstado, ctaOrigenId, ctaDestinoId);
+        return Ok(movimientos);
+    }
+
+    /// <summary>
     /// Obtiene el detalle completo de un movimiento.
     /// </summary>
     [HttpGet("{id:int}")]

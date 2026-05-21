@@ -30,6 +30,8 @@ public class UrlRewriteMiddleware
         "/api/nexopostal/envios/factura/",
         "/api/nexopostal/oficinas/",
         "/api/nexopostal/admin-usuarios",  // IDs son GUIDs (strings), no enteros
+        "/api/nexopostal/admin-repartidores",  // rutas mixtas con identity/{guid} y {id}/reactivar
+        "/api/nexopostal/admin-ctas",      // CRUD admin de CTAs con {id}/reactivar
         "/api/nexopostal/tarifas"          // El gateway pierde los query params en GET
     ];
 
@@ -62,6 +64,8 @@ public class UrlRewriteMiddleware
             ["incidencias|crear"] = "incidencias-crear",
             ["movimientos|cta"] = "movimientos-cta",
             ["incidencias|cta"] = "incidencias-cta",
+            ["movimientos|global"] = "movimientos-global",
+            ["incidencias|global"] = "incidencias-global",
             ["operarios|cta"] = "operarios-cta",
             ["movimientos|detalle"] = "movimientos-detalle",
             ["incidencias|detalle"] = "incidencias-detalle",

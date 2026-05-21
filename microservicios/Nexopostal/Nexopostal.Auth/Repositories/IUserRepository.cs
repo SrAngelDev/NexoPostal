@@ -44,8 +44,11 @@ public interface IUserRepository
 
     // ─── Gestión de usuarios (Admin) ───
 
-    /// <summary>Lista todos los usuarios, con filtros opcionales por rol y estado de bloqueo.</summary>
-    Task<List<ApplicationUser>> GetAllAsync(NexoPostal.Auth.Models.Rol? rol, bool? bloqueado);
+    /// <summary>
+    /// Lista usuarios con filtros opcionales. Por defecto excluye los eliminados
+    /// (borrado lógico). Pasar <paramref name="incluirEliminados"/>=true para verlos.
+    /// </summary>
+    Task<List<ApplicationUser>> GetAllAsync(NexoPostal.Auth.Models.Rol? rol, bool? bloqueado, bool incluirEliminados = false);
 
     /// <summary>Comprueba si el usuario tiene el acceso bloqueado (lockout activo).</summary>
     Task<bool> IsLockedOutAsync(ApplicationUser user);
@@ -55,4 +58,7 @@ public interface IUserRepository
 
     /// <summary>Restablece la contraseña de un usuario directamente (flujo admin, sin token previo).</summary>
     Task<IdentityResult> AdminResetPasswordAsync(ApplicationUser user, string newPassword);
+
+    /// <summary>Cambia el email y UserName del usuario, manteniendo los valores normalizados.</summary>
+    Task<IdentityResult> SetEmailAsync(ApplicationUser user, string newEmail);
 }

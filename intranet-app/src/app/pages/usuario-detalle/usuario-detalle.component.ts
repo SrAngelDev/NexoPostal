@@ -10,10 +10,12 @@ import {
   AdminOperarioDetalleDto,
   AdminOperarioCtaAsignacionDto,
   AdminOperarioOficinaDto,
-  OficinaJsonResumen
+  OficinaJsonResumen,
+  AdminEditarEmpleadoDto
 } from '../../services/admin.service';
 
 const ROLES_CON_CONFIG_CTA = ['OperarioOficina', 'OperarioCTA', 'Supervisor'];
+const ROLES_EMPLEADO = ['Admin', 'OperarioOficina', 'OperarioCTA', 'Supervisor', 'Repartidor', 'JefeReparto'];
 
 @Component({
   selector: 'app-usuario-detalle',
@@ -48,6 +50,24 @@ export class UsuarioDetalleComponent implements OnInit {
   savingOficina = signal(false);
   actionOficinaError = signal<string | null>(null);
   actionOficinaOk = signal<string | null>(null);
+
+  // ─── Edición de datos básicos del empleado ───
+  editando = signal(false);
+  savingEdicion = signal(false);
+  actionEdicionError = signal<string | null>(null);
+  actionEdicionOk = signal<string | null>(null);
+  formEdicion = signal<AdminEditarEmpleadoDto>({
+    nombreCompleto: '',
+    email: '',
+    codigoEmpleado: '',
+    phoneNumber: '',
+    rol: ''
+  });
+  readonly rolesEmpleado = ROLES_EMPLEADO;
+
+  // ─── Borrado lógico ───
+  savingEliminar = signal(false);
+  actionEliminarError = signal<string | null>(null);
 
   readonly esOperarioOficina = computed(() => this.usuario()?.rol === 'OperarioOficina');
 
@@ -255,6 +275,123 @@ export class UsuarioDetalleComponent implements OnInit {
 
   volver(): void {
     this.router.navigate(['/gestion-usuarios']);
+  }
+
+  // ─── Edición de datos básicos ───
+
+  iniciarEdicion(): void {
+    const u = this.usuario();
+    if (!u) return;
+    this.formEdicion.set({
+      nombreCompleto: u.nombreCompleto,
+      email: u.email,
+      codigoEmpleado: u.codigoEmpleado ?? '',
+      phoneNumber: u.phoneNumber ?? '',
+      rol: u.rol
+    });
+    this.actionEdicionError.set(null);
+    this.actionEdicionOk.set(null);
+    this.editando.set(true);
+  }
+
+  cancelarEdicion(): void {
+    this.editando.set(false);
+    this.actionEdicionError.set(null);
+  }
+
+  actualizarFormEdicion<K extends keyof AdminEditarEmpleadoDto>(
+    campo: K,
+    valor: AdminEditarEmpleadoDto[K]
+  ): void {
+    this.formEdicion.update(f => ({ ...f, [campo]: valor }));
+  }
+
+  guardarEdicion(): void {
+    const u = this.usuario();
+    if (!u) return;
+
+    const dto = this.formEdicion();
+    if (!dto.nombreCompleto?.trim() || !dto.email?.trim() || !dto.rol) {
+      this.actionEdicionError.set('Nombre, email y rol son obligatorios.');
+      return;
+    }
+
+    this.savingEdicion.set(true);
+    this.actionEdicionError.set(null);
+    this.actionEdicionOk.set(null);
+
+    const payload: AdminEditarEmpleadoDto = {
+      nombreCompleto: dto.nombreCompleto.trim(),
+      email: dto.email.trim(),
+      codigoEmpleado: dto.codigoEmpleado?.trim() || undefined,
+      phoneNumber: dto.phoneNumber?.trim() || undefined,
+      rol: dto.rol
+    };
+
+    this.adminService.editarEmpleado(u.id, payload).subscribe({
+      next: (actualizado) => {
+        this.usuario.set(actualizado);
+        this.actionEdicionOk.set('Datos actualizados correctamente.');
+        this.editando.set(false);
+        this.savingEdicion.set(false);
+      },
+      error: (err) => {
+        this.actionEdicionError.set(err.error?.message ?? 'No se pudieron actualizar los datos.');
+        this.savingEdicion.set(false);
+      }
+    });
+  }
+
+  // ─── Borrado lógico / restauración ───
+
+  eliminarUsuario(): void {
+    const u = this.usuario();
+    if (!u || u.eliminado) return;
+
+    const confirmado = window.confirm(
+      `¿Seguro que quieres eliminar a ${u.nombreCompleto}? El usuario no podrá iniciar sesión y desaparecerá de los listados. Podrás restaurarlo más adelante.`
+    );
+    if (!confirmado) return;
+
+    this.savingEliminar.set(true);
+    this.actionEliminarError.set(null);
+
+    this.adminService.eliminarUsuario(u.id).subscribe({
+      next: () => {
+        this.savingEliminar.set(false);
+        this.usuario.set({
+          ...u,
+          eliminado: true,
+          eliminadoEnUtc: new Date().toISOString(),
+          bloqueado: true
+        });
+      },
+      error: (err) => {
+        this.actionEliminarError.set(err.error?.message ?? 'No se pudo eliminar el usuario.');
+        this.savingEliminar.set(false);
+      }
+    });
+  }
+
+  restaurarUsuario(): void {
+    const u = this.usuario();
+    if (!u || !u.eliminado) return;
+
+    this.savingEliminar.set(true);
+    this.actionEliminarError.set(null);
+
+    this.adminService.restaurarUsuario(u.id).subscribe({
+      next: () => {
+        this.savingEliminar.set(false);
+        this.adminService.obtenerDetalleUsuario(u.id).subscribe({
+          next: (actualizado) => this.usuario.set(actualizado)
+        });
+      },
+      error: (err) => {
+        this.actionEliminarError.set(err.error?.message ?? 'No se pudo restaurar el usuario.');
+        this.savingEliminar.set(false);
+      }
+    });
   }
 
   rolBadgeClass(rol: string): string {
