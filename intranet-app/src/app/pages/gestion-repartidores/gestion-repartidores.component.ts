@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AdminService, RepartidorAdminDto, EditarRepartidorDto } from '../../services/admin.service';
+import { AdminService, RepartidorAdminDto, EditarRepartidorDto, OficinaJsonResumen } from '../../services/admin.service';
 
 const TIPOS_VEHICULO = ['Bicicleta', 'Moto', 'Furgoneta', 'Camion'];
 
@@ -17,6 +17,7 @@ export class GestionRepartidoresComponent implements OnInit {
   readonly tiposVehiculo = TIPOS_VEHICULO;
 
   repartidores = signal<RepartidorAdminDto[]>([]);
+  oficinas     = signal<OficinaJsonResumen[]>([]);
   loading      = signal(false);
   error        = signal<string | null>(null);
   actionError  = signal<string | null>(null);
@@ -53,6 +54,27 @@ export class GestionRepartidoresComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargar();
+    this.cargarOficinas();
+  }
+
+  private cargarOficinas(): void {
+    this.adminService.obtenerTodasOficinas().subscribe({
+      next: (lista) => {
+        const ordenadas = [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre));
+        this.oficinas.set(ordenadas);
+      },
+      error: () => { /* silencioso: el select mostrará vacío */ }
+    });
+  }
+
+  cambiarOficina(oficinaJsonId: number | string | null): void {
+    const id = oficinaJsonId == null ? 0 : Number(oficinaJsonId);
+    const oficina = this.oficinas().find(o => o.id === id);
+    this.formEdicion.update(f => ({
+      ...f,
+      oficinaJsonId: id,
+      oficinaNombre: oficina?.nombre ?? ''
+    }));
   }
 
   cargar(): void {

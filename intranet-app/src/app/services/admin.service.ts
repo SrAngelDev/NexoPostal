@@ -300,6 +300,11 @@ export class AdminService {
     return this.http.get<OficinaJsonResumen[]>(`/api/nexopostal/oficinaspostales/por-cta/${ctaId}`);
   }
 
+  /** Lista todas las oficinas del catálogo (JSON estático). */
+  obtenerTodasOficinas(): Observable<OficinaJsonResumen[]> {
+    return this.http.get<OficinaJsonResumen[]>('/api/nexopostal/oficinaspostales');
+  }
+
   // ─── Gestión administrativa de repartidores ───
   private readonly REPARTIDORES_URL = '/api/nexopostal/admin-repartidores';
 

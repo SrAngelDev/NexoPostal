@@ -216,9 +216,23 @@
                      (ngModelChange)="actualizarCampo('anioFabricacion', $event)" min="1950" max="2099" />
             </div>
             <div class="form-field">
-              <label>Oficina (ID)</label>
-              <input type="number" [ngModel]="form().oficinaJsonId"
-                     (ngModelChange)="actualizarCampo('oficinaJsonId', $event)" />
+              <label>Oficina</label>
+              <select [ngModel]="form().oficinaJsonId"
+                      (ngModelChange)="actualizarCampo('oficinaJsonId', $event == null ? null : +$event)"
+                      [disabled]="oficinas().length === 0">
+                <option [ngValue]="null">
+                  @if (oficinas().length === 0) {
+                    Cargando oficinas...
+                  } @else {
+                    -- Sin oficina asignada --
+                  }
+                </option>
+                @for (of of oficinas(); track of.id) {
+                  <option [ngValue]="of.id">
+                    {{ of.nombre }} — {{ of.codigoPostal }} {{ of.ciudad }}
+                  </option>
+                }
+              </select>
             </div>
             <div class="form-field form-field-full">
               <label>Notas</label>

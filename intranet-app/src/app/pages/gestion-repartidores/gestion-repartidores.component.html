@@ -153,21 +153,26 @@
                 [ngModel]="formEdicion().telefono"
                 (ngModelChange)="actualizarFormEdicion('telefono', $event)" />
             </div>
-            <div class="form-field">
-              <label>Oficina (ID JSON)</label>
-              <input
-                type="number"
-                class="input-text"
+            <div class="form-field form-field-full">
+              <label>Oficina</label>
+              <select
+                class="input-select"
                 [ngModel]="formEdicion().oficinaJsonId"
-                (ngModelChange)="actualizarFormEdicion('oficinaJsonId', $event)" />
-            </div>
-            <div class="form-field">
-              <label>Nombre de la oficina</label>
-              <input
-                type="text"
-                class="input-text"
-                [ngModel]="formEdicion().oficinaNombre"
-                (ngModelChange)="actualizarFormEdicion('oficinaNombre', $event)" />
+                (ngModelChange)="cambiarOficina($event)"
+                [disabled]="oficinas().length === 0">
+                <option [ngValue]="0" disabled>
+                  @if (oficinas().length === 0) {
+                    Cargando oficinas...
+                  } @else {
+                    -- Selecciona una oficina --
+                  }
+                </option>
+                @for (of of oficinas(); track of.id) {
+                  <option [ngValue]="of.id">
+                    {{ of.nombre }} — {{ of.codigoPostal }} {{ of.ciudad }}
+                  </option>
+                }
+              </select>
             </div>
             <div class="form-field">
               <label>Tipo de vehículo</label>

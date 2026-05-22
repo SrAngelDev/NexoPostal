@@ -10,7 +10,7 @@ import {
   TIPO_VEHICULO_OPTIONS,
   tipoVehiculoLabel
 } from '../../services/admin-vehiculos.service';
-import { AdminService, RepartidorAdminDto } from '../../services/admin.service';
+import { AdminService, RepartidorAdminDto, OficinaJsonResumen } from '../../services/admin.service';
 
 interface FormState extends CrearVehiculoDto {
   id?: number;
@@ -54,6 +54,7 @@ export class GestionVehiculosComponent implements OnInit {
 
   vehiculos = signal<VehiculoDto[]>([]);
   repartidores = signal<RepartidorAdminDto[]>([]);
+  oficinas = signal<OficinaJsonResumen[]>([]);
 
   modalAbierto = signal(false);
   modoEdicion = signal(false);
@@ -94,6 +95,17 @@ export class GestionVehiculosComponent implements OnInit {
   ngOnInit(): void {
     this.cargar();
     this.cargarRepartidores();
+    this.cargarOficinas();
+  }
+
+  cargarOficinas(): void {
+    this.adminApi.obtenerTodasOficinas().subscribe({
+      next: data => {
+        const ordenadas = [...data].sort((a, b) => a.nombre.localeCompare(b.nombre));
+        this.oficinas.set(ordenadas);
+      },
+      error: () => { /* silencioso */ }
+    });
   }
 
   cargar(): void {
