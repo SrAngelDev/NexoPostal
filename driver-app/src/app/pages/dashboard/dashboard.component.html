@@ -7,6 +7,7 @@
     <div class="nav-actions">
       <span class="nav-user">{{ userName }}</span>
       <span class="nav-role">{{ userRoleLabel }}</span>
+      <app-notification-bell />
       <button (click)="logout()" class="nav-logout">
         <span class="material-symbols-outlined">logout</span>
         Salir

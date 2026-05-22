@@ -53,6 +53,7 @@ public class RepartoService : IRepartoService
     private readonly IRutaRepartoRepository _rutaRepo;
     private readonly IEntregaPaqueteRepository _entregaRepo;
     private readonly IUbicacionRepartidorRepository _ubicacionRepo;
+    private readonly IRepartoNotifier _notifier;
     private readonly ILogger<RepartoService> _logger;
 
     public RepartoService(
@@ -60,12 +61,14 @@ public class RepartoService : IRepartoService
         IRutaRepartoRepository rutaRepo,
         IEntregaPaqueteRepository entregaRepo,
         IUbicacionRepartidorRepository ubicacionRepo,
+        IRepartoNotifier notifier,
         ILogger<RepartoService> logger)
     {
         _repartidorRepo = repartidorRepo;
         _rutaRepo = rutaRepo;
         _entregaRepo = entregaRepo;
         _ubicacionRepo = ubicacionRepo;
+        _notifier = notifier;
         _logger = logger;
     }
 
@@ -272,7 +275,22 @@ public class RepartoService : IRepartoService
         _logger.LogInformation("Ruta de reparto creada: {Codigo}", codigo);
 
         // Recargar con includes
-        return (await ObtenerRutaPorId(ruta.Id))!;
+        var detalle = (await ObtenerRutaPorId(ruta.Id))!;
+
+        // Notificar al repartidor vía SignalR
+        var repartidor = await _repartidorRepo.GetByIdAsync(dto.RepartidorId);
+        if (repartidor != null && !string.IsNullOrEmpty(repartidor.IdentityUserId))
+        {
+            await _notifier.NotificarRepartidorAsync(repartidor.IdentityUserId, "RutaAsignada", new
+            {
+                rutaId = detalle.Id,
+                codigo = detalle.Codigo,
+                fechaReparto = detalle.FechaReparto,
+                mensaje = $"Tienes una nueva ruta asignada: {detalle.Codigo}"
+            });
+        }
+
+        return detalle;
     }
 
     public async Task<RutaRepartoDetalleDto?> IniciarRuta(int rutaId)
@@ -415,6 +433,21 @@ public class RepartoService : IRepartoService
 
         _logger.LogInformation("Entrega {Id} registrada como {Estado} para expedición {Expedicion}",
             entregaId, estado, entrega.NumeroExpedicion);
+
+        // Notificar al repartidor confirmando registro
+        if (entrega.RutaReparto != null)
+        {
+            var repartidor = await _repartidorRepo.GetByIdAsync(entrega.RutaReparto.RepartidorId);
+            if (repartidor != null && !string.IsNullOrEmpty(repartidor.IdentityUserId))
+            {
+                await _notifier.NotificarRepartidorAsync(repartidor.IdentityUserId, "EntregaRegistrada", new
+                {
+                    entregaId = entrega.Id,
+                    numeroSeguimiento = entrega.NumeroSeguimiento,
+                    estado = estado.ToString()
+                });
+            }
+        }
 
         return MapearEntrega(entrega);
     }

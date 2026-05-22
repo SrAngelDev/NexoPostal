@@ -22,6 +22,10 @@ export class GestionRepartidoresComponent implements OnInit {
   error        = signal<string | null>(null);
   actionError  = signal<string | null>(null);
 
+  kpiActivos   = computed(() => this.repartidores().filter(r => r.activo).length);
+  kpiInactivos = computed(() => this.repartidores().filter(r => !r.activo).length);
+  kpiRutasHoy  = computed(() => this.repartidores().reduce((acc, r) => acc + (r.rutasHoy ?? 0), 0));
+
   filtroOficina      = signal<number | undefined>(undefined);
   filtroInactivos    = signal(false);
   filtroTexto        = signal('');

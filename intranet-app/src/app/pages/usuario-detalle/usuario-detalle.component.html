@@ -1,425 +1,354 @@
-<div class="page-container">
-  <div class="page-header">
-    <button class="btn-back" (click)="volver()">
-      <span class="material-symbols-outlined">arrow_back</span>
-    </button>
-    <h1 class="page-title">
-      <span class="material-symbols-outlined">person</span>
-      Detalle de Usuario
-    </h1>
-  </div>
+<div class="page">
+  <main class="page-content fade-in-up">
 
-  @if (loading()) {
-    <div class="state-card">
-      <span class="material-symbols-outlined spinning">sync</span>
-      <p>Cargando detalle del usuario...</p>
-    </div>
-  } @else if (error()) {
-    <div class="alert alert-error">
-      <span class="material-symbols-outlined">error</span>
-      {{ error() }}
-    </div>
-  } @else if (usuario(); as u) {
-    <div class="grid">
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg icon-tile-brand">
+        <span class="material-symbols-outlined">person</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Detalle de usuario</h1>
+        <p class="page-subheading">Edita datos personales, gestiona asignaciones de CTA y oficina.</p>
+      </div>
+    </header>
 
-      <section class="card">
-        <h2 class="card-title">
-          <span class="material-symbols-outlined">badge</span>
-          Cuenta
-        </h2>
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando detalle del usuario…
+      </div>
+    } @else if (error()) {
+      <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ error() }}</div>
+    } @else if (usuario(); as u) {
 
-        @if (u.eliminado) {
-          <div class="alert alert-warning">
-            <span class="material-symbols-outlined">delete</span>
-            Usuario eliminado el {{ u.eliminadoEnUtc | date:'dd/MM/yyyy HH:mm' }}.
-            Está oculto de los listados y no puede iniciar sesión.
-          </div>
-        }
+      <div class="detalle-grid">
 
-        @if (!editando()) {
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="label">Nombre</span>
-              <span class="value">{{ u.nombreCompleto }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Email</span>
-              <span class="value">{{ u.email }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Código empleado</span>
-              <span class="value">{{ u.codigoEmpleado || '—' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Teléfono</span>
-              <span class="value">{{ u.phoneNumber || '—' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">Registro</span>
-              <span class="value">{{ u.fechaRegistro | date:'dd/MM/yyyy HH:mm' }}</span>
-            </div>
-          </div>
-
-          <div class="status-row">
-            <span class="badge" [ngClass]="rolBadgeClass(u.rol)">{{ u.rol }}</span>
-            @if (u.bloqueado) {
-              <span class="state-chip blocked">
-                <span class="material-symbols-outlined">block</span>
-                Bloqueado
-              </span>
-            } @else {
-              <span class="state-chip active">
-                <span class="material-symbols-outlined">check_circle</span>
-                Activo
-              </span>
-            }
-          </div>
-
-          <div class="actions-row">
-            @if (!u.eliminado) {
-              <button class="btn-primary" (click)="iniciarEdicion()">
-                <span class="material-symbols-outlined">edit</span>
-                Editar datos
-              </button>
-              <button class="btn-danger"
-                      [disabled]="savingEliminar()"
-                      (click)="eliminarUsuario()">
-                <span class="material-symbols-outlined">delete</span>
-                @if (savingEliminar()) { Eliminando... } @else { Eliminar usuario }
-              </button>
-            } @else {
-              <button class="btn-primary"
-                      [disabled]="savingEliminar()"
-                      (click)="restaurarUsuario()">
-                <span class="material-symbols-outlined">restore</span>
-                @if (savingEliminar()) { Restaurando... } @else { Restaurar usuario }
-              </button>
-            }
-          </div>
-
-          @if (actionEliminarError()) {
-            <div class="alert alert-error">
-              <span class="material-symbols-outlined">error</span>
-              {{ actionEliminarError() }}
-            </div>
-          }
-          @if (actionEdicionOk()) {
-            <div class="alert alert-success">
-              <span class="material-symbols-outlined">check_circle</span>
-              {{ actionEdicionOk() }}
-            </div>
-          }
-        } @else {
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Nombre completo *</label>
-              <input type="text"
-                     class="input-text"
-                     [ngModel]="formEdicion().nombreCompleto"
-                     (ngModelChange)="actualizarFormEdicion('nombreCompleto', $event)" />
-            </div>
-            <div class="form-group">
-              <label>Email *</label>
-              <input type="email"
-                     class="input-text"
-                     [ngModel]="formEdicion().email"
-                     (ngModelChange)="actualizarFormEdicion('email', $event)" />
-            </div>
-            <div class="form-group">
-              <label>Código empleado</label>
-              <input type="text"
-                     class="input-text"
-                     [ngModel]="formEdicion().codigoEmpleado"
-                     (ngModelChange)="actualizarFormEdicion('codigoEmpleado', $event)" />
-            </div>
-            <div class="form-group">
-              <label>Teléfono</label>
-              <input type="tel"
-                     class="input-text"
-                     [ngModel]="formEdicion().phoneNumber"
-                     (ngModelChange)="actualizarFormEdicion('phoneNumber', $event)" />
-            </div>
-            <div class="form-group">
-              <label>Rol *</label>
-              <select class="input-select"
-                      [ngModel]="formEdicion().rol"
-                      (ngModelChange)="actualizarFormEdicion('rol', $event)">
-                @for (r of rolesEmpleado; track r) {
-                  <option [ngValue]="r">{{ r }}</option>
-                }
-              </select>
-            </div>
-          </div>
-
-          @if (actionEdicionError()) {
-            <div class="alert alert-error">
-              <span class="material-symbols-outlined">error</span>
-              {{ actionEdicionError() }}
-            </div>
-          }
-
-          <div class="actions-row">
-            <button class="btn-primary"
-                    [disabled]="savingEdicion()"
-                    (click)="guardarEdicion()">
-              <span class="material-symbols-outlined">save</span>
-              @if (savingEdicion()) { Guardando... } @else { Guardar cambios }
-            </button>
-            <button class="btn-secondary"
-                    [disabled]="savingEdicion()"
-                    (click)="cancelarEdicion()">
-              Cancelar
-            </button>
-          </div>
-        }
-      </section>
-
-      <section class="card">
-        <h2 class="card-title">
-          <span class="material-symbols-outlined">settings</span>
-          Configuración Operativa
-        </h2>
-
-        @if (!esRolConConfigCta()) {
-          <p class="muted">
-            Este rol no usa asignación de CTA en Intranet.
-          </p>
-        } @else if (!detalleOperativo() || detalleOperativo()!.asignacionesCta.length === 0) {
-          <div class="alert alert-warning">
-            <span class="material-symbols-outlined">warning</span>
-            El usuario no tiene asignaciones CTA activas.
-          </div>
-
-          <div class="move-row">
-            <div class="form-group move-select">
-              <label>Asignar a CTA</label>
-              <select
-                [ngModel]="nuevoCtaId()"
-                (ngModelChange)="onNuevoCtaChange($event)"
-                class="input-select"
-              >
-                <option [ngValue]="null">— Selecciona un CTA —</option>
-                @for (c of ctas(); track c.id) {
-                  <option [ngValue]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
-                }
-              </select>
-            </div>
-
-            <button class="btn-primary move-btn"
-                    [disabled]="!puedeAsignarPrimera()"
-                    (click)="asignarPrimera()">
-              <span class="material-symbols-outlined">add_circle</span>
-              @if (saving()) {
-                Guardando...
-              } @else {
-                Asignar CTA
-              }
-            </button>
-          </div>
-
-          @if (actionError()) {
-            <div class="alert alert-error">
-              <span class="material-symbols-outlined">error</span>
-              {{ actionError() }}
-            </div>
-          }
-          @if (actionOk()) {
-            <div class="alert alert-success">
-              <span class="material-symbols-outlined">check_circle</span>
-              {{ actionOk() }}
-            </div>
-          }
-        } @else {
-          @if (asignacionSeleccionada(); as asig) {
-            <div class="summary-box">
-              <div>
-                <span class="summary-label">CTA actual</span>
-                <strong>{{ asig.ctaCodigo }} · {{ asig.ctaNombre }}</strong>
-                <span class="summary-sub">{{ asig.area }} · {{ asig.rolOperativo }}</span>
-              </div>
-              <div class="stats-mini">
-                <span>Pendientes: {{ asig.tareasPendientes }}</span>
-                <span>En progreso: {{ asig.tareasEnProgreso }}</span>
-                <span>Hoy: {{ asig.tareasCompletadasHoy }}</span>
-              </div>
-            </div>
-
-            @if (detalleOperativo()!.asignacionesCta.length > 1) {
-              <p class="alert alert-warning small">
-                <span class="material-symbols-outlined">info</span>
-                Este usuario tiene varias asignaciones activas (datos de prueba).
-                Al reasignar, se desactivarán todas y quedará <strong>solo</strong> la del CTA destino.
-              </p>
-            }
-
-            <div class="move-row">
-              <div class="form-group move-select">
-                <label>Reasignar a CTA</label>
-                <select
-                  [ngModel]="nuevoCtaId()"
-                  (ngModelChange)="onNuevoCtaChange($event)"
-                  class="input-select"
-                >
-                  @for (c of ctas(); track c.id) {
-                    <option [ngValue]="c.id">
-                      {{ c.codigo }} · {{ c.nombre }}{{ c.id === asig.ctaId ? ' (actual)' : '' }}
-                    </option>
-                  }
-                </select>
-              </div>
-
-              <button class="btn-primary move-btn" [disabled]="!puedeMoverCta()" (click)="moverCta()">
-                <span class="material-symbols-outlined">swap_horiz</span>
-                @if (saving()) {
-                  Guardando...
-                } @else {
-                  Reasignar
-                }
-              </button>
-            </div>
-          }
-
-          @if (actionError()) {
-            <div class="alert alert-error">
-              <span class="material-symbols-outlined">error</span>
-              {{ actionError() }}
-            </div>
-          }
-
-          @if (actionOk()) {
-            <div class="alert alert-success">
-              <span class="material-symbols-outlined">check_circle</span>
-              {{ actionOk() }}
-            </div>
-          }
-
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>CTA</th>
-                  <th>Rol</th>
-                  <th>Estado</th>
-                  <th>Pend.</th>
-                  <th>Prog.</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (a of detalleOperativo()!.asignacionesCta; track a.operarioCtaId) {
-                  <tr [class.row-selected]="a.activo">
-                    <td>{{ a.ctaCodigo }} · {{ a.ctaNombre }}</td>
-                    <td>{{ a.rolOperativo }}</td>
-                    <td>
-                      @if (a.activo) {
-                        <span class="state-chip active">Activo</span>
-                      } @else {
-                        <span class="state-chip blocked">Inactivo</span>
-                      }
-                    </td>
-                    <td>{{ a.tareasPendientes }}</td>
-                    <td>{{ a.tareasEnProgreso }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-      </section>
-
-      <!-- ===== Asignación de oficina (solo OperarioOficina) ===== -->
-      @if (esOperarioOficina()) {
-        <section class="card">
-          <header class="card-header">
+        <!-- ════════ Cuenta / datos básicos ════════ -->
+        <section class="card section-card">
+          <header class="section-header">
+            <div class="icon-tile icon-tile-brand"><span class="material-symbols-outlined">badge</span></div>
             <div>
-              <h2>Oficina asignada</h2>
-              <p class="card-subtitle">El operario de oficina opera siempre desde una única oficina postal.</p>
+              <h2 class="section-title">Cuenta</h2>
+              <p class="section-sub">Datos identitarios y estado del empleado.</p>
             </div>
           </header>
 
-          @if (oficinaActual(); as oficina) {
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Oficina</span>
-                <span class="info-value">{{ oficina.oficinaNombre }}</span>
+          @if (u.eliminado) {
+            <div class="alert alert-warning">
+              <span class="material-symbols-outlined">delete</span>
+              Usuario eliminado el {{ u.eliminadoEnUtc | date:'dd/MM/yyyy HH:mm' }}. Está oculto y no puede iniciar sesión.
+            </div>
+          }
+
+          @if (!editando()) {
+            <div class="cuenta-hero">
+              <div class="avatar avatar-success" style="width:56px; height:56px; font-size:1.1rem;">
+                {{ u.nombreCompleto.slice(0, 2).toUpperCase() }}
               </div>
-              <div class="info-item">
-                <span class="info-label">Código postal</span>
-                <span class="info-value">{{ oficina.codigoPostal }} · {{ oficina.ciudad }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Dirección</span>
-                <span class="info-value">{{ oficina.direccion || '—' }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Estado</span>
-                <span class="info-value">
-                  @if (oficina.activo) {
-                    <span class="state-chip active">Activa</span>
+              <div class="cuenta-hero-text">
+                <div class="cell-user-name" style="font-size:1.1rem;">{{ u.nombreCompleto }}</div>
+                <div class="cell-user-email">{{ u.email }}</div>
+                <div style="margin-top: 0.4rem; display:flex; gap:0.4rem; flex-wrap:wrap;">
+                  <span class="chip chip-brand">{{ u.rol }}</span>
+                  @if (u.bloqueado) {
+                    <span class="chip chip-warning"><span class="material-symbols-outlined">block</span>Bloqueado</span>
                   } @else {
-                    <span class="state-chip blocked">Inactiva</span>
+                    <span class="chip chip-success"><span class="material-symbols-outlined">check_circle</span>Activo</span>
                   }
-                </span>
+                </div>
               </div>
             </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label class="field-label">Código empleado</label>
+                <div class="cell-mono">{{ u.codigoEmpleado || '—' }}</div>
+              </div>
+              <div class="field">
+                <label class="field-label">Teléfono</label>
+                <div>{{ u.phoneNumber || '—' }}</div>
+              </div>
+              <div class="field">
+                <label class="field-label">Registro</label>
+                <div class="cell-meta">{{ u.fechaRegistro | date:'dd/MM/yyyy HH:mm' }}</div>
+              </div>
+            </div>
+
+            <div class="modal-footer" style="border-top:none; padding-top:0; justify-content:flex-start;">
+              @if (!u.eliminado) {
+                <button class="btn btn-primary" (click)="iniciarEdicion()">
+                  <span class="material-symbols-outlined">edit</span>
+                  Editar datos
+                </button>
+                <button class="btn btn-secondary action-danger"
+                        [disabled]="savingEliminar()"
+                        (click)="eliminarUsuario()">
+                  <span class="material-symbols-outlined">delete</span>
+                  @if (savingEliminar()) { Eliminando… } @else { Eliminar usuario }
+                </button>
+              } @else {
+                <button class="btn btn-primary"
+                        [disabled]="savingEliminar()"
+                        (click)="restaurarUsuario()">
+                  <span class="material-symbols-outlined">restore</span>
+                  @if (savingEliminar()) { Restaurando… } @else { Restaurar usuario }
+                </button>
+              }
+            </div>
+
+            @if (actionEliminarError()) {
+              <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ actionEliminarError() }}</div>
+            }
+            @if (actionEdicionOk()) {
+              <div class="alert alert-success"><span class="material-symbols-outlined">check_circle</span>{{ actionEdicionOk() }}</div>
+            }
           } @else {
-            <div class="alert alert-info">
-              <span class="material-symbols-outlined">info</span>
-              El operario aún no tiene oficina asignada. Asigna una para que pueda escanear desde la app de intranet.
-            </div>
-          }
-
-          <div class="action-bar">
-            <div class="action-row">
-              <label class="action-label" for="oficinaSelectAdmin">Cambiar a:</label>
-              <select id="oficinaSelectAdmin"
-                      class="select-input"
-                      [ngModel]="nuevoOficinaJsonId()"
-                      (ngModelChange)="onNuevoOficinaChange($event)"
-                      [disabled]="savingOficina() || cargandoOficinas() || oficinasDisponibles().length === 0">
-                <option [ngValue]="null" disabled>
-                  @if (cargandoOficinas()) {
-                    Cargando oficinas del CTA...
-                  } @else if (oficinasDisponibles().length === 0) {
-                    No hay oficinas en el CTA del operario
-                  } @else {
-                    -- Selecciona una oficina --
+            <div class="form-grid">
+              <div class="field">
+                <label class="field-label">Nombre completo *</label>
+                <input type="text" class="input"
+                       [ngModel]="formEdicion().nombreCompleto"
+                       (ngModelChange)="actualizarFormEdicion('nombreCompleto', $event)" />
+              </div>
+              <div class="field">
+                <label class="field-label">Email *</label>
+                <input type="email" class="input"
+                       [ngModel]="formEdicion().email"
+                       (ngModelChange)="actualizarFormEdicion('email', $event)" />
+              </div>
+              <div class="field">
+                <label class="field-label">Código empleado</label>
+                <input type="text" class="input"
+                       [ngModel]="formEdicion().codigoEmpleado"
+                       (ngModelChange)="actualizarFormEdicion('codigoEmpleado', $event)" />
+              </div>
+              <div class="field">
+                <label class="field-label">Teléfono</label>
+                <input type="tel" class="input"
+                       [ngModel]="formEdicion().phoneNumber"
+                       (ngModelChange)="actualizarFormEdicion('phoneNumber', $event)" />
+              </div>
+              <div class="field field-full">
+                <label class="field-label">Rol *</label>
+                <select class="select"
+                        [ngModel]="formEdicion().rol"
+                        (ngModelChange)="actualizarFormEdicion('rol', $event)">
+                  @for (r of rolesEmpleado; track r) {
+                    <option [ngValue]="r">{{ r }}</option>
                   }
-                </option>
-                @for (of of oficinasDisponibles(); track of.id) {
-                  <option [ngValue]="of.id">
-                    {{ of.nombre }} — {{ of.codigoPostal }} {{ of.ciudad }}
-                  </option>
-                }
-              </select>
-              <button class="btn-primary move-btn"
-                      [disabled]="!puedeGuardarOficina()"
-                      (click)="guardarOficina()">
-                <span class="material-symbols-outlined">save</span>
-                @if (savingOficina()) {
-                  Guardando...
-                } @else {
-                  Guardar oficina
-                }
+                </select>
+              </div>
+            </div>
+
+            @if (actionEdicionError()) {
+              <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ actionEdicionError() }}</div>
+            }
+
+            <div class="modal-footer" style="border-top:none; padding-top:0; justify-content:flex-start;">
+              <button class="btn btn-primary"
+                      [disabled]="savingEdicion()"
+                      (click)="guardarEdicion()">
+                <span class="material-symbols-outlined">{{ savingEdicion() ? 'progress_activity' : 'save' }}</span>
+                @if (savingEdicion()) { Guardando… } @else { Guardar cambios }
               </button>
-            </div>
-          </div>
-
-          @if (actionOficinaError()) {
-            <div class="alert alert-error">
-              <span class="material-symbols-outlined">error</span>
-              {{ actionOficinaError() }}
-            </div>
-          }
-
-          @if (actionOficinaOk()) {
-            <div class="alert alert-success">
-              <span class="material-symbols-outlined">check_circle</span>
-              {{ actionOficinaOk() }}
+              <button class="btn btn-secondary"
+                      [disabled]="savingEdicion()"
+                      (click)="cancelarEdicion()">
+                Cancelar
+              </button>
             </div>
           }
         </section>
-      }
 
-    </div>
-  }
+        <!-- ════════ Configuración operativa CTA ════════ -->
+        <section class="card section-card">
+          <header class="section-header">
+            <div class="icon-tile icon-tile-info"><span class="material-symbols-outlined">domain</span></div>
+            <div>
+              <h2 class="section-title">Configuración operativa</h2>
+              <p class="section-sub">Asignación de CTA y operativa de tareas.</p>
+            </div>
+          </header>
+
+          @if (!esRolConConfigCta()) {
+            <p class="text-subtle">Este rol no usa asignación de CTA en Intranet.</p>
+          } @else if (!detalleOperativo() || detalleOperativo()!.asignacionesCta.length === 0) {
+            <div class="alert alert-warning">
+              <span class="material-symbols-outlined">warning</span>
+              El usuario no tiene asignaciones CTA activas.
+            </div>
+            <div class="form-grid">
+              <div class="field field-full">
+                <label class="field-label">Asignar a CTA</label>
+                <select class="select"
+                        [ngModel]="nuevoCtaId()"
+                        (ngModelChange)="onNuevoCtaChange($event)">
+                  <option [ngValue]="null">— Selecciona un CTA —</option>
+                  @for (c of ctas(); track c.id) {
+                    <option [ngValue]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer" style="border-top:none; padding-top:0; justify-content:flex-start;">
+              <button class="btn btn-primary"
+                      [disabled]="!puedeAsignarPrimera()"
+                      (click)="asignarPrimera()">
+                <span class="material-symbols-outlined">add_circle</span>
+                @if (saving()) { Guardando… } @else { Asignar CTA }
+              </button>
+            </div>
+
+            @if (actionError()) { <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ actionError() }}</div> }
+            @if (actionOk()) { <div class="alert alert-success"><span class="material-symbols-outlined">check_circle</span>{{ actionOk() }}</div> }
+          } @else {
+            @if (asignacionSeleccionada(); as asig) {
+              <article class="card highlight-card">
+                <div class="highlight-head">
+                  <span class="chip chip-brand"><span class="material-symbols-outlined">domain</span>CTA actual</span>
+                  <strong>{{ asig.ctaCodigo }} · {{ asig.ctaNombre }}</strong>
+                  <span class="cell-meta">{{ asig.area }} · {{ asig.rolOperativo }}</span>
+                </div>
+                <div class="stats-row">
+                  <div class="stat-pill stat-warning"><span class="stat-num">{{ asig.tareasPendientes }}</span><span class="stat-label">Pendientes</span></div>
+                  <div class="stat-pill stat-info"><span class="stat-num">{{ asig.tareasEnProgreso }}</span><span class="stat-label">En progreso</span></div>
+                  <div class="stat-pill stat-success"><span class="stat-num">{{ asig.tareasCompletadasHoy }}</span><span class="stat-label">Hoy</span></div>
+                </div>
+              </article>
+
+              @if (detalleOperativo()!.asignacionesCta.length > 1) {
+                <div class="alert alert-warning">
+                  <span class="material-symbols-outlined">info</span>
+                  Este usuario tiene varias asignaciones activas (datos de prueba). Al reasignar, quedará <strong>solo</strong> la del CTA destino.
+                </div>
+              }
+
+              <div class="form-grid">
+                <div class="field field-full">
+                  <label class="field-label">Reasignar a CTA</label>
+                  <select class="select"
+                          [ngModel]="nuevoCtaId()"
+                          (ngModelChange)="onNuevoCtaChange($event)">
+                    @for (c of ctas(); track c.id) {
+                      <option [ngValue]="c.id">{{ c.codigo }} · {{ c.nombre }}{{ c.id === asig.ctaId ? ' (actual)' : '' }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <div class="modal-footer" style="border-top:none; padding-top:0; justify-content:flex-start;">
+                <button class="btn btn-primary" [disabled]="!puedeMoverCta()" (click)="moverCta()">
+                  <span class="material-symbols-outlined">swap_horiz</span>
+                  @if (saving()) { Guardando… } @else { Reasignar }
+                </button>
+              </div>
+            }
+
+            @if (actionError()) { <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ actionError() }}</div> }
+            @if (actionOk()) { <div class="alert alert-success"><span class="material-symbols-outlined">check_circle</span>{{ actionOk() }}</div> }
+
+            <div class="surface-elevated table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr><th>CTA</th><th>Rol</th><th>Estado</th><th>Pend.</th><th>Prog.</th></tr>
+                </thead>
+                <tbody>
+                  @for (a of detalleOperativo()!.asignacionesCta; track a.operarioCtaId) {
+                    <tr [class.row-blocked]="!a.activo">
+                      <td><span class="cell-mono cell-strong">{{ a.ctaCodigo }}</span> · {{ a.ctaNombre }}</td>
+                      <td><span class="chip">{{ a.rolOperativo }}</span></td>
+                      <td>
+                        @if (a.activo) {
+                          <span class="chip chip-success">Activo</span>
+                        } @else {
+                          <span class="chip chip-warning">Inactivo</span>
+                        }
+                      </td>
+                      <td>{{ a.tareasPendientes }}</td>
+                      <td>{{ a.tareasEnProgreso }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+
+        <!-- ════════ Asignación oficina ════════ -->
+        @if (esOperarioOficina()) {
+          <section class="card section-card">
+            <header class="section-header">
+              <div class="icon-tile icon-tile-accent"><span class="material-symbols-outlined">store</span></div>
+              <div>
+                <h2 class="section-title">Oficina asignada</h2>
+                <p class="section-sub">El operario de oficina opera siempre desde una única oficina postal.</p>
+              </div>
+            </header>
+
+            @if (oficinaActual(); as oficina) {
+              <div class="form-grid">
+                <div class="field">
+                  <label class="field-label">Oficina</label>
+                  <div class="cell-strong">{{ oficina.oficinaNombre }}</div>
+                </div>
+                <div class="field">
+                  <label class="field-label">Código postal · Ciudad</label>
+                  <div><span class="cell-mono">{{ oficina.codigoPostal }}</span> · {{ oficina.ciudad }}</div>
+                </div>
+                <div class="field field-full">
+                  <label class="field-label">Dirección</label>
+                  <div>{{ oficina.direccion || '—' }}</div>
+                </div>
+                <div class="field">
+                  <label class="field-label">Estado</label>
+                  @if (oficina.activo) {
+                    <span class="chip chip-success"><span class="material-symbols-outlined">check_circle</span>Activa</span>
+                  } @else {
+                    <span class="chip chip-warning"><span class="material-symbols-outlined">pause_circle</span>Inactiva</span>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div class="alert alert-info">
+                <span class="material-symbols-outlined">info</span>
+                El operario aún no tiene oficina asignada. Asigna una para que pueda escanear desde la app de intranet.
+              </div>
+            }
+
+            <div class="form-grid">
+              <div class="field field-full">
+                <label class="field-label">Cambiar oficina</label>
+                <select class="select"
+                        [ngModel]="nuevoOficinaJsonId()"
+                        (ngModelChange)="onNuevoOficinaChange($event)"
+                        [disabled]="savingOficina() || cargandoOficinas() || oficinasDisponibles().length === 0">
+                  <option [ngValue]="null" disabled>
+                    @if (cargandoOficinas()) { Cargando oficinas del CTA… }
+                    @else if (oficinasDisponibles().length === 0) { No hay oficinas en el CTA del operario }
+                    @else { — Selecciona una oficina — }
+                  </option>
+                  @for (of of oficinasDisponibles(); track of.id) {
+                    <option [ngValue]="of.id">{{ of.nombre }} — {{ of.codigoPostal }} {{ of.ciudad }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer" style="border-top:none; padding-top:0; justify-content:flex-start;">
+              <button class="btn btn-primary"
+                      [disabled]="!puedeGuardarOficina()"
+                      (click)="guardarOficina()">
+                <span class="material-symbols-outlined">{{ savingOficina() ? 'progress_activity' : 'save' }}</span>
+                @if (savingOficina()) { Guardando… } @else { Guardar oficina }
+              </button>
+            </div>
+
+            @if (actionOficinaError()) { <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ actionOficinaError() }}</div> }
+            @if (actionOficinaOk()) { <div class="alert alert-success"><span class="material-symbols-outlined">check_circle</span>{{ actionOficinaOk() }}</div> }
+          </section>
+        }
+
+      </div>
+    }
+  </main>
 </div>

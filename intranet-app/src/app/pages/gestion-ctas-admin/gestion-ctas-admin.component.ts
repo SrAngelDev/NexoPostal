@@ -28,6 +28,11 @@ export class GestionCtasAdminComponent implements OnInit {
   filtroTexto = signal('');
   incluirInactivos = signal(true);
 
+  kpiActivos        = computed(() => this.ctas().filter(c => c.activo !== false).length);
+  kpiInactivos      = computed(() => this.ctas().filter(c => c.activo === false).length);
+  kpiNodosAereos    = computed(() => this.ctas().filter(c => c.esNodoAereo).length);
+  kpiNodosMaritimos = computed(() => this.ctas().filter(c => c.esNodoMaritimo).length);
+
   modoModal = signal<'crear' | 'editar' | null>(null);
   ctaEditando = signal<CtaResumenDto | null>(null);
   saving = signal(false);

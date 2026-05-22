@@ -3,6 +3,8 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
+import { SignalrService } from '../../services/signalr.service';
+import { NotificationBellComponent } from '../../components/notification-bell/notification-bell.component';
 
 interface DashboardReparto {
   rutasHoy: number;
@@ -17,7 +19,7 @@ interface DashboardReparto {
 @Component({
   selector: 'app-dashboard-jefe',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NotificationBellComponent],
   templateUrl: './dashboard-jefe.component.html',
   styleUrl: './dashboard-jefe.component.css'
 })
@@ -32,12 +34,16 @@ export class DashboardJefeComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private signalr: SignalrService
   ) {
     this.userName = this.authService.getCurrentUser()?.user ?? '';
   }
 
   ngOnInit(): void {
+    if (this.authService.getToken()) {
+      this.signalr.iniciar();
+    }
     this.cargarDashboard();
   }
 

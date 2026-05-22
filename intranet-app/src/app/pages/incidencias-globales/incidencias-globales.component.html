@@ -1,107 +1,185 @@
-<div class="page-container">
-  <header class="page-header">
-    <button class="btn-back" (click)="volver()" title="Volver al panel">
-      <span class="material-symbols-outlined">arrow_back</span>
-    </button>
-    <h1 class="page-title">
-      <span class="material-symbols-outlined title-icon">report</span>
-      Incidencias globales
-    </h1>
-    <button class="btn-secondary" (click)="cargar()">
-      <span class="material-symbols-outlined">refresh</span>
-      Recargar
-    </button>
-  </header>
+<div class="page">
+  <main class="page-content fade-in-up">
 
-  <div class="kpi-grid">
-    <div class="kpi-card"><span class="kpi-label">Total</span><span class="kpi-value">{{ resumen().total }}</span></div>
-    <div class="kpi-card kpi-danger"><span class="kpi-label">Abiertas</span><span class="kpi-value">{{ resumen().abiertas }}</span></div>
-    <div class="kpi-card kpi-warning"><span class="kpi-label">En revisión</span><span class="kpi-value">{{ resumen().enRevision }}</span></div>
-    <div class="kpi-card kpi-info"><span class="kpi-label">Resueltas</span><span class="kpi-value">{{ resumen().resueltas }}</span></div>
-    <div class="kpi-card"><span class="kpi-label">Cerradas</span><span class="kpi-value">{{ resumen().cerradas }}</span></div>
-  </div>
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg icon-tile-warning">
+        <span class="material-symbols-outlined">report</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Incidencias globales</h1>
+        <p class="page-subheading">Centro de seguimiento de incidencias reportadas en los CTAs.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading()">
+          <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
+          Recargar
+        </button>
+      </div>
+    </header>
 
-  <div class="filters-bar">
-    <div class="filter-group">
-      <label>Estado</label>
-      <select class="input-select"
-              [ngModel]="filtroEstado()"
-              (ngModelChange)="filtroEstado.set($event); cargar()">
-        @for (e of ESTADOS; track e) {
-          <option [value]="e">{{ e || 'Todos' }}</option>
-        }
-      </select>
-    </div>
-    <div class="filter-group">
-      <label>CTA</label>
-      <select class="input-select"
-              [ngModel]="filtroCtaId()"
-              (ngModelChange)="filtroCtaId.set($event); cargar()">
-        <option [ngValue]="null">Todos</option>
-        @for (c of ctas(); track c.id) {
-          <option [ngValue]="c.id">{{ c.codigo }} – {{ c.nombre }}</option>
-        }
-      </select>
-    </div>
-    <div class="filter-group">
-      <label>Tipo</label>
-      <select class="input-select"
-              [ngModel]="filtroTipo()"
-              (ngModelChange)="filtroTipo.set($event); cargar()">
-        @for (t of TIPOS; track t) {
-          <option [value]="t">{{ t || 'Todos' }}</option>
-        }
-      </select>
-    </div>
-    <button class="btn-secondary" (click)="limpiarFiltros()">Limpiar</button>
-  </div>
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg">
+          <span class="material-symbols-outlined">summarize</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ resumen().total }}</div>
+          <div class="kpi-label">Total</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-danger">
+          <span class="material-symbols-outlined">error</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ resumen().abiertas }}</div>
+          <div class="kpi-label">Abiertas</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-warning">
+          <span class="material-symbols-outlined">visibility</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ resumen().enRevision }}</div>
+          <div class="kpi-label">En revisión</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">verified</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ resumen().resueltas }}</div>
+          <div class="kpi-label">Resueltas</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-success">
+          <span class="material-symbols-outlined">check_circle</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ resumen().cerradas }}</div>
+          <div class="kpi-label">Cerradas</div>
+        </div>
+      </article>
+    </section>
 
-  @if (error(); as msg) {
-    <div class="alert alert-error">
-      <span class="material-symbols-outlined">error</span> {{ msg }}
-    </div>
-  }
+    <section class="card filters-card">
+      <div class="filters-grid">
+        <div class="field">
+          <label class="field-label">Estado</label>
+          <select class="select"
+                  [ngModel]="filtroEstado()"
+                  (ngModelChange)="filtroEstado.set($event); cargar()">
+            @for (e of ESTADOS; track e) {
+              <option [value]="e">{{ e || 'Todos los estados' }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">CTA</label>
+          <select class="select"
+                  [ngModel]="filtroCtaId()"
+                  (ngModelChange)="filtroCtaId.set($event); cargar()">
+            <option [ngValue]="null">Todos</option>
+            @for (c of ctas(); track c.id) {
+              <option [ngValue]="c.id">{{ c.codigo }} – {{ c.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Tipo</label>
+          <select class="select"
+                  [ngModel]="filtroTipo()"
+                  (ngModelChange)="filtroTipo.set($event); cargar()">
+            @for (t of TIPOS; track t) {
+              <option [value]="t">{{ t || 'Todos los tipos' }}</option>
+            }
+          </select>
+        </div>
+        <button class="btn btn-secondary" (click)="limpiarFiltros()">
+          <span class="material-symbols-outlined">filter_alt_off</span>
+          Limpiar
+        </button>
+      </div>
+    </section>
 
-  @if (loading()) {
-    <div class="loading-state">
-      <span class="material-symbols-outlined spinning">progress_activity</span>
-      Cargando incidencias…
-    </div>
-  } @else if (incidencias().length === 0) {
-    <div class="empty-state">
-      <span class="material-symbols-outlined">check_circle</span>
-      No hay incidencias que coincidan con los filtros.
-    </div>
-  } @else {
-    <div class="table-card">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Expedición</th>
-            <th>CTA</th>
-            <th>Tipo</th>
-            <th>Estado</th>
-            <th>Reportada por</th>
-            <th>Fecha creación</th>
-            <th>Fecha resolución</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (i of incidencias(); track i.id) {
+    @if (error(); as msg) {
+      <div class="alert alert-danger">
+        <span class="material-symbols-outlined">error</span>
+        {{ msg }}
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando incidencias…
+      </div>
+    } @else if (incidencias().length === 0) {
+      <div class="empty-state card">
+        <div class="icon-tile icon-tile-lg icon-tile-success">
+          <span class="material-symbols-outlined">check_circle</span>
+        </div>
+        <h3 class="empty-title">Sin incidencias</h3>
+        <p class="empty-text">No hay incidencias que coincidan con los filtros actuales.</p>
+      </div>
+    } @else {
+      <section class="surface-elevated table-wrapper">
+        <table class="data-table">
+          <thead>
             <tr>
-              <td>{{ i.id }}</td>
-              <td class="cell-strong">{{ i.numeroExpedicion }}</td>
-              <td>{{ i.ctaCodigo ?? '—' }}</td>
-              <td>{{ i.tipo }}</td>
-              <td><span class="badge" [class]="badgeClass(i.estado)">{{ i.estado }}</span></td>
-              <td>{{ i.reportadaPor }}</td>
-              <td>{{ i.fechaCreacion | date:'short' }}</td>
-              <td>{{ i.fechaResolucion ? (i.fechaResolucion | date:'short') : '—' }}</td>
+              <th>Expedición</th>
+              <th>CTA</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Reportada por</th>
+              <th>Creación</th>
+              <th>Resolución</th>
             </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  }
+          </thead>
+          <tbody>
+            @for (i of incidencias(); track i.id) {
+              <tr>
+                <td class="cell-mono cell-strong">{{ i.numeroExpedicion }}</td>
+                <td>
+                  @if (i.ctaCodigo) {
+                    <span class="chip chip-brand">
+                      <span class="material-symbols-outlined">factory</span>
+                      {{ i.ctaCodigo }}
+                    </span>
+                  } @else {
+                    <span class="text-subtle">—</span>
+                  }
+                </td>
+                <td>
+                  <span class="chip">
+                    <span class="material-symbols-outlined">label</span>
+                    {{ i.tipo }}
+                  </span>
+                </td>
+                <td>
+                  @switch (i.estado) {
+                    @case ('Abierta') { <span class="chip chip-danger"><span class="material-symbols-outlined">error</span>{{ i.estado }}</span> }
+                    @case ('EnRevision') { <span class="chip chip-warning"><span class="material-symbols-outlined">visibility</span>En revisión</span> }
+                    @case ('Resuelta') { <span class="chip chip-info"><span class="material-symbols-outlined">verified</span>{{ i.estado }}</span> }
+                    @case ('Cerrada') { <span class="chip chip-success"><span class="material-symbols-outlined">check_circle</span>{{ i.estado }}</span> }
+                    @default { <span class="chip">{{ i.estado }}</span> }
+                  }
+                </td>
+                <td class="cell-meta">{{ i.reportadaPor }}</td>
+                <td class="cell-meta">{{ i.fechaCreacion | date:'short' }}</td>
+                <td class="cell-meta">{{ i.fechaResolucion ? (i.fechaResolucion | date:'short') : '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+      <p class="result-count">{{ incidencias().length }} incidencia(s)</p>
+    }
+  </main>
 </div>

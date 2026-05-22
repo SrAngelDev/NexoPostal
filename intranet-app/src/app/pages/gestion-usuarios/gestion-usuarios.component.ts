@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -30,6 +30,10 @@ export class GestionUsuariosComponent implements OnInit {
   loading     = signal(false);
   error       = signal<string | null>(null);
   actionError = signal<string | null>(null);
+
+  kpiActivos     = computed(() => this.usuarios().filter(u => !u.bloqueado && !u.eliminado).length);
+  kpiBloqueados  = computed(() => this.usuarios().filter(u => u.bloqueado && !u.eliminado).length);
+  kpiEliminados  = computed(() => this.usuarios().filter(u => u.eliminado).length);
 
   // Filtros
   filtroRol      = signal('');

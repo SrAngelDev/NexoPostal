@@ -1,156 +1,201 @@
-<div class="page-container">
-  <header class="page-header">
-    <button class="btn-back" (click)="volver()" title="Volver al panel">
-      <span class="material-symbols-outlined">arrow_back</span>
-    </button>
-    <h1 class="page-title">
-      <span class="material-symbols-outlined title-icon">domain</span>
-      Gestión de CTAs
-    </h1>
-    <button class="btn-primary" (click)="abrirCrear()">
-      <span class="material-symbols-outlined">add</span>
-      Nuevo CTA
-    </button>
-  </header>
+<div class="page">
+  @let activos = kpiActivos();
+  @let inactivos = kpiInactivos();
+  @let nodosAereos = kpiNodosAereos();
+  @let nodosMaritimos = kpiNodosMaritimos();
 
-  <div class="filters-bar">
-    <div class="filter-group">
-      <label for="texto">Buscar</label>
-      <input id="texto" type="text" class="input-text"
-             placeholder="Código, nombre, ciudad, provincia…"
-             [ngModel]="filtroTexto()"
-             (ngModelChange)="filtroTexto.set($event)" />
-    </div>
-    <div class="filter-group filter-checkbox">
-      <label>
-        <input type="checkbox"
-               [checked]="incluirInactivos()"
-               (change)="incluirInactivos.set(!incluirInactivos())" />
-        Incluir inactivos
-      </label>
-    </div>
-    <button class="btn-secondary" (click)="cargar()">
-      <span class="material-symbols-outlined">refresh</span>
-      Recargar
-    </button>
-  </div>
+  <main class="page-content fade-in-up">
 
-  @if (actionError(); as msg) {
-    <div class="alert alert-error">
-      <span class="material-symbols-outlined">error</span> {{ msg }}
-    </div>
-  }
-  @if (error(); as msg) {
-    <div class="alert alert-error">
-      <span class="material-symbols-outlined">error</span> {{ msg }}
-    </div>
-  }
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg icon-tile-brand">
+        <span class="material-symbols-outlined">domain</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Gestión de CTAs</h1>
+        <p class="page-subheading">Centros de Tratamiento Automatizado: gestiona códigos, áreas zonales y nodos.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading()">
+          <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
+          Recargar
+        </button>
+        <button class="btn btn-primary" (click)="abrirCrear()">
+          <span class="material-symbols-outlined">add</span>
+          Nuevo CTA
+        </button>
+      </div>
+    </header>
 
-  @if (loading()) {
-    <div class="loading-state">
-      <span class="material-symbols-outlined spinning">progress_activity</span>
-      Cargando CTAs…
-    </div>
-  } @else if (ctasFiltrados().length === 0) {
-    <div class="empty-state">
-      <span class="material-symbols-outlined">domain_disabled</span>
-      No hay CTAs que coincidan con los filtros.
-    </div>
-  } @else {
-    <div class="table-card">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Nombre</th>
-            <th>Área</th>
-            <th>Ciudad</th>
-            <th>Provincia</th>
-            <th class="text-center">Nodo aéreo</th>
-            <th class="text-center">Nodo marítimo</th>
-            <th class="text-center">Operarios</th>
-            <th class="text-center">Estado</th>
-            <th class="text-center">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (c of ctasFiltrados(); track c.id) {
-            <tr [class.row-inactive]="c.activo === false">
-              <td class="cell-strong">{{ c.codigo }}</td>
-              <td>{{ c.nombre }}</td>
-              <td>{{ c.area }}</td>
-              <td>{{ c.ciudad ?? '—' }}</td>
-              <td>{{ c.provincia ?? '—' }}</td>
-              <td class="text-center">{{ c.esNodoAereo ? '✈️' : '—' }}</td>
-              <td class="text-center">{{ c.esNodoMaritimo ? '⚓' : '—' }}</td>
-              <td class="text-center">{{ c.totalOperarios ?? 0 }}</td>
-              <td class="text-center">
-                @if (c.activo === false) {
-                  <span class="badge badge-off">Inactivo</span>
-                } @else {
-                  <span class="badge badge-ok">Activo</span>
-                }
-              </td>
-              <td>
-                <div class="actions-row">
-                  <button class="btn-icon btn-warning" title="Editar"
-                          (click)="abrirEditar(c)">
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg"><span class="material-symbols-outlined">domain</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ ctas().length }}</div><div class="kpi-label">Total</div></div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-success"><span class="material-symbols-outlined">check_circle</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ activos }}</div><div class="kpi-label">Activos</div></div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-warning"><span class="material-symbols-outlined">pause_circle</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ inactivos }}</div><div class="kpi-label">Inactivos</div></div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-info"><span class="material-symbols-outlined">flight</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ nodosAereos }}</div><div class="kpi-label">Nodos aéreos</div></div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-accent"><span class="material-symbols-outlined">directions_boat</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ nodosMaritimos }}</div><div class="kpi-label">Nodos marítimos</div></div>
+      </article>
+    </section>
+
+    @if (actionError(); as msg) {
+      <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ msg }}</div>
+    }
+    @if (error(); as msg) {
+      <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ msg }}</div>
+    }
+
+    <section class="card filters-card">
+      <div class="filters-grid">
+        <div class="field field-icon filter-search">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" class="input"
+                 placeholder="Buscar por código, nombre, ciudad o provincia…"
+                 [ngModel]="filtroTexto()"
+                 (ngModelChange)="filtroTexto.set($event)" />
+        </div>
+        <label class="toggle-pill" [class.toggle-active]="incluirInactivos()">
+          <input type="checkbox"
+                 [checked]="incluirInactivos()"
+                 (change)="incluirInactivos.set(!incluirInactivos())" />
+          <span class="material-symbols-outlined">visibility</span>
+          Incluir inactivos
+        </label>
+      </div>
+    </section>
+
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando CTAs…
+      </div>
+    } @else if (ctasFiltrados().length === 0) {
+      <div class="empty-state card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">domain_disabled</span>
+        </div>
+        <h3 class="empty-title">Sin CTAs</h3>
+        <p class="empty-text">No hay CTAs que coincidan con los filtros actuales.</p>
+      </div>
+    } @else {
+      <section class="surface-elevated table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Área</th>
+              <th>Ciudad</th>
+              <th>Provincia</th>
+              <th>Nodos</th>
+              <th>Operarios</th>
+              <th>Estado</th>
+              <th class="th-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of ctasFiltrados(); track c.id) {
+              <tr [class.row-blocked]="c.activo === false">
+                <td class="cell-mono cell-strong">{{ c.codigo }}</td>
+                <td>{{ c.nombre }}</td>
+                <td><span class="chip chip-brand">{{ c.area }}</span></td>
+                <td class="cell-meta">{{ c.ciudad ?? '—' }}</td>
+                <td class="cell-meta">{{ c.provincia ?? '—' }}</td>
+                <td>
+                  <div style="display:flex; gap:0.35rem;">
+                    @if (c.esNodoAereo) {
+                      <span class="chip chip-info"><span class="material-symbols-outlined">flight</span>Aéreo</span>
+                    }
+                    @if (c.esNodoMaritimo) {
+                      <span class="chip chip-accent"><span class="material-symbols-outlined">directions_boat</span>Marítimo</span>
+                    }
+                    @if (!c.esNodoAereo && !c.esNodoMaritimo) {
+                      <span class="text-subtle">—</span>
+                    }
+                  </div>
+                </td>
+                <td><span class="chip">{{ c.totalOperarios ?? 0 }}</span></td>
+                <td>
+                  @if (c.activo === false) {
+                    <span class="chip chip-warning"><span class="material-symbols-outlined">pause_circle</span>Inactivo</span>
+                  } @else {
+                    <span class="chip chip-success"><span class="material-symbols-outlined">check_circle</span>Activo</span>
+                  }
+                </td>
+                <td class="cell-actions">
+                  <button class="btn btn-icon btn-ghost action-info" title="Editar" (click)="abrirEditar(c)">
                     <span class="material-symbols-outlined">edit</span>
                   </button>
                   @if (c.activo === false) {
-                    <button class="btn-icon btn-success" title="Reactivar"
-                            (click)="reactivar(c)">
+                    <button class="btn btn-icon btn-ghost action-success" title="Reactivar" (click)="reactivar(c)">
                       <span class="material-symbols-outlined">restart_alt</span>
                     </button>
                   } @else {
-                    <button class="btn-icon btn-danger" title="Desactivar"
-                            (click)="desactivar(c)">
+                    <button class="btn btn-icon btn-ghost action-danger" title="Desactivar" (click)="desactivar(c)">
                       <span class="material-symbols-outlined">block</span>
                     </button>
                   }
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+      <p class="result-count">{{ ctasFiltrados().length }} CTA(s)</p>
+    }
+  </main>
 </div>
 
-<!-- ============ Modal crear/editar ============ -->
+<!-- ════════════ Modal: Crear/Editar ════════════ -->
 @if (modoModal(); as modo) {
-  <div class="modal-overlay" (click)="cerrarModal()">
-    <div class="modal-card" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2>{{ modo === 'crear' ? 'Nuevo CTA' : 'Editar CTA ' + ctaEditando()?.codigo }}</h2>
-        <button class="btn-close" (click)="cerrarModal()">
-          <span class="material-symbols-outlined">close</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        @if (modalError(); as msg) {
-          <div class="alert alert-error">
-            <span class="material-symbols-outlined">error</span> {{ msg }}
+  <div class="modal-overlay fade-in" (click)="cerrarModal()">
+    <div class="modal-card surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-brand">
+            <span class="material-symbols-outlined">{{ modo === 'crear' ? 'add' : 'edit' }}</span>
           </div>
+          <h2>{{ modo === 'crear' ? 'Nuevo CTA' : 'Editar CTA ' + ctaEditando()?.codigo }}</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarModal()"><span class="material-symbols-outlined">close</span></button>
+      </header>
+
+      <div class="modal-form">
+        @if (modalError(); as msg) {
+          <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ msg }}</div>
         }
+
         <div class="form-grid">
-          <div class="form-field">
-            <label>Código *</label>
-            <input type="text" class="input-text"
+          <div class="field">
+            <label class="field-label">Código *</label>
+            <input type="text" class="input"
                    [disabled]="modo === 'editar'"
                    [ngModel]="form().codigo"
                    (ngModelChange)="actualizarForm('codigo', $event)" />
           </div>
-          <div class="form-field">
-            <label>Nombre *</label>
-            <input type="text" class="input-text"
+          <div class="field">
+            <label class="field-label">Nombre *</label>
+            <input type="text" class="input"
                    [ngModel]="form().nombre"
                    (ngModelChange)="actualizarForm('nombre', $event)" />
           </div>
-          <div class="form-field">
-            <label>Área zonal *</label>
-            <select class="input-select"
+          <div class="field">
+            <label class="field-label">Área zonal *</label>
+            <select class="select"
                     [ngModel]="form().area"
                     (ngModelChange)="actualizarForm('area', $event)">
               @for (a of AREAS; track a) {
@@ -158,54 +203,58 @@
               }
             </select>
           </div>
-          <div class="form-field">
-            <label>Provincia</label>
-            <input type="text" class="input-text"
+          <div class="field">
+            <label class="field-label">Provincia</label>
+            <input type="text" class="input"
                    [ngModel]="form().provincia"
                    (ngModelChange)="actualizarForm('provincia', $event)" />
           </div>
-          <div class="form-field">
-            <label>Ciudad</label>
-            <input type="text" class="input-text"
+          <div class="field">
+            <label class="field-label">Ciudad</label>
+            <input type="text" class="input"
                    [ngModel]="form().ciudad"
                    (ngModelChange)="actualizarForm('ciudad', $event)" />
           </div>
-          <div class="form-field">
-            <label>Código postal</label>
-            <input type="text" class="input-text" maxlength="5"
+          <div class="field">
+            <label class="field-label">Código postal</label>
+            <input type="text" class="input" maxlength="5"
                    [ngModel]="form().codigoPostal"
                    (ngModelChange)="actualizarForm('codigoPostal', $event)" />
           </div>
-          <div class="form-field" style="grid-column: 1 / -1;">
-            <label>Dirección</label>
-            <input type="text" class="input-text"
+          <div class="field field-full">
+            <label class="field-label">Dirección</label>
+            <input type="text" class="input"
                    [ngModel]="form().direccion"
                    (ngModelChange)="actualizarForm('direccion', $event)" />
           </div>
-          <div class="form-field filter-checkbox">
-            <label>
-              <input type="checkbox"
-                     [checked]="form().esNodoAereo"
-                     (change)="actualizarForm('esNodoAereo', !form().esNodoAereo)" />
-              ✈️ Nodo aéreo
-            </label>
-          </div>
-          <div class="form-field filter-checkbox">
-            <label>
-              <input type="checkbox"
-                     [checked]="form().esNodoMaritimo"
-                     (change)="actualizarForm('esNodoMaritimo', !form().esNodoMaritimo)" />
-              ⚓ Nodo marítimo
-            </label>
-          </div>
+          <label class="toggle-pill" [class.toggle-active]="form().esNodoAereo">
+            <input type="checkbox"
+                   [checked]="form().esNodoAereo"
+                   (change)="actualizarForm('esNodoAereo', !form().esNodoAereo)" />
+            <span class="material-symbols-outlined">flight</span>
+            Nodo aéreo
+          </label>
+          <label class="toggle-pill" [class.toggle-active]="form().esNodoMaritimo">
+            <input type="checkbox"
+                   [checked]="form().esNodoMaritimo"
+                   (change)="actualizarForm('esNodoMaritimo', !form().esNodoMaritimo)" />
+            <span class="material-symbols-outlined">directions_boat</span>
+            Nodo marítimo
+          </label>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="cerrarModal()" [disabled]="saving()">Cancelar</button>
-        <button class="btn-primary" (click)="guardar()" [disabled]="saving()">
-          <span class="material-symbols-outlined">{{ saving() ? 'progress_activity' : 'save' }}</span>
-          {{ saving() ? 'Guardando…' : 'Guardar' }}
-        </button>
+
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarModal()" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardar()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Guardando…
+            } @else {
+              <span class="material-symbols-outlined">save</span>
+              Guardar
+            }
+          </button>
+        </footer>
       </div>
     </div>
   </div>

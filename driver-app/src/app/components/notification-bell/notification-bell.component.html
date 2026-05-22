@@ -1,0 +1,40 @@
+<div class="bell-wrapper">
+  <button type="button" class="bell-btn" (click)="toggle()" [class.connected]="signalr.estadoConexion() === 'conectado'" title="Notificaciones">
+    <span class="material-symbols-outlined">notifications</span>
+    @if (signalr.noLeidas() > 0) {
+      <span class="bell-badge">{{ signalr.noLeidas() }}</span>
+    }
+    <span class="conn-dot" [attr.data-estado]="signalr.estadoConexion()"></span>
+  </button>
+
+  @if (abierto()) {
+    <div class="bell-backdrop" (click)="cerrar()"></div>
+    <div class="bell-panel">
+      <header class="bell-header">
+        <h3>Notificaciones</h3>
+        <button class="bell-close" (click)="cerrar()" aria-label="Cerrar">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+      @if (signalr.notificaciones().length === 0) {
+        <div class="bell-empty">
+          <span class="material-symbols-outlined">notifications_off</span>
+          Sin notificaciones
+        </div>
+      } @else {
+        <ul class="bell-list">
+          @for (n of signalr.notificaciones(); track n.id) {
+            <li class="bell-item" [attr.data-evento]="n.evento">
+              <div class="bell-item-title">{{ n.titulo }}</div>
+              <div class="bell-item-msg">{{ n.mensaje }}</div>
+              <div class="bell-item-time">{{ n.fechaUtc | date:'dd/MM HH:mm' }}</div>
+            </li>
+          }
+        </ul>
+        <footer class="bell-footer">
+          <button class="bell-clear" (click)="limpiar()">Limpiar todo</button>
+        </footer>
+      }
+    </div>
+  }
+</div>

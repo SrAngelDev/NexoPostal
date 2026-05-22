@@ -62,6 +62,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
                 logger.LogWarning("Autenticación JWT fallida: {Message}", context.Exception.Message);
                 return Task.CompletedTask;
+            },
+            // Permitir token vía query string para SignalR (WebSocket no soporta headers custom).
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/reparto"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
             }
         };
     });
@@ -81,6 +92,10 @@ builder.Services.AddScoped<IReintentoEntregaService, ReintentoEntregaService>();
 builder.Services.AddScoped<IBalanceoCargaService, BalanceoCargaService>();
 builder.Services.AddScoped<IVehiculoRepository, VehiculoRepository>();
 builder.Services.AddScoped<IVehiculoService, VehiculoService>();
+
+// Notificador SignalR (singleton: usa IHubContext que es thread-safe)
+builder.Services.AddSingleton<IRepartoNotifier, RepartoNotifier>();
+builder.Services.AddSignalR();
 
 var ciudadanoTrackingBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoTrackingSettings:BaseUrl"]);
 // Fallback: vacío o placeholder sin resolver (${...}) — usar valor por defecto en red Docker.
@@ -191,6 +206,7 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<Nexopostal.Reparto.Hubs.RepartoHub>("/hubs/reparto");
 
 // ===== INICIALIZACIÓN DE BASE DE DATOS =====
 // Migraciones y seeding se aplican en TODOS los entornos (el seeder es idempotente).
