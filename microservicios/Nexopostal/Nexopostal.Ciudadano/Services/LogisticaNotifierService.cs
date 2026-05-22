@@ -25,6 +25,9 @@ public interface ILogisticaNotifierService
     /// <param name="direccionEntrega">Dirección completa de entrega de última milla</param>
     /// <param name="ciudadDestino">Ciudad destino de la entrega</param>
     /// <param name="telefonoDestinatario">Teléfono de contacto del destinatario</param>
+    /// <param name="oficinaOrigenId">Oficina origen donde el remitente entregó el paquete (online).</param>
+    /// <param name="oficinaDestinoId">Oficina destino donde el destinatario recogerá (si TipoEntrega=Oficina).</param>
+    /// <param name="tipoEntrega">"Domicilio" o "Oficina".</param>
     Task NotificarAdmisionAsync(
         string numeroExpedicion,
         string codigoPostalDestino,
@@ -35,7 +38,10 @@ public interface ILogisticaNotifierService
         string? numeroSeguimiento = null,
         string? direccionEntrega = null,
         string? ciudadDestino = null,
-        string? telefonoDestinatario = null);
+        string? telefonoDestinatario = null,
+        int? oficinaOrigenId = null,
+        int? oficinaDestinoId = null,
+        string? tipoEntrega = null);
 }
 
 public class LogisticaNotifierService : ILogisticaNotifierService
@@ -65,7 +71,10 @@ public class LogisticaNotifierService : ILogisticaNotifierService
         string? numeroSeguimiento = null,
         string? direccionEntrega = null,
         string? ciudadDestino = null,
-        string? telefonoDestinatario = null)
+        string? telefonoDestinatario = null,
+        int? oficinaOrigenId = null,
+        int? oficinaDestinoId = null,
+        string? tipoEntrega = null)
     {
         try
         {
@@ -85,6 +94,9 @@ public class LogisticaNotifierService : ILogisticaNotifierService
                 direccionEntrega,
                 ciudadDestino,
                 telefonoDestinatario,
+                oficinaOrigenId,
+                oficinaDestinoId,
+                tipoEntrega = tipoEntrega ?? "Domicilio",
                 observaciones = $"Admitido automáticamente tras pago confirmado"
             };
 

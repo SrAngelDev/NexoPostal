@@ -89,6 +89,21 @@ public class CrearSesionPagoDto
     [MaxLength(500)]
     public string DireccionDestino { get; set; } = string.Empty;
 
+    // ===== MODALIDAD DE ENTREGA Y OFICINAS =====
+
+    /// <summary>
+    /// Oficina origen donde el remitente entrega el paquete.
+    /// Obligatoria para alta online (el cliente lleva el paquete a la oficina).
+    /// </summary>
+    public int? OficinaOrigenId { get; set; }
+
+    /// <summary>"Domicilio" o "Oficina".</summary>
+    [MaxLength(20)]
+    public string TipoEntrega { get; set; } = "Domicilio";
+
+    /// <summary>Oficina destino donde el destinatario recogerá el paquete (si TipoEntrega=="Oficina").</summary>
+    public int? OficinaDestinoId { get; set; }
+
     // ===== URL BASE PARA RETORNO DE STRIPE =====
 
     [Required]

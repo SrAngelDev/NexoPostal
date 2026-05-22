@@ -28,6 +28,10 @@ export interface CrearSesionPagoRequest {
   emailDestinatario?: string;
   dniDestinatario?: string;
   direccionDestino: string;
+  // Modalidad de entrega
+  oficinaOrigenId?: number | null;
+  tipoEntrega?: 'Domicilio' | 'Oficina';
+  oficinaDestinoId?: number | null;
   // URL base para retorno de Stripe
   urlBase: string;
 }
