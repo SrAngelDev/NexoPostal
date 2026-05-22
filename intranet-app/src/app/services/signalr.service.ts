@@ -170,6 +170,24 @@ export class SignalrService {
     // Notificación general
     this.hubConnection.on('NotificacionGeneral', (n: NotificacionSignalR) => this.agregarNotificacion(n));
 
+    // Broadcast administrativo (enviado desde /broadcast-notificaciones)
+    // El payload del servidor es { tipo, titulo, mensaje, fechaUtc, alcance, ctaId, rol }
+    // y hay que mapearlo al formato NotificacionSignalR esperado por el panel.
+    this.hubConnection.on('NotificacionBroadcast', (p: any) => {
+      const tipo: string = p?.tipo ?? 'info';
+      const notif: NotificacionSignalR = {
+        tipo: 'Broadcast',
+        titulo: p?.titulo ?? 'Notificación',
+        mensaje: p?.mensaje ?? '',
+        ctaId: p?.ctaId ?? 0,
+        ctaCodigo: '',
+        esUrgente: tipo === 'warning' || tipo === 'error',
+        fechaHora: p?.fechaUtc ?? new Date().toISOString(),
+        datos: { alcance: p?.alcance, rol: p?.rol, tipoOriginal: tipo }
+      };
+      this.agregarNotificacion(notif);
+    });
+
     // Cambio de CTA asignado al operario
     this.hubConnection.on('CtaCambiada', (payload: CtaCambiadaPayload) => {
       this.ctaCambiada.set(payload);
