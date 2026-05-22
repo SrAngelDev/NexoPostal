@@ -122,6 +122,26 @@ builder.Services.AddHttpClient<IRepartoOrquestacionService, RepartoOrquestacionS
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+// 4.0.b Cliente inter-servicio hacia Ciudadano (lookup de envíos por expedición)
+var ciudadanoBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoApi:BaseUrl"]);
+if (string.IsNullOrWhiteSpace(ciudadanoBaseUrl) || ciudadanoBaseUrl.Contains("${"))
+{
+    ciudadanoBaseUrl = "http://localhost:5200";
+}
+var interServiceKey = ResolveConfigValue(builder.Configuration["InterServiceSettings:ServiceKey"]);
+if (string.IsNullOrWhiteSpace(interServiceKey) || interServiceKey.Contains("${"))
+{
+    interServiceKey = "nexopostal-internal-service-key-2025";
+}
+
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<ICiudadanoEnvioLookupService, CiudadanoEnvioLookupService>(client =>
+{
+    client.BaseAddress = new Uri(ciudadanoBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(8);
+    client.DefaultRequestHeaders.Add("X-Service-Key", interServiceKey);
+});
+
 // 4.1 Servicios de automatización
 builder.Services.AddScoped<IClasificacionAutomaticaService, ClasificacionAutomaticaService>();
 builder.Services.AddScoped<INotificacionAutomaticaService, NotificacionAutomaticaService>();

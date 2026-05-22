@@ -77,6 +77,29 @@ public class AdmisionPaqueteDto
     /// <summary>Ciudad de entrega para la ruta de última milla</summary>
     public string? CiudadDestino { get; set; }
 
+    // ===== Modalidad de entrega y oficinas (nuevo flujo) =====
+
+    /// <summary>Oficina postal de origen (OficinaJsonId) donde el cliente entregó el paquete.</summary>
+    public int? OficinaOrigenId { get; set; }
+
+    /// <summary>Oficina postal de destino (OficinaJsonId) donde el destinatario lo recogerá. Solo si TipoEntrega == "Oficina".</summary>
+    public int? OficinaDestinoId { get; set; }
+
+    /// <summary>"Domicilio" (default) o "Oficina".</summary>
+    public string TipoEntrega { get; set; } = "Domicilio";
+
+    /// <summary>
+    /// True si el paquete ya está físicamente en la oficina origen (alta presencial).
+    /// En ese caso el flujo arranca en RecogidoEnOrigen y se autoasigna tarea SalidaOficinaACta al operario.
+    /// </summary>
+    public bool YaRecogidoEnOrigen { get; set; } = false;
+
+    /// <summary>
+    /// Id del OperarioOficina que dio de alta el paquete (solo en alta presencial).
+    /// Se usa para autoasignarle la tarea inicial SalidaOficinaACta.
+    /// </summary>
+    public int? OperarioOficinaId { get; set; }
+
     /// <summary>Observaciones adicionales</summary>
     public string? Observaciones { get; set; }
 }
