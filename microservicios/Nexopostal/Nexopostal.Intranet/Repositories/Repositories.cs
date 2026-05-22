@@ -128,7 +128,11 @@ public class OperarioOficinaRepository : IOperarioOficinaRepository
         => await _context.OperariosOficina.FirstOrDefaultAsync(o => o.IdentityUserId == identityUserId && o.Activo);
 
     public async Task<OperarioOficina?> GetByIdentityUserIdAnyAsync(string identityUserId)
-        => await _context.OperariosOficina.FirstOrDefaultAsync(o => o.IdentityUserId == identityUserId);
+        => await _context.OperariosOficina
+            .Where(o => o.IdentityUserId == identityUserId)
+            .OrderByDescending(o => o.Activo)
+            .ThenByDescending(o => o.FechaAsignacion)
+            .FirstOrDefaultAsync();
 
     public async Task<List<OperarioOficina>> GetAllByIdentityUserIdAsync(string identityUserId)
         => await _context.OperariosOficina
@@ -150,6 +154,12 @@ public class OperarioOficinaRepository : IOperarioOficinaRepository
     public async Task UpdateAsync(OperarioOficina entity)
     {
         _context.OperariosOficina.Update(entity);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateRangeAsync(IEnumerable<OperarioOficina> entities)
+    {
+        _context.OperariosOficina.UpdateRange(entities);
         await _context.SaveChangesAsync();
     }
 }

@@ -54,6 +54,7 @@ public interface IOperarioOficinaRepository
     Task<List<OperarioOficina>> GetByOficinaAsync(int oficinaJsonId, bool soloActivos = true);
     Task<OperarioOficina> CreateAsync(OperarioOficina entity);
     Task UpdateAsync(OperarioOficina entity);
+    Task UpdateRangeAsync(IEnumerable<OperarioOficina> entities);
 }
 
 /// <summary>

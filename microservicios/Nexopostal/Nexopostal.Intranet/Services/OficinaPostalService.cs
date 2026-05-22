@@ -248,17 +248,17 @@ public class OficinaPostalService : IOficinaPostalService
             destino.OficinaNombre = oficina.Nombre;
             destino.Activo = true;
             destino.FechaAsignacion = DateTime.UtcNow;
-            await _operarioOficinaRepo.UpdateAsync(destino);
 
-            foreach (var otra in todas.Where(o => o.Id != destino.Id && o.Activo))
-            {
+            var aDesactivar = todas.Where(o => o.Id != destino.Id && o.Activo).ToList();
+            foreach (var otra in aDesactivar)
                 otra.Activo = false;
-                await _operarioOficinaRepo.UpdateAsync(otra);
-            }
+
+            await _operarioOficinaRepo.UpdateRangeAsync(
+                new[] { destino }.Concat(aDesactivar));
 
             _logger.LogInformation(
-                "Admin reactivó la oficina {Oficina} ({OficinaId}) del usuario {IdentityUserId} y desactivó las demás",
-                oficina.Nombre, oficina.Id, identityUserId);
+                "Admin reactivó la oficina {Oficina} ({OficinaId}) del usuario {IdentityUserId} y desactivó {Count} filas",
+                oficina.Nombre, oficina.Id, identityUserId, aDesactivar.Count);
 
             return (true, null, MapearMiOficina(destino));
         }
@@ -267,21 +267,21 @@ public class OficinaPostalService : IOficinaPostalService
         // activa (o la primera) y desactivamos el resto para evitar el índice único.
         var principal = todas.FirstOrDefault(o => o.Activo) ?? todas[0];
 
-        foreach (var otra in todas.Where(o => o.Id != principal.Id && o.Activo))
-        {
+        var aDesactivar2 = todas.Where(o => o.Id != principal.Id && o.Activo).ToList();
+        foreach (var otra in aDesactivar2)
             otra.Activo = false;
-            await _operarioOficinaRepo.UpdateAsync(otra);
-        }
 
         principal.OficinaJsonId = oficina.Id;
         principal.OficinaNombre = oficina.Nombre;
         principal.Activo = true;
         principal.FechaAsignacion = DateTime.UtcNow;
-        await _operarioOficinaRepo.UpdateAsync(principal);
+
+        await _operarioOficinaRepo.UpdateRangeAsync(
+            new[] { principal }.Concat(aDesactivar2));
 
         _logger.LogInformation(
-            "Admin cambió la oficina del usuario {IdentityUserId} a {Oficina} ({OficinaId})",
-            identityUserId, oficina.Nombre, oficina.Id);
+            "Admin cambió la oficina del usuario {IdentityUserId} a {Oficina} ({OficinaId}); desactivadas {Count} filas",
+            identityUserId, oficina.Nombre, oficina.Id, aDesactivar2.Count);
 
         return (true, null, MapearMiOficina(principal));
     }
