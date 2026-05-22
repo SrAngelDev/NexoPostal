@@ -1,92 +1,153 @@
 <div class="page">
-  <!-- ===== NAVBAR ===== -->
-  <nav class="navbar">
-    <div class="nav-brand">
-      <button class="nav-back" (click)="volverDashboard()">
+  <!-- ═══════ NAVBAR ═══════ -->
+  <nav class="topbar">
+    <div class="topbar-left">
+      <button class="btn btn-ghost btn-icon" (click)="volverDashboard()" title="Volver">
         <span class="material-symbols-outlined">arrow_back</span>
       </button>
-      <span class="material-symbols-outlined nav-icon">assignment</span>
-      <h1 class="nav-title">Asignaciones</h1>
-    </div>
-    <div class="nav-actions">
-      <div class="nav-signalr-status" [class.status-connected]="signalr.conectado()">
-        <span class="status-dot"></span>
-        {{ signalr.conectado() ? 'En línea' : 'Desconectado' }}
+      <div class="icon-tile icon-tile-brand">
+        <span class="material-symbols-outlined">assignment</span>
       </div>
-      <span class="nav-user">{{ userName }}</span>
-      <span class="nav-role">{{ userRole }}</span>
-      <button (click)="logout()" class="nav-logout">
+      <h1 class="topbar-title">Asignaciones</h1>
+    </div>
+    <div class="topbar-right">
+      <span class="signalr-status" [class.is-online]="signalr.conectado()">
+        <span class="signalr-dot"></span>
+        {{ signalr.conectado() ? 'En línea' : 'Desconectado' }}
+      </span>
+      <div class="topbar-user">
+        <div class="avatar avatar-success">{{ userName.slice(0, 2).toUpperCase() }}</div>
+        <div class="topbar-user-text">
+          <strong>{{ userName }}</strong>
+          <small>{{ userRole }}</small>
+        </div>
+      </div>
+      <button class="btn btn-secondary action-danger" (click)="logout()">
         <span class="material-symbols-outlined">logout</span>
         Salir
       </button>
     </div>
   </nav>
 
-  <main class="main-content">
+  <main class="page-content fade-in-up">
     @if (loading()) {
       <div class="loading-state">
-        <span class="spinner-lg"></span>
-        <p>Cargando asignaciones...</p>
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando asignaciones…
       </div>
     } @else if (error()) {
-      <div class="error-state">
-        <span class="material-symbols-outlined error-icon">error</span>
-        <p>{{ error() }}</p>
+      <div class="alert alert-danger fade-in">
+        <span class="material-symbols-outlined">error</span>{{ error() }}
       </div>
     } @else {
-      <!-- ===== CABECERA ===== -->
-      <div class="page-header animate-in">
-        <div class="header-info">
+
+      <!-- ═══════ CABECERA ═══════ -->
+      <header class="page-header-modern">
+        <div class="icon-tile icon-tile-lg icon-tile-brand">
+          <span class="material-symbols-outlined">assignment_ind</span>
+        </div>
+        <div class="header-text">
+          <h1 class="page-heading">Gestión de asignaciones</h1>
+          <p class="page-subheading">Asigna tareas a los operarios de tu CTA y supervisa su estado en tiempo real.</p>
           @if (ctaSeleccionado(); as cta) {
-            <span class="cta-tag">
+            <span class="chip chip-brand" style="margin-top: 0.5rem;">
               <span class="material-symbols-outlined">domain</span>
               {{ cta.ctaCodigo }} — {{ cta.ctaNombre }}
             </span>
           }
+        </div>
+        <div class="header-actions">
           @if (misCtasInfo(); as info) {
             @if (info.ctas.length > 1) {
-              <div class="cta-selector">
-                <label for="ctaSelectAsig">CTA:</label>
-                <select id="ctaSelectAsig"
+              <div class="field">
+                <label class="field-label">CTA</label>
+                <select class="select"
                         [ngModel]="ctaSeleccionado()?.ctaId"
                         (ngModelChange)="onCtaChange($event)">
                   @for (c of info.ctas; track c.ctaId) {
-                    <option [value]="c.ctaId">{{ c.ctaCodigo }} — {{ c.ctaNombre }}</option>
+                    <option [ngValue]="c.ctaId">{{ c.ctaCodigo }} — {{ c.ctaNombre }}</option>
                   }
                 </select>
               </div>
             }
           }
-          <h2 class="page-heading">Gestión de asignaciones</h2>
-          <p class="page-subtitle">Asigna tareas a los operarios de tu CTA y gestiona su estado</p>
+          <button class="btn btn-primary" (click)="abrirCrearModal()">
+            <span class="material-symbols-outlined">add</span>
+            Nueva asignación
+          </button>
         </div>
-        <button class="btn-crear" (click)="abrirCrearModal()">
-          <span class="material-symbols-outlined">add</span>
-          Nueva asignación
-        </button>
-      </div>
+      </header>
 
-      <!-- ===== FILTROS ===== -->
-      <div class="filters-bar animate-in">
-        <div class="filter-group">
-          <label class="filter-label">Estado</label>
-          <select class="filter-select" [(ngModel)]="filtroEstado">
-            <option value="">Todos</option>
-            <option value="Pendiente">Pendiente</option>
-            <option value="EnProgreso">En progreso</option>
-            <option value="Completada">Completada</option>
-            <option value="Cancelada">Cancelada</option>
-          </select>
+      <!-- ═══════ ESCÁNER / BUSCADOR ═══════ -->
+      <section class="card scan-card">
+        <header class="section-header">
+          <div class="icon-tile icon-tile-accent"><span class="material-symbols-outlined">qr_code_scanner</span></div>
+          <div>
+            <h2 class="section-title">Confirmar paso con escáner</h2>
+            <p class="section-sub">Escanea o teclea un código para avanzar la tarea al siguiente paso.</p>
+          </div>
+        </header>
+
+        <div class="scan-row">
+          <div class="field field-icon" style="flex:1; min-width: 260px;">
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+            <input type="text" class="input"
+                   placeholder="NXI-A1B2C3D4…"
+                   [(ngModel)]="codigoBusqueda"
+                   (keydown.enter)="buscarYConfirmar()"
+                   [disabled]="buscando()" />
+          </div>
+          <button class="btn btn-secondary"
+                  type="button"
+                  (click)="abrirScanner()"
+                  [disabled]="buscando()"
+                  title="Escanear con la cámara">
+            <span class="material-symbols-outlined">photo_camera</span>
+            Cámara
+          </button>
+          <button class="btn btn-primary"
+                  (click)="buscarYConfirmar()"
+                  [disabled]="buscando() || !codigoBusqueda.trim()">
+            @if (buscando()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Procesando…
+            } @else {
+              <span class="material-symbols-outlined">double_arrow</span>
+              Confirmar paso
+            }
+          </button>
         </div>
-        <button class="btn-refresh" (click)="cargarDatos()">
-          <span class="material-symbols-outlined">refresh</span>
-          Actualizar
-        </button>
-      </div>
+        @if (scanError()) {
+          <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ scanError() }}</div>
+        }
+        @if (scanOk()) {
+          <div class="alert alert-success"><span class="material-symbols-outlined">check_circle</span>{{ scanOk() }}</div>
+        }
+      </section>
 
-      <!-- ===== TABLA DE ASIGNACIONES ===== -->
+      <!-- ═══════ FILTROS ═══════ -->
+      <section class="card filters-card">
+        <div class="filters-grid">
+          <div class="field">
+            <label class="field-label">Estado</label>
+            <select class="select" [(ngModel)]="filtroEstado">
+              <option value="">Todos</option>
+              <option value="Pendiente">Pendiente</option>
+              <option value="EnProgreso">En progreso</option>
+              <option value="Completada">Completada</option>
+              <option value="Cancelada">Cancelada</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary" (click)="cargarDatos()">
+            <span class="material-symbols-outlined">refresh</span>
+            Actualizar
+          </button>
+        </div>
+      </section>
+
+      <!-- ═══════ TABLA ═══════ -->
       @if (asignacionesFiltradas.length > 0) {
-        <div class="table-wrapper animate-in">
+        <section class="surface-elevated table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
@@ -96,62 +157,64 @@
                 <th>Operario</th>
                 <th>Asignado por</th>
                 <th>Fecha</th>
-                <th>Urgente</th>
-                <th>Acciones</th>
+                <th>Prioridad</th>
               </tr>
             </thead>
             <tbody>
               @for (asig of asignacionesFiltradas; track asig.id) {
-                <tr [class.row-urgente]="asig.esUrgente">
-                  <td class="td-code">{{ asig.numeroExpedicion }}</td>
+                <tr [class.row-urgent]="asig.esUrgente">
+                  <td class="cell-mono cell-strong">{{ asig.numeroExpedicion }}</td>
                   <td>{{ getTipoTareaLabel(asig.tipoTarea) }}</td>
                   <td>
-                    <span class="estado-badge" [ngClass]="getEstadoClase(asig.estadoTarea)">
-                      {{ getEstadoLabel(asig.estadoTarea) }}
-                    </span>
-                  </td>
-                  <td>{{ asig.operarioAsignado }}</td>
-                  <td class="td-secondary">{{ asig.asignadoPor }}</td>
-                  <td class="td-secondary">{{ formatearFecha(asig.fechaAsignacion) }}</td>
-                  <td>
-                    @if (asig.esUrgente) {
-                      <span class="urgente-badge">URGENTE</span>
-                    } @else {
-                      <span class="normal-badge">Normal</span>
+                    @switch (asig.estadoTarea) {
+                      @case ('Pendiente') {
+                        <span class="chip chip-warning"><span class="material-symbols-outlined">schedule</span>Pendiente</span>
+                      }
+                      @case ('EnProgreso') {
+                        <span class="chip chip-info"><span class="material-symbols-outlined">play_circle</span>En progreso</span>
+                      }
+                      @case ('Completada') {
+                        <span class="chip chip-success"><span class="material-symbols-outlined">check_circle</span>Completada</span>
+                      }
+                      @case ('Cancelada') {
+                        <span class="chip chip-danger"><span class="material-symbols-outlined">cancel</span>Cancelada</span>
+                      }
+                      @default {
+                        <span class="chip">{{ asig.estadoTarea }}</span>
+                      }
                     }
                   </td>
-                  <td class="td-actions">
-                    @if (accionLoading() === asig.id) {
-                      <span class="spinner-sm"></span>
+                  <td>
+                    <div class="cell-user">
+                      <div class="avatar avatar-sm avatar-success">{{ asig.operarioAsignado.slice(0,2).toUpperCase() }}</div>
+                      <div class="cell-user-text">
+                        <div class="cell-user-name">{{ asig.operarioAsignado }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="cell-meta">{{ asig.asignadoPor }}</td>
+                  <td class="cell-meta">{{ formatearFecha(asig.fechaAsignacion) }}</td>
+                  <td>
+                    @if (asig.esUrgente) {
+                      <span class="chip chip-danger"><span class="material-symbols-outlined">bolt</span>Urgente</span>
                     } @else {
-                      @if (asig.estadoTarea === 'Pendiente') {
-                        <button class="btn-action btn-iniciar" title="Iniciar tarea" (click)="iniciarTarea(asig.id)">
-                          <span class="material-symbols-outlined">play_arrow</span>
-                        </button>
-                        <button class="btn-action btn-cancelar" title="Cancelar" (click)="cancelarTarea(asig.id)">
-                          <span class="material-symbols-outlined">close</span>
-                        </button>
-                      }
-                      @if (asig.estadoTarea === 'EnProgreso') {
-                        <button class="btn-action btn-completar" title="Completar tarea" (click)="completarTarea(asig.id)">
-                          <span class="material-symbols-outlined">check</span>
-                        </button>
-                        <button class="btn-action btn-cancelar" title="Cancelar" (click)="cancelarTarea(asig.id)">
-                          <span class="material-symbols-outlined">close</span>
-                        </button>
-                      }
+                      <span class="chip">Normal</span>
                     }
                   </td>
                 </tr>
               }
             </tbody>
           </table>
-        </div>
+        </section>
+        <p class="result-count">{{ asignacionesFiltradas.length }} asignación(es)</p>
       } @else {
-        <div class="empty-state animate-in">
-          <span class="material-symbols-outlined empty-icon">assignment_turned_in</span>
-          <p class="empty-text">No hay asignaciones{{ filtroEstado ? ' con el estado seleccionado' : '' }}</p>
-          <button class="btn-crear-alt" (click)="abrirCrearModal()">
+        <div class="empty-state card">
+          <div class="icon-tile icon-tile-lg icon-tile-info">
+            <span class="material-symbols-outlined">assignment_turned_in</span>
+          </div>
+          <h3 class="empty-title">Sin asignaciones</h3>
+          <p class="empty-text">No hay asignaciones{{ filtroEstado ? ' con el estado seleccionado' : '' }}.</p>
+          <button class="btn btn-primary" (click)="abrirCrearModal()">
             <span class="material-symbols-outlined">add</span>
             Crear primera asignación
           </button>
@@ -159,88 +222,139 @@
       }
     }
   </main>
+</div>
 
-  <!-- ===== MODAL CREAR ASIGNACIÓN ===== -->
-  @if (showCrearModal()) {
-    <div class="modal-overlay" (click)="cerrarCrearModal()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h3 class="modal-title">
-            <span class="material-symbols-outlined">add_task</span>
-            Nueva asignación
-          </h3>
-          <button class="modal-close" (click)="cerrarCrearModal()">
-            <span class="material-symbols-outlined">close</span>
-          </button>
+<!-- ════════════ Modal: Crear asignación ════════════ -->
+@if (showCrearModal()) {
+  <div class="modal-overlay fade-in" (click)="cerrarCrearModal()">
+    <div class="modal-card surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-brand"><span class="material-symbols-outlined">add_task</span></div>
+          <h2>Nueva asignación</h2>
         </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarCrearModal()"><span class="material-symbols-outlined">close</span></button>
+      </header>
 
-        <div class="modal-body">
-          <div class="form-group">
-            <label class="form-label">Número de expedición *</label>
-            <input
-              type="text"
-              class="form-input"
-              [(ngModel)]="nuevaAsignacion.numeroExpedicion"
-              placeholder="NXI-A1B2C3D4" />
+      <div class="modal-form">
+        <div class="form-grid">
+          <div class="field field-full">
+            <label class="field-label">Número de expedición *</label>
+            <input type="text" class="input"
+                   [(ngModel)]="nuevaAsignacion.numeroExpedicion"
+                   placeholder="NXI-A1B2C3D4" />
           </div>
-
-          <div class="form-group">
-            <label class="form-label">Operario asignado *</label>
-            <select class="form-select" [(ngModel)]="nuevaAsignacion.operarioAsignadoId">
+          <div class="field field-full">
+            <label class="field-label">Operario asignado *</label>
+            <select class="select" [(ngModel)]="nuevaAsignacion.operarioAsignadoId">
               <option [value]="0" disabled>Seleccionar operario</option>
               @for (op of operarios(); track op.id) {
                 <option [value]="op.id">{{ op.nombreCompleto }} ({{ op.codigoEmpleado }} · {{ op.rol }})</option>
               }
             </select>
           </div>
-
-          <div class="form-group">
-            <label class="form-label">Tipo de tarea *</label>
-            <select class="form-select" [(ngModel)]="nuevaAsignacion.tipoTarea">
+          <div class="field field-full">
+            <label class="field-label">Tipo de tarea *</label>
+            <select class="select" [(ngModel)]="nuevaAsignacion.tipoTarea">
               <option value="" disabled>Seleccionar tipo</option>
               @for (tipo of tiposTarea; track tipo.valor) {
                 <option [value]="tipo.valor">{{ tipo.etiqueta }}</option>
               }
             </select>
           </div>
-
-          <div class="form-group form-check">
-            <label class="check-label">
-              <input type="checkbox" [(ngModel)]="nuevaAsignacion.esUrgente" />
-              <span class="check-text">Marcar como urgente</span>
-            </label>
+          <label class="toggle-pill field-full" [class.toggle-active]="nuevaAsignacion.esUrgente">
+            <input type="checkbox" [(ngModel)]="nuevaAsignacion.esUrgente" />
+            <span class="material-symbols-outlined">bolt</span>
+            Marcar como urgente
+          </label>
+          <div class="field field-full">
+            <label class="field-label">Observaciones (opcional)</label>
+            <textarea class="input" rows="3"
+                      [(ngModel)]="nuevaAsignacion.observaciones"
+                      placeholder="Ej: Paquete frágil, manipular con cuidado"></textarea>
           </div>
-
-          <div class="form-group">
-            <label class="form-label">Observaciones (opcional)</label>
-            <textarea
-              class="form-textarea"
-              [(ngModel)]="nuevaAsignacion.observaciones"
-              rows="2"
-              placeholder="Ej: Paquete frágil, manipular con cuidado"></textarea>
-          </div>
-
-          @if (crearError()) {
-            <div class="alert alert-error">
-              <span class="material-symbols-outlined">error</span>
-              {{ crearError() }}
-            </div>
-          }
         </div>
 
-        <div class="modal-footer">
-          <button class="btn-cancel" (click)="cerrarCrearModal()">Cancelar</button>
-          <button
-            class="btn-confirm"
-            (click)="crearAsignacion()"
-            [disabled]="creando()">
+        @if (crearError()) {
+          <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ crearError() }}</div>
+        }
+
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarCrearModal()" [disabled]="creando()">Cancelar</button>
+          <button class="btn btn-primary" (click)="crearAsignacion()" [disabled]="creando()">
             @if (creando()) {
-              <span class="spinner-sm"></span>
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Creando…
+            } @else {
+              <span class="material-symbols-outlined">save</span>
+              Crear asignación
             }
-            Crear asignación
           </button>
-        </div>
+        </footer>
       </div>
     </div>
-  }
-</div>
+  </div>
+}
+
+<!-- ════════════ Modal: Paquete fuera de tus tareas ════════════ -->
+@if (fueraTareasVisible()) {
+  <div class="modal-overlay fade-in">
+    <div class="modal-card modal-small surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-warning"><span class="material-symbols-outlined">report</span></div>
+          <h2>Paquete fuera de tus tareas</h2>
+        </div>
+      </header>
+      <div class="modal-form">
+        <div class="alert alert-warning">
+          <span class="material-symbols-outlined">warning</span>
+          El código <strong>{{ fueraTareasCodigo() }}</strong> no aparece en tus tareas pendientes ni en progreso. Indica el motivo por el que lo has manipulado y se generará una incidencia para el Supervisor.
+        </div>
+        <div class="field field-full">
+          <label class="field-label">Motivo *</label>
+          <textarea class="input" rows="3"
+                    [(ngModel)]="fueraTareasMotivo"
+                    placeholder="Ej: Llegó suelto en la cinta sin etiqueta de tarea"></textarea>
+        </div>
+        @if (fueraTareasError()) {
+          <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ fueraTareasError() }}</div>
+        }
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarFueraTareas()" [disabled]="fueraTareasEnviando()">Cancelar</button>
+          <button class="btn btn-primary action-warning" (click)="reportarFueraTareas()"
+                  [disabled]="fueraTareasEnviando() || !fueraTareasMotivo.trim()">
+            @if (fueraTareasEnviando()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Enviando…
+            } @else {
+              <span class="material-symbols-outlined">report</span>
+              Reportar incidencia
+            }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════ Modal: Escáner cámara ════════════ -->
+@if (mostrarScanner()) {
+  <div class="modal-overlay fade-in" (click)="cerrarScanner()">
+    <div class="modal-card surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-accent"><span class="material-symbols-outlined">photo_camera</span></div>
+          <h2>Escanear código</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarScanner()"><span class="material-symbols-outlined">close</span></button>
+      </header>
+      <div class="modal-form">
+        <app-barcode-scanner (codigoDetectado)="onCodigoEscaneado($event)"></app-barcode-scanner>
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarScanner()">Cerrar</button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}

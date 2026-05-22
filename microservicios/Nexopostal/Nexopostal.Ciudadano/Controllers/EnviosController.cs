@@ -218,8 +218,10 @@ public class EnviosController : ControllerBase
         {
             NumeroSeguimiento = envio.NumeroSeguimiento,
             EstadoActual = envio.EstadoActual.ToString(),
+            EstadoInterno = envio.EstadoInternoActual.ToString(),
             Descripcion = ObtenerDescripcionEstado(envio.EstadoActual),
             FechaCreacion = envio.FechaCreacion,
+            FechaEntrega = envio.EstadoActual == EstadoEnvio.Entregado ? envio.FechaPago : null,
             NumeroBultos = 1
         };
 
@@ -675,6 +677,71 @@ public class EnviosController : ControllerBase
 
     // ===== MÉTODOS AUXILIARES =====
 
+    /// <summary>
+    /// Endpoint interno para sincronizar cambios de estado interno desde Intranet
+    /// (escaneos manuales en oficina/CTA y simulación automática de transporte).
+    /// Mantiene Envio.EstadoInternoActual y EstadoActual sincronizados, y emite
+    /// el evento SignalR EstadoActualizado al tracking público.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("interno/tracking/scan-estado")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> NotificarEstadoScan([FromBody] TrackingScanEstadoDto dto)
+    {
+        if (!IsInternalServiceAuthorized())
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensaje = "Service key inválida" });
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        if (string.IsNullOrWhiteSpace(dto.NumeroSeguimiento) && string.IsNullOrWhiteSpace(dto.NumeroExpedicion))
+            return BadRequest(new { mensaje = "Debe proporcionarse NumeroSeguimiento o NumeroExpedicion" });
+
+        if (!Enum.TryParse<EstadoInterno>(dto.EstadoInterno, ignoreCase: false, out var nuevoEstado))
+            return BadRequest(new { mensaje = $"EstadoInterno no reconocido: {dto.EstadoInterno}" });
+
+        // Buscar el envío por seguimiento (preferente) o por expedición (fallback)
+        Envio? envio = null;
+        if (!string.IsNullOrWhiteSpace(dto.NumeroSeguimiento))
+            envio = await _envioRepo.GetByTrackingAsync(dto.NumeroSeguimiento);
+
+        if (envio == null && !string.IsNullOrWhiteSpace(dto.NumeroExpedicion))
+            envio = await _envioRepo.GetByExpedicionAsync(dto.NumeroExpedicion);
+
+        if (envio == null)
+            return NotFound(new { mensaje = "Envío no encontrado" });
+
+        var descripcion = string.IsNullOrWhiteSpace(dto.Descripcion)
+            ? ObtenerDescripcionEstadoInterno(nuevoEstado)
+            : dto.Descripcion;
+
+        await AplicarCambioEstadoInternoYNotificar(
+            envio,
+            nuevoEstado,
+            observaciones: null,
+            descripcionTracking: descripcion,
+            latitud: null,
+            longitud: null,
+            tipoUbicacion: "EscaneoIntranet");
+
+        _logger.LogInformation(
+            "Estado interno sincronizado desde Intranet: {Seguimiento}/{Expedicion} → {EstadoInterno} (público: {EstadoPublico})",
+            envio.NumeroSeguimiento,
+            envio.NumeroExpedicion,
+            envio.EstadoInternoActual,
+            envio.EstadoActual);
+
+        return Accepted(new
+        {
+            mensaje = "Estado sincronizado",
+            estadoInterno = envio.EstadoInternoActual.ToString(),
+            estadoPublico = envio.EstadoActual.ToString()
+        });
+    }
+
     private async Task AplicarCambioEstadoInternoYNotificar(
         Envio envio,
         EstadoInterno nuevoEstado,
@@ -850,7 +917,7 @@ public class EnviosController : ControllerBase
         EstadoInterno.EnReparto => "En reparto — repartidor en ruta",
         EstadoInterno.PrimerIntentoFallido => "Primer intento de entrega fallido (ausente)",
         EstadoInterno.SegundoIntentoFallido => "Segundo intento de entrega fallido",
-        EstadoInterno.DepositivoEnOficina => "Depositado en oficina para recogida",
+        EstadoInterno.DepositadoEnOficina => "Depositado en oficina para recogida",
         EstadoInterno.EntregadoEnDomicilio => "Entregado en domicilio del destinatario",
         EstadoInterno.EntregadoEnOficina => "Recogido por destinatario en oficina",
         EstadoInterno.EntregadoAAutorizado => "Entregado a persona autorizada",
@@ -883,7 +950,7 @@ public class EnviosController : ControllerBase
         EstadoInterno.EnReparto => EstadoEnvio.EnReparto,
         EstadoInterno.PrimerIntentoFallido => EstadoEnvio.EnReparto,
         EstadoInterno.SegundoIntentoFallido => EstadoEnvio.EnReparto,
-        EstadoInterno.DepositivoEnOficina => EstadoEnvio.EnOficina,
+        EstadoInterno.DepositadoEnOficina => EstadoEnvio.EnOficina,
         EstadoInterno.EntregadoEnDomicilio => EstadoEnvio.Entregado,
         EstadoInterno.EntregadoEnOficina => EstadoEnvio.Entregado,
         EstadoInterno.EntregadoAAutorizado => EstadoEnvio.Entregado,

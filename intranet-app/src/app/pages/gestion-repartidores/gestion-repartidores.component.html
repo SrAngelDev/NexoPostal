@@ -1,0 +1,326 @@
+<div class="page">
+  @let total = repartidores().length;
+  @let activos = kpiActivos();
+  @let inactivos = kpiInactivos();
+  @let rutasHoy = kpiRutasHoy();
+
+  <main class="page-content fade-in-up">
+
+    <!-- ===== HEADER ===== -->
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg icon-tile-success">
+        <span class="material-symbols-outlined">two_wheeler</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Gestión de Repartidores</h1>
+        <p class="page-subheading">Consulta y edita los repartidores asociados a las oficinas.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading()" title="Actualizar">
+          <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
+          Recargar
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== KPIs ===== -->
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg">
+          <span class="material-symbols-outlined">groups</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ total }}</div>
+          <div class="kpi-label">Total</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-success">
+          <span class="material-symbols-outlined">check_circle</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ activos }}</div>
+          <div class="kpi-label">Activos</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-warning">
+          <span class="material-symbols-outlined">pause_circle</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ inactivos }}</div>
+          <div class="kpi-label">Inactivos</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">route</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ rutasHoy }}</div>
+          <div class="kpi-label">Rutas hoy</div>
+        </div>
+      </article>
+    </section>
+
+    @if (error()) {
+      <div class="alert alert-danger">
+        <span class="material-symbols-outlined">error</span>
+        {{ error() }}
+      </div>
+    }
+    @if (actionError()) {
+      <div class="alert alert-danger fade-in">
+        <span class="material-symbols-outlined">error</span>
+        {{ actionError() }}
+      </div>
+    }
+
+    <!-- ===== FILTROS ===== -->
+    <section class="card filters-card">
+      <div class="filters-grid">
+        <div class="field field-icon filter-search">
+          <span class="material-symbols-outlined">search</span>
+          <input
+            type="text"
+            class="input"
+            placeholder="Buscar por nombre, código u oficina..."
+            [ngModel]="filtroTexto()"
+            (ngModelChange)="filtroTexto.set($event)" />
+        </div>
+
+        <div class="field">
+          <label class="field-label">Oficina</label>
+          <select
+            class="select"
+            [ngModel]="filtroOficina()"
+            (ngModelChange)="filtroOficina.set($event); cargar()">
+            <option [ngValue]="undefined">Todas las oficinas</option>
+            @for (of of oficinas(); track of.id) {
+              <option [ngValue]="of.id">{{ of.nombre }} — {{ of.ciudad }}</option>
+            }
+          </select>
+        </div>
+
+        <label class="toggle-pill" [class.toggle-active]="filtroInactivos()">
+          <input type="checkbox" [checked]="filtroInactivos()" (change)="toggleInactivos()" />
+          <span class="material-symbols-outlined">person_off</span>
+          Incluir inactivos
+        </label>
+      </div>
+    </section>
+
+    <!-- ===== TABLA / ESTADOS ===== -->
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando repartidores…
+      </div>
+    } @else if (repartidoresFiltrados().length === 0) {
+      <div class="empty-state card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">person_off</span>
+        </div>
+        <h3 class="empty-title">Sin resultados</h3>
+        <p class="empty-text">No hay repartidores que coincidan con los filtros actuales.</p>
+      </div>
+    } @else {
+      <section class="surface-elevated table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Repartidor</th>
+              <th>Código</th>
+              <th>Oficina</th>
+              <th>Vehículo</th>
+              <th>Teléfono</th>
+              <th>Rutas hoy</th>
+              <th>Estado</th>
+              <th class="th-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of repartidoresFiltrados(); track r.id) {
+              <tr [class.row-blocked]="!r.activo">
+                <td>
+                  <div class="cell-user">
+                    <div class="avatar avatar-success">{{ r.nombreCompleto.slice(0, 2).toUpperCase() }}</div>
+                    <div class="cell-user-text">
+                      <div class="cell-user-name">{{ r.nombreCompleto }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-mono">{{ r.codigoEmpleado }}</td>
+                <td>
+                  <div class="cell-user">
+                    <span class="material-symbols-outlined icon-muted">storefront</span>
+                    <div class="cell-user-text">
+                      <div class="cell-user-name">{{ r.oficinaNombre }}</div>
+                      <div class="cell-user-email">#{{ r.oficinaJsonId }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  @switch (r.tipoVehiculo) {
+                    @case ('Bicicleta') {
+                      <span class="chip chip-info"><span class="material-symbols-outlined">pedal_bike</span>{{ r.tipoVehiculo }}</span>
+                    }
+                    @case ('Moto') {
+                      <span class="chip chip-warning"><span class="material-symbols-outlined">two_wheeler</span>{{ r.tipoVehiculo }}</span>
+                    }
+                    @case ('Furgoneta') {
+                      <span class="chip chip-brand"><span class="material-symbols-outlined">local_shipping</span>{{ r.tipoVehiculo }}</span>
+                    }
+                    @case ('Camion') {
+                      <span class="chip chip-accent"><span class="material-symbols-outlined">local_shipping</span>{{ r.tipoVehiculo }}</span>
+                    }
+                    @default {
+                      <span class="chip">{{ r.tipoVehiculo }}</span>
+                    }
+                  }
+                </td>
+                <td class="cell-meta">{{ r.telefono || '—' }}</td>
+                <td>
+                  <span class="chip" [class.chip-success]="r.rutasHoy > 0">{{ r.rutasHoy }}</span>
+                </td>
+                <td>
+                  @if (r.activo) {
+                    <span class="chip chip-success">
+                      <span class="material-symbols-outlined">check_circle</span>
+                      Activo
+                    </span>
+                  } @else {
+                    <span class="chip chip-warning">
+                      <span class="material-symbols-outlined">pause_circle</span>
+                      Inactivo
+                    </span>
+                  }
+                </td>
+                <td class="cell-actions">
+                  <button class="btn btn-icon btn-ghost action-info" (click)="iniciarEdicion(r)" title="Editar">
+                    <span class="material-symbols-outlined">edit</span>
+                  </button>
+                  @if (r.activo) {
+                    <button class="btn btn-icon btn-ghost action-danger" (click)="desactivar(r)" title="Desactivar">
+                      <span class="material-symbols-outlined">person_off</span>
+                    </button>
+                  } @else {
+                    <button class="btn btn-icon btn-ghost action-success" (click)="reactivar(r)" title="Reactivar">
+                      <span class="material-symbols-outlined">restore</span>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+      <p class="result-count">{{ repartidoresFiltrados().length }} repartidor(es) encontrado(s)</p>
+    }
+  </main>
+</div>
+
+<!-- ════════════ Modal: Editar repartidor ════════════ -->
+@if (editando(); as r) {
+  <div class="modal-overlay fade-in" (click)="cancelarEdicion()">
+    <div class="modal-card surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-success">
+            <span class="material-symbols-outlined">edit</span>
+          </div>
+          <h2>Editar repartidor</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cancelarEdicion()" title="Cerrar">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div class="modal-form">
+        <p class="modal-subtitle">
+          Editando a <strong>{{ r.nombreCompleto }}</strong> · <span class="cell-mono">{{ r.codigoEmpleado }}</span>
+        </p>
+
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label">Nombre completo</label>
+            <input
+              type="text"
+              class="input"
+              [ngModel]="formEdicion().nombreCompleto"
+              (ngModelChange)="actualizarFormEdicion('nombreCompleto', $event)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Teléfono</label>
+            <input
+              type="text"
+              class="input"
+              [ngModel]="formEdicion().telefono"
+              (ngModelChange)="actualizarFormEdicion('telefono', $event)" />
+          </div>
+          <div class="field field-full">
+            <label class="field-label">Oficina</label>
+            <select
+              class="select"
+              [ngModel]="formEdicion().oficinaJsonId"
+              (ngModelChange)="cambiarOficina($event)"
+              [disabled]="oficinas().length === 0">
+              <option [ngValue]="0" disabled>
+                @if (oficinas().length === 0) {
+                  Cargando oficinas…
+                } @else {
+                  — Selecciona una oficina —
+                }
+              </option>
+              @for (of of oficinas(); track of.id) {
+                <option [ngValue]="of.id">{{ of.nombre }} — {{ of.codigoPostal }} {{ of.ciudad }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Tipo de vehículo</label>
+            <select
+              class="select"
+              [ngModel]="formEdicion().tipoVehiculo"
+              (ngModelChange)="actualizarFormEdicion('tipoVehiculo', $event)">
+              @for (t of tiposVehiculo; track t) {
+                <option [value]="t">{{ t }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Matrícula</label>
+            <input
+              type="text"
+              class="input"
+              [ngModel]="formEdicion().matriculaVehiculo"
+              (ngModelChange)="actualizarFormEdicion('matriculaVehiculo', $event)" />
+          </div>
+        </div>
+
+        @if (edicionError()) {
+          <div class="alert alert-danger">
+            <span class="material-symbols-outlined">error</span>
+            {{ edicionError() }}
+          </div>
+        }
+
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cancelarEdicion()" [disabled]="savingEdicion()">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardarEdicion()" [disabled]="savingEdicion()">
+            @if (savingEdicion()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Guardando…
+            } @else {
+              <span class="material-symbols-outlined">save</span>
+              Guardar
+            }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}

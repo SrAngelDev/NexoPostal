@@ -304,22 +304,100 @@
             <span class="material-symbols-outlined">bolt</span>
             Acciones Rápidas
           </h3>
+
+          <!-- Personas -->
+          <h4 class="actions-subtitle">
+            <span class="material-symbols-outlined">groups</span>
+            Personas
+          </h4>
           <div class="actions-grid">
-            <button class="action-card" (click)="navigateTo('/gestion-cta')">
+            <button class="action-card" (click)="navigateTo('/gestion-usuarios')">
+              <span class="material-symbols-outlined">manage_accounts</span>
+              <span>Gestión de Usuarios</span>
+            </button>
+            <button class="action-card" (click)="navigateTo('/gestion-repartidores')">
+              <span class="material-symbols-outlined">delivery_dining</span>
+              <span>Gestión de Repartidores</span>
+            </button>
+            <button class="action-card" (click)="navigateTo('/gestion-clientes')">
+              <span class="material-symbols-outlined">groups</span>
+              <span>Gestión de Clientes</span>
+            </button>
+          </div>
+
+          <!-- Flota -->
+          <h4 class="actions-subtitle">
+            <span class="material-symbols-outlined">local_shipping</span>
+            Flota
+          </h4>
+          <div class="actions-grid">
+            <button class="action-card" (click)="navigateTo('/gestion-vehiculos')">
+              <span class="material-symbols-outlined">local_shipping</span>
+              <span>Gestión de Vehículos</span>
+            </button>
+          </div>
+
+          <!-- Catálogos -->
+          <h4 class="actions-subtitle">
+            <span class="material-symbols-outlined">inventory</span>
+            Catálogos
+          </h4>
+          <div class="actions-grid">
+            <button class="action-card" (click)="navigateTo('/gestion-ctas-admin')">
               <span class="material-symbols-outlined">domain</span>
               <span>Gestión de CTAs</span>
             </button>
+            <button class="action-card" (click)="navigateTo('/gestion-oficinas')">
+              <span class="material-symbols-outlined">business</span>
+              <span>Gestión de Oficinas</span>
+            </button>
+            <button class="action-card" (click)="navigateTo('/gestion-tarifas')">
+              <span class="material-symbols-outlined">euro</span>
+              <span>Gestión de Tarifas</span>
+            </button>
+          </div>
+
+          <!-- Operaciones -->
+          <h4 class="actions-subtitle">
+            <span class="material-symbols-outlined">analytics</span>
+            Operaciones
+          </h4>
+          <div class="actions-grid">
+            <button class="action-card" (click)="navigateTo('/gestion-cta')">
+              <span class="material-symbols-outlined">dashboard</span>
+              <span>Dashboard CTAs</span>
+            </button>
             <button class="action-card" (click)="navigateTo('/seguimiento-interno')">
-              <span class="material-symbols-outlined">local_shipping</span>
+              <span class="material-symbols-outlined">travel_explore</span>
               <span>Seguimiento</span>
             </button>
             <button class="action-card" (click)="navigateTo('/asignaciones')">
               <span class="material-symbols-outlined">assignment</span>
               <span>Asignaciones</span>
             </button>
-            <button class="action-card" (click)="navigateTo('/escaneo')">
-              <span class="material-symbols-outlined">qr_code_scanner</span>
-              <span>Escaneo</span>
+            <button class="action-card" (click)="navigateTo('/movimientos-globales')">
+              <span class="material-symbols-outlined">route</span>
+              <span>Movimientos globales</span>
+            </button>
+            <button class="action-card" (click)="navigateTo('/incidencias-globales')">
+              <span class="material-symbols-outlined">report</span>
+              <span>Incidencias globales</span>
+            </button>
+            <button class="action-card" (click)="navigateTo('/gestion-envios')">
+              <span class="material-symbols-outlined">inventory_2</span>
+              <span>Gestión de Envíos</span>
+            </button>
+          </div>
+
+          <!-- Sistema -->
+          <h4 class="actions-subtitle">
+            <span class="material-symbols-outlined">settings</span>
+            Sistema
+          </h4>
+          <div class="actions-grid">
+            <button class="action-card" (click)="navigateTo('/broadcast-notificaciones')">
+              <span class="material-symbols-outlined">campaign</span>
+              <span>Notificaciones broadcast</span>
             </button>
           </div>
         </div>

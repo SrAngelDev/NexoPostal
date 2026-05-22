@@ -1,0 +1,396 @@
+<div class="page">
+  <main class="page-content fade-in-up">
+
+    <!-- ===== HEADER ===== -->
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg icon-tile-info">
+        <span class="material-symbols-outlined">local_shipping</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Gestión de Vehículos</h1>
+        <p class="page-subheading">Inventario de la flota de NexoPostal. Asigna vehículos a repartidores y sincroniza datos automáticamente.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading()">
+          <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
+          Recargar
+        </button>
+        <button class="btn btn-secondary" (click)="importar()" [disabled]="importando()">
+          <span class="material-symbols-outlined" [class.spinning]="importando()">download</span>
+          Importar
+        </button>
+        <button class="btn btn-primary" (click)="abrirCrear()">
+          <span class="material-symbols-outlined">add</span>
+          Nuevo vehículo
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== KPIs ===== -->
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg">
+          <span class="material-symbols-outlined">directions_car</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ vehiculos().length }}</div>
+          <div class="kpi-label">Total</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-success">
+          <span class="material-symbols-outlined">check_circle</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ totalActivos() }}</div>
+          <div class="kpi-label">Activos</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">person_pin</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ totalAsignados() }}</div>
+          <div class="kpi-label">Asignados</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-accent">
+          <span class="material-symbols-outlined">event_available</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ totalLibres() }}</div>
+          <div class="kpi-label">Libres</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-warning">
+          <span class="material-symbols-outlined">pause_circle</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ totalInactivos() }}</div>
+          <div class="kpi-label">Inactivos</div>
+        </div>
+      </article>
+    </section>
+
+    @if (error()) {
+      <div class="alert alert-danger fade-in">
+        <span class="material-symbols-outlined">error</span>
+        <span style="flex:1">{{ error() }}</span>
+        <button class="btn btn-icon btn-ghost" (click)="error.set(null)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    }
+    @if (success()) {
+      <div class="alert alert-success fade-in">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span style="flex:1">{{ success() }}</span>
+        <button class="btn btn-icon btn-ghost" (click)="success.set(null)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    }
+
+    <!-- ===== FILTROS ===== -->
+    <section class="card filters-card">
+      <div class="filters-grid">
+        <div class="field field-icon filter-search">
+          <span class="material-symbols-outlined">search</span>
+          <input
+            type="text"
+            class="input"
+            placeholder="Buscar por matrícula, marca, modelo o repartidor..."
+            [ngModel]="filtroTexto()"
+            (ngModelChange)="filtroTexto.set($event)" />
+        </div>
+
+        <div class="field">
+          <label class="field-label">Tipo</label>
+          <select
+            class="select"
+            [ngModel]="filtroTipo()"
+            (ngModelChange)="setFiltroTipo($event)">
+            <option value="todos">Todos los tipos</option>
+            @for (opt of tipoOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+
+        <label class="toggle-pill" [class.toggle-active]="incluirInactivos()">
+          <input type="checkbox" [checked]="incluirInactivos()" (change)="toggleInactivos()" />
+          <span class="material-symbols-outlined">visibility</span>
+          Incluir inactivos
+        </label>
+      </div>
+    </section>
+
+    <!-- ===== TABLA ===== -->
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando vehículos…
+      </div>
+    } @else if (vehiculosFiltrados().length === 0) {
+      <div class="empty-state card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">no_transfer</span>
+        </div>
+        <h3 class="empty-title">Sin vehículos</h3>
+        <p class="empty-text">No hay vehículos que coincidan con los filtros actuales.</p>
+        <button class="btn btn-primary" (click)="abrirCrear()">
+          <span class="material-symbols-outlined">add</span>
+          Añadir vehículo
+        </button>
+      </div>
+    } @else {
+      <section class="surface-elevated table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Matrícula</th>
+              <th>Tipo</th>
+              <th>Marca / Modelo</th>
+              <th>Color</th>
+              <th>Año</th>
+              <th>Asignado a</th>
+              <th>Estado</th>
+              <th class="th-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of vehiculosFiltrados(); track v.id) {
+              <tr [class.row-blocked]="!v.activo">
+                <td class="cell-mono cell-strong">{{ v.matricula }}</td>
+                <td>
+                  @switch (v.tipo) {
+                    @case (0) { <span class="chip chip-info"><span class="material-symbols-outlined">pedal_bike</span>{{ tipoLabel(v.tipo) }}</span> }
+                    @case (1) { <span class="chip chip-warning"><span class="material-symbols-outlined">two_wheeler</span>{{ tipoLabel(v.tipo) }}</span> }
+                    @case (2) { <span class="chip chip-brand"><span class="material-symbols-outlined">local_shipping</span>{{ tipoLabel(v.tipo) }}</span> }
+                    @case (3) { <span class="chip chip-accent"><span class="material-symbols-outlined">local_shipping</span>{{ tipoLabel(v.tipo) }}</span> }
+                    @default { <span class="chip">{{ tipoLabel(v.tipo) }}</span> }
+                  }
+                </td>
+                <td>
+                  @if (v.marca || v.modelo) {
+                    <div class="cell-user-name">{{ v.marca }} {{ v.modelo }}</div>
+                  } @else {
+                    <span class="text-subtle">—</span>
+                  }
+                </td>
+                <td class="cell-meta">{{ v.color || '—' }}</td>
+                <td class="cell-meta">{{ v.anioFabricacion || '—' }}</td>
+                <td>
+                  @if (v.repartidorAsignadoId) {
+                    <div class="cell-user">
+                      <div class="avatar avatar-sm avatar-success">{{ v.repartidorAsignadoNombre?.slice(0, 2)?.toUpperCase() }}</div>
+                      <div class="cell-user-text">
+                        <div class="cell-user-name">{{ v.repartidorAsignadoNombre }}</div>
+                      </div>
+                    </div>
+                  } @else {
+                    <span class="chip">
+                      <span class="material-symbols-outlined">event_available</span>
+                      Libre
+                    </span>
+                  }
+                </td>
+                <td>
+                  @if (v.activo) {
+                    <span class="chip chip-success">
+                      <span class="material-symbols-outlined">check_circle</span>
+                      Activo
+                    </span>
+                  } @else {
+                    <span class="chip chip-warning">
+                      <span class="material-symbols-outlined">pause_circle</span>
+                      Inactivo
+                    </span>
+                  }
+                </td>
+                <td class="cell-actions">
+                  @if (v.activo) {
+                    <button class="btn btn-icon btn-ghost action-info" (click)="abrirAsignar(v)" title="Asignar/Reasignar">
+                      <span class="material-symbols-outlined">person_pin</span>
+                    </button>
+                    @if (v.repartidorAsignadoId) {
+                      <button class="btn btn-icon btn-ghost action-warning" (click)="desasignarRapido(v)" title="Desasignar">
+                        <span class="material-symbols-outlined">person_off</span>
+                      </button>
+                    }
+                    <button class="btn btn-icon btn-ghost action-info" (click)="abrirEditar(v)" title="Editar">
+                      <span class="material-symbols-outlined">edit</span>
+                    </button>
+                    <button class="btn btn-icon btn-ghost action-danger" (click)="desactivar(v)" title="Desactivar">
+                      <span class="material-symbols-outlined">block</span>
+                    </button>
+                  } @else {
+                    <button class="btn btn-icon btn-ghost action-success" (click)="reactivar(v)" title="Reactivar">
+                      <span class="material-symbols-outlined">restart_alt</span>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+      <p class="result-count">{{ vehiculosFiltrados().length }} vehículo(s)</p>
+    }
+  </main>
+</div>
+
+<!-- ════════════ Modal: Crear/Editar ════════════ -->
+@if (modalAbierto()) {
+  <div class="modal-overlay fade-in" (click)="cerrarModal()">
+    <div class="modal-card modal-large surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-info">
+            <span class="material-symbols-outlined">{{ modoEdicion() ? 'edit' : 'add' }}</span>
+          </div>
+          <h2>{{ modoEdicion() ? 'Editar vehículo' : 'Nuevo vehículo' }}</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarModal()" type="button">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div class="modal-form">
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label">Matrícula *</label>
+            <input type="text" class="input"
+                   [ngModel]="form().matricula"
+                   (ngModelChange)="actualizarCampo('matricula', $event)" maxlength="20" />
+          </div>
+          <div class="field">
+            <label class="field-label">Tipo *</label>
+            <select class="select"
+                    [ngModel]="form().tipo"
+                    (ngModelChange)="actualizarCampo('tipo', +$event)">
+              @for (opt of tipoOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Marca</label>
+            <input type="text" class="input"
+                   [ngModel]="form().marca"
+                   (ngModelChange)="actualizarCampo('marca', $event)" maxlength="60" />
+          </div>
+          <div class="field">
+            <label class="field-label">Modelo</label>
+            <input type="text" class="input"
+                   [ngModel]="form().modelo"
+                   (ngModelChange)="actualizarCampo('modelo', $event)" maxlength="60" />
+          </div>
+          <div class="field">
+            <label class="field-label">Color</label>
+            <input type="text" class="input"
+                   [ngModel]="form().color"
+                   (ngModelChange)="actualizarCampo('color', $event)" maxlength="40" />
+          </div>
+          <div class="field">
+            <label class="field-label">Año de fabricación</label>
+            <input type="number" class="input"
+                   [ngModel]="form().anioFabricacion"
+                   (ngModelChange)="actualizarCampo('anioFabricacion', $event)" min="1950" max="2099" />
+          </div>
+          <div class="field field-full">
+            <label class="field-label">Oficina</label>
+            <select class="select"
+                    [ngModel]="form().oficinaJsonId"
+                    (ngModelChange)="actualizarCampo('oficinaJsonId', $event == null ? null : +$event)"
+                    [disabled]="oficinas().length === 0">
+              <option [ngValue]="null">
+                @if (oficinas().length === 0) { Cargando oficinas… }
+                @else { — Sin oficina asignada — }
+              </option>
+              @for (of of oficinas(); track of.id) {
+                <option [ngValue]="of.id">{{ of.nombre }} — {{ of.codigoPostal }} {{ of.ciudad }}</option>
+              }
+            </select>
+          </div>
+          <div class="field field-full">
+            <label class="field-label">Notas</label>
+            <textarea class="input" rows="3"
+                      [ngModel]="form().notas"
+                      (ngModelChange)="actualizarCampo('notas', $event)" maxlength="500"></textarea>
+          </div>
+        </div>
+
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarModal()" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardar()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Guardando…
+            } @else {
+              <span class="material-symbols-outlined">save</span>
+              Guardar
+            }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════ Modal: Asignar ════════════ -->
+@if (modalAsignarAbierto()) {
+  <div class="modal-overlay fade-in" (click)="cerrarAsignar()">
+    <div class="modal-card modal-small surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-success">
+            <span class="material-symbols-outlined">person_pin</span>
+          </div>
+          <h2>Asignar vehículo</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarAsignar()" type="button">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div class="modal-form">
+        <p class="modal-subtitle">
+          Vehículo: <strong class="cell-mono">{{ vehiculoAsignando()?.matricula }}</strong>
+        </p>
+
+        <div class="field">
+          <label class="field-label">Repartidor</label>
+          <select class="select"
+                  [ngModel]="repartidorSeleccionado()"
+                  (ngModelChange)="repartidorSeleccionado.set($event === '' || $event == null ? null : +$event)">
+            <option [ngValue]="null">— Sin asignar —</option>
+            @for (r of repartidoresDisponibles(); track r.id) {
+              <option [ngValue]="r.id">{{ r.nombreCompleto }} ({{ r.codigoEmpleado }} · {{ r.oficinaNombre }})</option>
+            }
+          </select>
+        </div>
+
+        <div class="alert alert-info">
+          <span class="material-symbols-outlined">info</span>
+          Asignar un vehículo actualizará automáticamente el tipo y matrícula del repartidor.
+        </div>
+
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarAsignar()" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary" (click)="confirmarAsignacion()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Guardando…
+            } @else {
+              <span class="material-symbols-outlined">check</span>
+              Confirmar
+            }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}

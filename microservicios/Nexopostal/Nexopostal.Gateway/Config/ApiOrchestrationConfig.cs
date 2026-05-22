@@ -139,7 +139,7 @@ public static class ApiOrchestrationConfig
 
         orchestrator.AddApi("admision", url + "/")
             .AddRoute("paquete", GatewayVerb.POST, new RouteInfo { Path = "api/admision/paquete" })
-            .AddRoute("interno", GatewayVerb.POST, new RouteInfo { Path = "api/admision/interno/" });
+            .AddRoute("admision-interno", GatewayVerb.POST, new RouteInfo { Path = "api/admision/interno/" });
     }
 
     // SCAN (Escaneo operativo en Intranet)
@@ -161,12 +161,16 @@ public static class ApiOrchestrationConfig
         orchestrator.AddApi("reparto", url + "/")
             .AddRoute("mi-perfil", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/mi-perfil" })
             .AddRoute("ruta", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/ruta" })
+            .AddRoute("rutas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/rutas" })
             .AddRoute("ruta-iniciar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
             .AddRoute("ruta-finalizar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
             .AddRoute("confirmar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/confirmar" })
             .AddRoute("ubicacion", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/ubicacion" })
             .AddRoute("entregas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/entregas" })
-            .AddRoute("dashboard", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/dashboard" });
+            .AddRoute("dashboard", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/dashboard" })
+            .AddRoute("ubicaciones-activas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/ubicaciones-activas" })
+            .AddRoute("entregas-pendientes-asignacion", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/entregas/pendientes-asignacion" })
+            .AddRoute("entregas-reasignar", GatewayVerb.PATCH, new RouteInfo { Path = "api/reparto/entregas/" });
     }
 
     // ASIGNACIONES (Intranet / Logistica)
@@ -175,7 +179,7 @@ public static class ApiOrchestrationConfig
         var url = section["Logistica"] ?? "http://modulo-logistica:80";
 
         orchestrator.AddApi("asignaciones", url + "/")
-            .AddRoute("crear", GatewayVerb.POST, new RouteInfo { Path = "api/asignaciones/crear" })
+            .AddRoute("asignaciones-crear", GatewayVerb.POST, new RouteInfo { Path = "api/asignaciones/crear" })
             .AddRoute("mis-pendientes", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/mis-pendientes" })
             .AddRoute("mis-en-progreso", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/mis-en-progreso" })
             .AddRoute("cta", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/cta/" })
@@ -191,13 +195,14 @@ public static class ApiOrchestrationConfig
         var url = section["Logistica"] ?? "http://modulo-logistica:80";
 
         orchestrator.AddApi("movimientos", url + "/")
-            .AddRoute("crear", GatewayVerb.POST, new RouteInfo { Path = "api/movimientos" })
-            .AddRoute("cta", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/cta/" })
-            .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/" })
-            .AddRoute("paquete", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/paquete/" })
+            .AddRoute("movimientos-crear", GatewayVerb.POST, new RouteInfo { Path = "api/movimientos" })
+            .AddRoute("movimientos-cta", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/cta/" })
+            .AddRoute("movimientos-global", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/global" })
+            .AddRoute("movimientos-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/" })
+            .AddRoute("movimientos-paquete", GatewayVerb.GET, new RouteInfo { Path = "api/movimientos/paquete/" })
             .AddRoute("despachar", GatewayVerb.PUT, new RouteInfo { Path = "api/movimientos/" })
             .AddRoute("recibir", GatewayVerb.PUT, new RouteInfo { Path = "api/movimientos/" })
-            .AddRoute("cancelar", GatewayVerb.PUT, new RouteInfo { Path = "api/movimientos/" });
+            .AddRoute("movimientos-cancelar", GatewayVerb.PUT, new RouteInfo { Path = "api/movimientos/" });
     }
 
     // INCIDENCIAS (Gestión de incidencias en CTA)
@@ -206,10 +211,11 @@ public static class ApiOrchestrationConfig
         var url = section["Logistica"] ?? "http://modulo-logistica:80";
 
         orchestrator.AddApi("incidencias", url + "/")
-            .AddRoute("crear", GatewayVerb.POST, new RouteInfo { Path = "api/incidencias" })
-            .AddRoute("cta", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/cta/" })
-            .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/" })
-            .AddRoute("paquete", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/paquete/" })
+            .AddRoute("incidencias-crear", GatewayVerb.POST, new RouteInfo { Path = "api/incidencias" })
+            .AddRoute("incidencias-cta", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/cta/" })
+            .AddRoute("incidencias-global", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/global" })
+            .AddRoute("incidencias-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/" })
+            .AddRoute("incidencias-paquete", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/paquete/" })
             .AddRoute("actualizar", GatewayVerb.PUT, new RouteInfo { Path = "api/incidencias/" });
     }
 
@@ -220,7 +226,7 @@ public static class ApiOrchestrationConfig
 
         orchestrator.AddApi("historial", url + "/")
             .AddRoute("tracking", GatewayVerb.GET, new RouteInfo { Path = "api/historial/tracking/" })
-            .AddRoute("interno", GatewayVerb.GET, new RouteInfo { Path = "api/historial/interno/" })
+            .AddRoute("historial-interno", GatewayVerb.GET, new RouteInfo { Path = "api/historial/interno/" })
             .AddRoute("ultimo", GatewayVerb.GET, new RouteInfo { Path = "api/historial/ultimo/" })
             .AddRoute("registrar", GatewayVerb.POST, new RouteInfo { Path = "api/historial" });
     }
@@ -233,8 +239,9 @@ public static class ApiOrchestrationConfig
         orchestrator.AddApi("operarios", url + "/")
             .AddRoute("mi-cta", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/mi-cta" })
             .AddRoute("mis-ctas", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/mis-ctas" })
-            .AddRoute("cta", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/cta/" })
-            .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/" })
+            .AddRoute("mi-oficina", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/mi-oficina" })
+            .AddRoute("operarios-cta", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/cta/" })
+            .AddRoute("operarios-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/" })
             .AddRoute("operario-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/operarios/" })
             .AddRoute("operario-crear", GatewayVerb.POST, new RouteInfo { Path = "api/operarios" })
             .AddRoute("eliminar", GatewayVerb.DELETE, new RouteInfo { Path = "api/operarios/" })
@@ -248,9 +255,9 @@ public static class ApiOrchestrationConfig
 
         orchestrator.AddApi("ctas", url + "/")
             .AddRoute("listar-ctas", GatewayVerb.GET, new RouteInfo { Path = "api/ctas" })
-            .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/ctas/" })
+            .AddRoute("ctas-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/ctas/" })
             .AddRoute("resolver", GatewayVerb.GET, new RouteInfo { Path = "api/ctas/resolver/" })
-            .AddRoute("dashboard", GatewayVerb.GET, new RouteInfo { Path = "api/ctas/" })
+            .AddRoute("ctas-dashboard", GatewayVerb.GET, new RouteInfo { Path = "api/ctas/" })
             .AddRoute("dashboard-global", GatewayVerb.GET, new RouteInfo { Path = "api/ctas/dashboard-global" });
     }
 
@@ -260,10 +267,11 @@ public static class ApiOrchestrationConfig
         var url = section["Logistica"] ?? "http://modulo-logistica:80";
 
         orchestrator.AddApi("oficinaspostales", url + "/")
-            .AddRoute("listar", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales" })
-            .AddRoute("buscar", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/buscar" })
-            .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/" })
-            .AddRoute("resolver", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/resolver/" })
+            .AddRoute("oficinaspostales-listar", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales" })
+            .AddRoute("oficinaspostales-buscar", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/buscar" })
+            .AddRoute("oficinaspostales-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/" })
+            .AddRoute("oficinaspostales-resolver", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/resolver/" })
+            .AddRoute("por-cta", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/por-cta/" })
             .AddRoute("operarios", GatewayVerb.GET, new RouteInfo { Path = "api/oficinaspostales/" });
     }
 }

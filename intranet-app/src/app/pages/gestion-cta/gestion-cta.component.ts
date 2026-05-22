@@ -115,6 +115,10 @@ export class GestionCtaComponent implements OnInit, OnDestroy {
     this.router.navigate(['/asignaciones']);
   }
 
+  irSeguimientoInterno(): void {
+    this.router.navigate(['/seguimiento-interno']);
+  }
+
   logout(): void {
     this.signalr.desconectar();
     this.authService.logout();

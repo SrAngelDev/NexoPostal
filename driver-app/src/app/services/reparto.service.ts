@@ -83,6 +83,52 @@ export interface UbicacionRepartidorRequest {
   descripcion?: string;
 }
 
+export interface UbicacionActiva {
+  repartidorId: number;
+  nombreRepartidor: string;
+  codigoEmpleado: string;
+  oficinaJsonId: number;
+  oficinaNombre: string;
+  latitud: number;
+  longitud: number;
+  actualizadoEn: string;
+  segundosDesdeActualizacion: number;
+  rutaActivaId?: number;
+  rutaCodigo?: string;
+  rutaEstado?: string;
+}
+
+export interface EntregaPendienteAsignacion {
+  entregaId: number;
+  numeroExpedicion: string;
+  numeroSeguimiento: string;
+  direccionEntrega: string;
+  codigoPostal: string;
+  ciudad: string;
+  nombreDestinatario: string;
+  rutaActualId: number;
+  rutaActualCodigo: string;
+  repartidorActualId: number;
+  repartidorActualNombre: string;
+  oficinaJsonId: number;
+  oficinaNombre: string;
+  fechaReparto: string;
+  estado: string;
+}
+
+export interface RutaResumen {
+  id: number;
+  codigo: string;
+  fechaReparto: string;
+  repartidorNombre: string;
+  oficinaOrigenNombre: string;
+  estado: string;
+  totalEntregas: number;
+  entregados: number;
+  pendientes: number;
+  fallidos: number;
+}
+
 export const ESTADOS_CONFIRMACION: { valor: EstadoEntregaConfirmacion; etiqueta: string; icono: string }[] = [
   { valor: 'Entregado', etiqueta: 'Entregado', icono: 'home' },
   { valor: 'EntregadoPuntoAlternativo', etiqueta: 'Entregado punto alternativo', icono: 'storefront' },
@@ -115,12 +161,12 @@ export class RepartoService {
   }
 
   iniciarRuta(rutaId: number): Observable<RutaRepartoDetalle> {
-    return this.http.post<RutaRepartoDetalle>(`${this.API_URL}/ruta-iniciar/${rutaId}/iniciar`, {});
+    return this.http.post<RutaRepartoDetalle>(`${this.API_URL}/rutas/${rutaId}/iniciar`, {});
   }
 
   finalizarRuta(rutaId: number, request?: FinalizarRutaRequest): Observable<RutaRepartoDetalle> {
     return this.http.post<RutaRepartoDetalle>(
-      `${this.API_URL}/ruta-finalizar/${rutaId}/finalizar`,
+      `${this.API_URL}/rutas/${rutaId}/finalizar`,
       request ?? {}
     );
   }
@@ -133,5 +179,29 @@ export class RepartoService {
 
   registrarUbicacion(request: UbicacionRepartidorRequest): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.API_URL}/ubicacion`, request);
+  }
+
+  // ─── Endpoints del JefeReparto ───
+
+  obtenerUbicacionesActivas(oficinaJsonId?: number, ventanaMinutos = 10): Observable<UbicacionActiva[]> {
+    const params: Record<string, string | number> = { ventanaMinutos };
+    if (oficinaJsonId !== undefined) params['oficinaJsonId'] = oficinaJsonId;
+    return this.http.get<UbicacionActiva[]>(`${this.API_URL}/ubicaciones-activas`, { params });
+  }
+
+  obtenerEntregasPendientesAsignacion(oficinaJsonId?: number): Observable<EntregaPendienteAsignacion[]> {
+    const params: Record<string, string | number> = {};
+    if (oficinaJsonId !== undefined) params['oficinaJsonId'] = oficinaJsonId;
+    return this.http.get<EntregaPendienteAsignacion[]>(`${this.API_URL}/entregas/pendientes-asignacion`, { params });
+  }
+
+  reasignarEntrega(entregaId: number, nuevaRutaId: number): Observable<EntregaPaquete> {
+    return this.http.patch<EntregaPaquete>(`${this.API_URL}/entregas/${entregaId}/reasignar`, { nuevaRutaId });
+  }
+
+  obtenerRutas(fecha?: string): Observable<RutaResumen[]> {
+    const params: Record<string, string> = {};
+    if (fecha) params['fecha'] = fecha;
+    return this.http.get<RutaResumen[]>(`${this.API_URL}/rutas`, { params });
   }
 }

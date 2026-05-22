@@ -1,0 +1,65 @@
+/* usuario-detalle — layout multi-sección y estilos secundarios.
+   Componentes base (page-header-modern, form-grid, data-table, alert, chip, modal-*)
+   vienen de src/styles.css. */
+
+.detalle-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 1100px) {
+  .detalle-grid { grid-template-columns: 1fr 1fr; }
+  .section-card:first-child,
+  .section-card:nth-child(2) { grid-column: span 1; }
+  .section-card:nth-child(3) { grid-column: 1 / -1; }
+}
+
+.section-card {
+  padding: 1.25rem 1.5rem;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+
+.section-header {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+.section-title { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.section-sub { margin: 0.15rem 0 0 0; font-size: 0.82rem; color: var(--text-muted); }
+
+.cuenta-hero {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.85rem;
+  background: var(--surface-muted);
+  border-radius: var(--radius-md);
+}
+.cuenta-hero-text { display: flex; flex-direction: column; gap: 0.2rem; }
+
+.highlight-card {
+  background: var(--surface-muted);
+  border-left: 4px solid var(--brand-primary);
+  padding: 1rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.highlight-head {
+  display: flex; align-items: center; gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.highlight-head strong { font-size: 1.05rem; }
+
+.stats-row {
+  display: flex; gap: 0.65rem; flex-wrap: wrap;
+}
+.stat-pill {
+  display: flex; flex-direction: column; gap: 0.15rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  min-width: 100px;
+}
+.stat-pill .stat-num { font-size: 1.15rem; font-weight: 800; color: var(--text); }
+.stat-pill .stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-pill.stat-warning { background: var(--warning-soft); border-color: transparent; }
+.stat-pill.stat-info    { background: var(--info-soft); border-color: transparent; }
+.stat-pill.stat-success { background: var(--success-soft); border-color: transparent; }

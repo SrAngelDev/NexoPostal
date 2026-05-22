@@ -26,6 +26,9 @@ public interface IMovimientoService
     /// <summary>Obtiene los movimientos de un CTA (como origen o destino)</summary>
     Task<List<MovimientoResumenDto>> ObtenerMovimientosCta(int ctaId, EstadoMovimiento? filtroEstado = null);
 
+    /// <summary>Lista global de movimientos (Admin).</summary>
+    Task<List<MovimientoResumenDto>> ObtenerMovimientosGlobales(EstadoMovimiento? filtroEstado = null, int? ctaOrigenId = null, int? ctaDestinoId = null);
+
     /// <summary>Obtiene el detalle de un movimiento</summary>
     Task<MovimientoDetalleDto?> ObtenerDetalle(int movimientoId);
 
@@ -181,6 +184,25 @@ public class MovimientoService : IMovimientoService
     public async Task<List<MovimientoResumenDto>> ObtenerMovimientosCta(int ctaId, EstadoMovimiento? filtroEstado = null)
     {
         var movimientos = await _movimientoRepo.GetByCtaAsync(ctaId, filtroEstado);
+        return movimientos.Select(m => new MovimientoResumenDto
+        {
+            Id = m.Id,
+            NumeroExpedicion = m.NumeroExpedicion,
+            CtaOrigenCodigo = m.CtaOrigen.Codigo,
+            CtaDestinoCodigo = m.CtaDestino.Codigo,
+            Estado = m.Estado.ToString(),
+            TipoTransporte = m.TipoTransporte.ToString(),
+            EsUrgente = m.EsUrgente,
+            FechaCreacion = m.FechaCreacion,
+            FechaSalida = m.FechaSalida,
+            FechaLlegada = m.FechaLlegada
+        }).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<MovimientoResumenDto>> ObtenerMovimientosGlobales(EstadoMovimiento? filtroEstado = null, int? ctaOrigenId = null, int? ctaDestinoId = null)
+    {
+        var movimientos = await _movimientoRepo.GetAllAsync(filtroEstado, ctaOrigenId, ctaDestinoId);
         return movimientos.Select(m => new MovimientoResumenDto
         {
             Id = m.Id,

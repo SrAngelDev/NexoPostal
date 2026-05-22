@@ -2,13 +2,15 @@ import { Component, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { NotificacionService } from '../../services/notificacion.service';
 import { ConfirmacionService } from '../../services/confirmacion.service';
 import { OficinasService, Oficina } from '../../services/oficinas.service';
-import { PagosService, CrearSesionPagoRequest } from '../../services/pagos.service';
+import { PagosService, CrearSesionPagoRequest, SesionPagoCreadaResponse } from '../../services/pagos.service';
 import { AuthService } from '../../services/auth.service';
 import { PerfilService, DireccionFavoritaDto } from '../../services/perfil.service';
 import { TarifasService } from '../../services/tarifas.service';
+import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
 
 interface RateOption {
   tipoTarifa: 'Estandar' | 'Premium';
@@ -42,7 +44,7 @@ interface DatosPersona {
 @Component({
   selector: 'app-envio-paquete',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NavbarPublicoComponent],
   templateUrl: './envio-paquete.component.html',
   styleUrls: ['./envio-paquete.component.css']
 })
@@ -61,6 +63,8 @@ export class EnvioPaqueteComponent {
   selectedRate = signal<RateOption | null>(null);
   isCalculating = signal(false);
   procesandoPago = signal(false);
+  /** Sesión de Stripe pendiente de confirmación explícita por el usuario */
+  sesionPendiente = signal<SesionPagoCreadaResponse | null>(null);
   
   // Datos de remitente
   remitente = signal<DatosPersona>({
@@ -210,36 +214,64 @@ export class EnvioPaqueteComponent {
     return true;
   }
 
+  invalidateRatesSelection(): void {
+    if (this.ratesOptions().length === 0 && !this.selectedRate()) {
+      return;
+    }
+
+    this.ratesOptions.set([]);
+    this.selectedRate.set(null);
+  }
+
   calculateRates(): void {
     if (!this.validateDimensiones()) return;
     this.isCalculating.set(true);
-    
-    const weight = this.weight() || 1;
-    const length = this.length() || 0;
-    const width = this.width() || 0;
-    const height = this.height() || 0;
 
-    this.tarifasService.consultarTarifas({
-      peso: weight,
-      largo: length,
-      ancho: width,
-      alto: height,
+    const peso  = this.weight() as number;
+    const largo = this.length() as number;
+    const ancho = this.width()  as number;
+    const alto  = this.height() as number;
+
+    const base = {
+      peso,
+      largo,
+      ancho,
+      alto,
       codigoPostalOrigen: this.getCpOrigen(),
       codigoPostalDestino: this.getCpDestino()
+    };
+
+    // Usamos POST /calcular (misma lógica exacta que CrearSesionPago) en lugar de
+    // GET /consultar para garantizar que los precios mostrados coinciden con lo que
+    // Stripe cobrará al usuario.
+    forkJoin({
+      estandar: this.tarifasService.calcularTarifa({ ...base, tipoTarifa: 'Estandar' }),
+      premium:  this.tarifasService.calcularTarifa({ ...base, tipoTarifa: 'Premium' })
     }).subscribe({
-      next: (response) => {
-        this.ratesOptions.set(
-          response.tarifas.map(tarifa => ({
-            tipoTarifa: tarifa.nombre.toLowerCase() === 'premium' ? 'Premium' : 'Estandar',
-            name: `Envío ${tarifa.nombre}`,
-            description: tarifa.descripcion,
-            deliveryTime: tarifa.tiempoEntregaEstimado,
-            precioBase: tarifa.precioBase,
-            recargo: tarifa.recargo,
-            iva: tarifa.iva,
-            price: tarifa.precioTotal
-          }))
-        );
+      next: ({ estandar, premium }) => {
+        this.ratesOptions.set([
+          {
+            tipoTarifa: 'Estandar',
+            name: 'Envío Estandar',
+            description: 'Entrega estándar económica',
+            deliveryTime: estandar.tiempoEntregaEstimado,
+            precioBase: estandar.precioBase,
+            recargo:    estandar.recargo,
+            iva:        estandar.iva,
+            price:      estandar.precioTotal
+          },
+          {
+            tipoTarifa: 'Premium',
+            name: 'Envío Premium',
+            description: 'Entrega premium prioritaria',
+            deliveryTime: premium.tiempoEntregaEstimado,
+            precioBase: premium.precioBase,
+            recargo:    premium.recargo,
+            iva:        premium.iva,
+            price:      premium.precioTotal
+          }
+        ]);
+        this.selectedRate.set(null);
         this.isCalculating.set(false);
       },
       error: (err) => {
@@ -426,13 +458,11 @@ export class EnvioPaqueteComponent {
     }
 
     const request: CrearSesionPagoRequest = {
-      peso: this.weight() || 0,
+      peso: this.weight() || 1,
       dimensiones: `${this.length()}x${this.width()}x${this.height()} cm`,
       codigoPostalOrigen: this.getCpOrigen(),
       codigoPostalDestino: this.getCpDestino(),
       tipoTarifa: rate.tipoTarifa,
-      coste: rate.price,
-      tiempoEntregaEstimado: rate.deliveryTime,
       nombreRemitente: rem.nombre,
       apellidosRemitente: rem.apellidos,
       telefonoRemitente: rem.telefono,
@@ -455,14 +485,28 @@ export class EnvioPaqueteComponent {
 
     this.pagosService.crearSesionPago(request).subscribe({
       next: (res) => {
-        // Redirigir a Stripe Checkout
-        window.location.href = res.sessionUrl;
+        this.procesandoPago.set(false);
+        // Mostrar modal de confirmación con el precio exacto calculado por el servidor
+        // antes de redirigir al usuario a Stripe
+        this.sesionPendiente.set(res);
       },
       error: (err) => {
         this.procesandoPago.set(false);
         this.notificacion.errorHttp(err, 'Error al iniciar el pago');
       }
     });
+  }
+
+  /** Redirige a Stripe una vez que el usuario ha confirmado el precio exacto */
+  confirmarPago(): void {
+    const sesion = this.sesionPendiente();
+    if (!sesion) return;
+    window.location.href = sesion.sessionUrl;
+  }
+
+  /** Cancela la sesión pendiente sin redirigir (el envío queda en PendientePago y el usuario puede reintentar) */
+  cancelarSesionPendiente(): void {
+    this.sesionPendiente.set(null);
   }
 
   async cancelShipment(): Promise<void> {

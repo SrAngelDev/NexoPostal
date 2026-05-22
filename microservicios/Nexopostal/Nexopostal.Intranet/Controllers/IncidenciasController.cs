@@ -10,7 +10,7 @@ namespace Nexopostal.Intranet.Controllers;
 /// <summary>
 /// Controlador para la gestión de incidencias en CTAs.
 /// 
-/// Solo el OperarioJefe puede:
+/// Solo el Supervisor puede:
 ///   - Reportar nuevas incidencias (paquetes dañados, extraviados, etc.)
 ///   - Actualizar su estado (Abierta → EnRevision → Resuelta → Cerrada)
 ///   - Registrar la resolución aplicada
@@ -19,7 +19,7 @@ namespace Nexopostal.Intranet.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,OperarioJefe")]
+[Authorize(Roles = "Admin,Supervisor")]
 public class IncidenciasController : ControllerBase
 {
     private readonly IIncidenciaService _incidenciaService;
@@ -42,12 +42,48 @@ public class IncidenciasController : ControllerBase
         var operario = await ObtenerOperarioActual();
         if (operario == null) return Forbid();
 
-        if (operario.Rol != RolOperario.OperarioJefe && !User.IsInRole("Admin"))
+        if (operario.Rol != RolOperario.Supervisor && !User.IsInRole("Admin"))
             return Forbid();
 
         try
         {
             var incidencia = await _incidenciaService.CrearIncidencia(dto, operario.Id, operario.CentroTratamientoId);
+            return CreatedAtAction(nameof(ObtenerDetalle), new { id = incidencia.Id }, incidencia);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Endpoint reservado a operarios (OperarioCTA / OperarioOficina) para reportar
+    /// que han escaneado un paquete fuera de sus tareas asignadas. Crea siempre una
+    /// incidencia tipo <see cref="TipoIncidencia.PaqueteFueraDeTareas"/>.
+    /// </summary>
+    [HttpPost("reportar-fuera-tareas")]
+    [Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
+    [ProducesResponseType(typeof(IncidenciaDetalleDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IncidenciaDetalleDto>> ReportarFueraDeTareas(
+        [FromBody] ReportarFueraTareasDto dto)
+    {
+        var operario = await ObtenerOperarioActual();
+        if (operario == null) return Forbid();
+
+        if (string.IsNullOrWhiteSpace(dto.NumeroExpedicion) || string.IsNullOrWhiteSpace(dto.Motivo))
+            return BadRequest(new { message = "Número de expedición y motivo obligatorios" });
+
+        var crearDto = new CrearIncidenciaDto
+        {
+            NumeroExpedicion = dto.NumeroExpedicion.Trim(),
+            Tipo = TipoIncidencia.PaqueteFueraDeTareas.ToString(),
+            Descripcion = dto.Motivo.Trim()
+        };
+
+        try
+        {
+            var incidencia = await _incidenciaService.CrearIncidencia(crearDto, operario.Id, operario.CentroTratamientoId);
             return CreatedAtAction(nameof(ObtenerDetalle), new { id = incidencia.Id }, incidencia);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
@@ -69,6 +105,29 @@ public class IncidenciasController : ControllerBase
             filtro = e;
 
         var incidencias = await _incidenciaService.ObtenerIncidenciasCta(ctaId, filtro);
+        return Ok(incidencias);
+    }
+
+    /// <summary>
+    /// Vista global de incidencias (solo Admin). Filtros opcionales por estado, CTA y tipo.
+    /// </summary>
+    [HttpGet("global")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(List<IncidenciaResumenDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<IncidenciaResumenDto>>> ObtenerGlobales(
+        [FromQuery] string? estado = null,
+        [FromQuery] int? ctaId = null,
+        [FromQuery] string? tipo = null)
+    {
+        EstadoIncidencia? filtroEstado = null;
+        if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoIncidencia>(estado, true, out var e))
+            filtroEstado = e;
+
+        TipoIncidencia? filtroTipo = null;
+        if (!string.IsNullOrEmpty(tipo) && Enum.TryParse<TipoIncidencia>(tipo, true, out var t))
+            filtroTipo = t;
+
+        var incidencias = await _incidenciaService.ObtenerIncidenciasGlobales(filtroEstado, ctaId, filtroTipo);
         return Ok(incidencias);
     }
 

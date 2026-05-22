@@ -577,7 +577,7 @@
   background: #dbeafe;
 }
 .stat-info .stat-icon-wrap .material-symbols-outlined {
-  color: #2563eb;
+  color: var(--brand-primary);
 }
 
 .stat-success .stat-icon-wrap {

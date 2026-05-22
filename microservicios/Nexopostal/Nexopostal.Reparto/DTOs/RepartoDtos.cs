@@ -31,6 +31,20 @@ public class CrearRepartidorDto
     public string? MatriculaVehiculo { get; set; }
 }
 
+/// <summary>
+/// DTO para que un Admin/JefeReparto edite la ficha de un repartidor.
+/// Permite ajustar oficina, datos de contacto y vehículo. No cambia el IdentityUserId.
+/// </summary>
+public class EditarRepartidorDto
+{
+    public string NombreCompleto { get; set; } = string.Empty;
+    public string? Telefono { get; set; }
+    public int OficinaJsonId { get; set; }
+    public string OficinaNombre { get; set; } = string.Empty;
+    public string TipoVehiculo { get; set; } = "Furgoneta";
+    public string? MatriculaVehiculo { get; set; }
+}
+
 // ─── Ruta de Reparto ───
 
 public class RutaRepartoResumenDto
@@ -162,4 +176,56 @@ public class AutoAsignacionEntregaResultDto
     public string? RepartidorNombre { get; set; }
     public int? EntregaId { get; set; }
     public string Message { get; set; } = string.Empty;
+}
+
+// ─── Tracking en tiempo real del JefeReparto ───
+
+/// <summary>
+/// Última ubicación conocida de un repartidor para el mapa en tiempo real.
+/// </summary>
+public class UbicacionActivaDto
+{
+    public int RepartidorId { get; set; }
+    public string NombreRepartidor { get; set; } = string.Empty;
+    public string CodigoEmpleado { get; set; } = string.Empty;
+    public int OficinaJsonId { get; set; }
+    public string OficinaNombre { get; set; } = string.Empty;
+    public double Latitud { get; set; }
+    public double Longitud { get; set; }
+    public DateTime ActualizadoEn { get; set; }
+    public int SegundosDesdeActualizacion { get; set; }
+    public int? RutaActivaId { get; set; }
+    public string? RutaCodigo { get; set; }
+    public string? RutaEstado { get; set; }
+}
+
+// ─── Asignación manual de paradas pendientes (JefeReparto) ───
+
+/// <summary>
+/// Entrega pendiente que el jefe puede reasignar entre repartidores
+/// (todas las entregas de rutas en estado Planificada del día).
+/// </summary>
+public class EntregaPendienteAsignacionDto
+{
+    public int EntregaId { get; set; }
+    public string NumeroExpedicion { get; set; } = string.Empty;
+    public string NumeroSeguimiento { get; set; } = string.Empty;
+    public string DireccionEntrega { get; set; } = string.Empty;
+    public string CodigoPostal { get; set; } = string.Empty;
+    public string Ciudad { get; set; } = string.Empty;
+    public string NombreDestinatario { get; set; } = string.Empty;
+    public int RutaActualId { get; set; }
+    public string RutaActualCodigo { get; set; } = string.Empty;
+    public int RepartidorActualId { get; set; }
+    public string RepartidorActualNombre { get; set; } = string.Empty;
+    public int OficinaJsonId { get; set; }
+    public string OficinaNombre { get; set; } = string.Empty;
+    public string FechaReparto { get; set; } = string.Empty;
+    public string Estado { get; set; } = string.Empty;
+}
+
+/// <summary>Petición para reasignar una entrega a otra ruta planificada.</summary>
+public class ReasignarEntregaDto
+{
+    public int NuevaRutaId { get; set; }
 }

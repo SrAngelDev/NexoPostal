@@ -164,6 +164,27 @@ public class AdmisionPaqueteResponseDto
     /// <summary>Mensaje de resultado de la orquestación con Reparto</summary>
     public string? MensajeOrquestacionReparto { get; set; }
 
+    /// <summary>Indica si se intentó crear asignación automática en CTA</summary>
+    public bool AsignacionAutomaticaIntentada { get; set; }
+
+    /// <summary>Indica si la asignación automática en CTA fue exitosa</summary>
+    public bool AsignacionAutomaticaExitosa { get; set; }
+
+    /// <summary>Indica si la asignación automática fue idempotente (ya existía)</summary>
+    public bool AsignacionAutomaticaIdempotente { get; set; }
+
+    /// <summary>ID de la asignación creada o reutilizada (si aplica)</summary>
+    public int? AsignacionAutomaticaId { get; set; }
+
+    /// <summary>ID del operario de oficina asignado automáticamente (si aplica)</summary>
+    public int? OperarioAsignadoId { get; set; }
+
+    /// <summary>Nombre del operario de oficina asignado automáticamente (si aplica)</summary>
+    public string? OperarioAsignadoNombre { get; set; }
+
+    /// <summary>Mensaje de resultado de la autoasignación en CTA</summary>
+    public string? MensajeAsignacionAutomatica { get; set; }
+
     /// <summary>Fecha y hora de la admisión</summary>
     public DateTime FechaAdmision { get; set; } = DateTime.UtcNow;
 }

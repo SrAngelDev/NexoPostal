@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 // ─── Interfaces ───
 
@@ -57,11 +58,36 @@ export interface ScanBatchResult {
   resultados: ScanResult[];
 }
 
+export interface OficinaJsonDto {
+  id: number;
+  nombre: string;
+  direccion: string;
+  codigoPostal: string;
+  ciudad: string;
+  provincia?: string;
+  telefono?: string;
+  email?: string;
+  esCentral?: boolean;
+}
+
+export interface MiOficinaInfoDto {
+  oficinaJsonId: number;
+  oficinaNombre: string;
+  codigoPostal: string;
+  ciudad: string;
+  direccion: string;
+  rol: string;
+  activo: boolean;
+  fechaAsignacion: string;
+}
+
 // ─── Servicio ───
 
 @Injectable({ providedIn: 'root' })
 export class ScanService {
   private readonly API_URL = '/api/scan';
+  private readonly OFICINAS_URL = '/api/oficinaspostales';
+  private readonly OPERARIOS_URL = '/api/operarios';
 
   constructor(private http: HttpClient) {}
 
@@ -91,5 +117,22 @@ export class ScanService {
    */
   validarCodigo(codigo: string): boolean {
     return /^NXI-[A-Z0-9]{8}$/.test(codigo.toUpperCase());
+  }
+
+  /**
+   * Lista las oficinas cuyo CP cae dentro de las rutas del CTA indicado.
+   */
+  obtenerOficinasPorCta(ctaId: number): Observable<OficinaJsonDto[]> {
+    return this.http.get<OficinaJsonDto[]>(`${this.OFICINAS_URL}/por-cta/${ctaId}`);
+  }
+
+  /**
+   * Devuelve la oficina asignada al operario autenticado (si existe).
+   * El backend responde 204 si no hay asignación.
+   */
+  obtenerMiOficina(): Observable<MiOficinaInfoDto | null> {
+    return this.http
+      .get<MiOficinaInfoDto>(`${this.OPERARIOS_URL}/mi-oficina`, { observe: 'response' })
+      .pipe(map(r => (r.status === 204 ? null : r.body)));
   }
 }

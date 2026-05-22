@@ -10,9 +10,12 @@ namespace Nexopostal.Reparto.Services;
 public interface IRepartoService
 {
     // ─── Repartidores ───
-    Task<List<RepartidorResumenDto>> ObtenerRepartidores(int? oficinaJsonId = null);
+    Task<List<RepartidorResumenDto>> ObtenerRepartidores(int? oficinaJsonId = null, bool incluirInactivos = false);
     Task<RepartidorResumenDto?> ObtenerRepartidorPorIdentityId(string identityUserId);
     Task<RepartidorResumenDto> CrearRepartidor(CrearRepartidorDto dto);
+    Task<(RepartidorResumenDto? Repartidor, string? Error)> EditarRepartidor(int id, EditarRepartidorDto dto);
+    Task<(bool Ok, string? Error)> DesactivarRepartidor(int id);
+    Task<(bool Ok, string? Error)> ReactivarRepartidor(int id);
 
     // ─── Rutas ───
     Task<List<RutaRepartoResumenDto>> ObtenerRutas(DateOnly? fecha = null, int? repartidorId = null);
@@ -31,6 +34,14 @@ public interface IRepartoService
 
     // ─── Dashboard ───
     Task<DashboardRepartoDto> ObtenerDashboard(int? oficinaJsonId = null);
+
+    // ─── Tracking en tiempo real (JefeReparto) ───
+    Task RegistrarUbicacionRepartidor(string identityUserId, double latitud, double longitud, int? rutaActivaId);
+    Task<List<UbicacionActivaDto>> ObtenerUbicacionesActivas(int? oficinaJsonId = null, int ventanaMinutos = 10);
+
+    // ─── Asignación manual de paradas (JefeReparto) ───
+    Task<List<EntregaPendienteAsignacionDto>> ObtenerEntregasPendientesAsignacion(int? oficinaJsonId = null);
+    Task<EntregaPaqueteDto?> ReasignarEntregaARuta(int entregaId, int nuevaRutaId);
 }
 
 // ============================================================
@@ -41,17 +52,23 @@ public class RepartoService : IRepartoService
     private readonly IRepartidorRepository _repartidorRepo;
     private readonly IRutaRepartoRepository _rutaRepo;
     private readonly IEntregaPaqueteRepository _entregaRepo;
+    private readonly IUbicacionRepartidorRepository _ubicacionRepo;
+    private readonly IRepartoNotifier _notifier;
     private readonly ILogger<RepartoService> _logger;
 
     public RepartoService(
         IRepartidorRepository repartidorRepo,
         IRutaRepartoRepository rutaRepo,
         IEntregaPaqueteRepository entregaRepo,
+        IUbicacionRepartidorRepository ubicacionRepo,
+        IRepartoNotifier notifier,
         ILogger<RepartoService> logger)
     {
         _repartidorRepo = repartidorRepo;
         _rutaRepo = rutaRepo;
         _entregaRepo = entregaRepo;
+        _ubicacionRepo = ubicacionRepo;
+        _notifier = notifier;
         _logger = logger;
     }
 
@@ -59,10 +76,10 @@ public class RepartoService : IRepartoService
     //  REPARTIDORES
     // ═══════════════════════════════════════════
 
-    public async Task<List<RepartidorResumenDto>> ObtenerRepartidores(int? oficinaJsonId = null)
+    public async Task<List<RepartidorResumenDto>> ObtenerRepartidores(int? oficinaJsonId = null, bool incluirInactivos = false)
     {
         var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
-        var repartidores = await _repartidorRepo.GetAllAsync(oficinaJsonId);
+        var repartidores = await _repartidorRepo.GetAllAsync(oficinaJsonId, incluirInactivos);
 
         return repartidores.Select(r => new RepartidorResumenDto
         {
@@ -130,6 +147,76 @@ public class RepartoService : IRepartoService
         };
     }
 
+    public async Task<(RepartidorResumenDto? Repartidor, string? Error)> EditarRepartidor(int id, EditarRepartidorDto dto)
+    {
+        var repartidor = await _repartidorRepo.GetByIdAsync(id);
+        if (repartidor == null)
+            return (null, "Repartidor no encontrado.");
+
+        if (!Enum.TryParse<TipoVehiculo>(dto.TipoVehiculo, ignoreCase: true, out var tipo))
+            return (null, $"Tipo de vehículo no válido: {dto.TipoVehiculo}.");
+
+        repartidor.NombreCompleto    = string.IsNullOrWhiteSpace(dto.NombreCompleto) ? repartidor.NombreCompleto : dto.NombreCompleto.Trim();
+        repartidor.Telefono          = string.IsNullOrWhiteSpace(dto.Telefono) ? null : dto.Telefono.Trim();
+        repartidor.OficinaJsonId     = dto.OficinaJsonId;
+        repartidor.OficinaNombre     = dto.OficinaNombre?.Trim() ?? string.Empty;
+        repartidor.TipoVehiculo      = tipo;
+        repartidor.MatriculaVehiculo = string.IsNullOrWhiteSpace(dto.MatriculaVehiculo) ? null : dto.MatriculaVehiculo.Trim().ToUpperInvariant();
+
+        await _repartidorRepo.UpdateAsync(repartidor);
+
+        _logger.LogInformation("Repartidor {Id} actualizado por administrador", id);
+
+        var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+        return (new RepartidorResumenDto
+        {
+            Id = repartidor.Id,
+            NombreCompleto = repartidor.NombreCompleto,
+            CodigoEmpleado = repartidor.CodigoEmpleado,
+            Telefono = repartidor.Telefono,
+            OficinaJsonId = repartidor.OficinaJsonId,
+            OficinaNombre = repartidor.OficinaNombre,
+            TipoVehiculo = repartidor.TipoVehiculo.ToString(),
+            Activo = repartidor.Activo,
+            RutasHoy = repartidor.Rutas.Count(rt => rt.FechaReparto == hoy)
+        }, null);
+    }
+
+    public async Task<(bool Ok, string? Error)> DesactivarRepartidor(int id)
+    {
+        var repartidor = await _repartidorRepo.GetByIdAsync(id);
+        if (repartidor == null)
+            return (false, "Repartidor no encontrado.");
+
+        if (!repartidor.Activo)
+            return (true, null); // idempotente
+
+        if (await _repartidorRepo.TieneRutasActivasAsync(id))
+            return (false, "No se puede desactivar: el repartidor tiene rutas planificadas o en curso. Reasigna o cancela esas rutas primero.");
+
+        repartidor.Activo = false;
+        await _repartidorRepo.UpdateAsync(repartidor);
+
+        _logger.LogInformation("Repartidor {Id} desactivado", id);
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, string? Error)> ReactivarRepartidor(int id)
+    {
+        var repartidor = await _repartidorRepo.GetByIdAsync(id);
+        if (repartidor == null)
+            return (false, "Repartidor no encontrado.");
+
+        if (repartidor.Activo)
+            return (true, null);
+
+        repartidor.Activo = true;
+        await _repartidorRepo.UpdateAsync(repartidor);
+
+        _logger.LogInformation("Repartidor {Id} reactivado", id);
+        return (true, null);
+    }
+
     // ═══════════════════════════════════════════
     //  RUTAS DE REPARTO
     // ═══════════════════════════════════════════
@@ -143,7 +230,7 @@ public class RepartoService : IRepartoService
             Id = r.Id,
             Codigo = r.Codigo,
             FechaReparto = r.FechaReparto.ToString("yyyy-MM-dd"),
-            RepartidorNombre = r.Repartidor.NombreCompleto,
+            RepartidorNombre = r.Repartidor?.NombreCompleto ?? string.Empty,
             OficinaOrigenNombre = r.OficinaOrigenNombre,
             Estado = r.Estado.ToString(),
             TotalEntregas = r.Entregas.Count,
@@ -188,7 +275,22 @@ public class RepartoService : IRepartoService
         _logger.LogInformation("Ruta de reparto creada: {Codigo}", codigo);
 
         // Recargar con includes
-        return (await ObtenerRutaPorId(ruta.Id))!;
+        var detalle = (await ObtenerRutaPorId(ruta.Id))!;
+
+        // Notificar al repartidor vía SignalR
+        var repartidor = await _repartidorRepo.GetByIdAsync(dto.RepartidorId);
+        if (repartidor != null && !string.IsNullOrEmpty(repartidor.IdentityUserId))
+        {
+            await _notifier.NotificarRepartidorAsync(repartidor.IdentityUserId, "RutaAsignada", new
+            {
+                rutaId = detalle.Id,
+                codigo = detalle.Codigo,
+                fechaReparto = detalle.FechaReparto,
+                mensaje = $"Tienes una nueva ruta asignada: {detalle.Codigo}"
+            });
+        }
+
+        return detalle;
     }
 
     public async Task<RutaRepartoDetalleDto?> IniciarRuta(int rutaId)
@@ -331,6 +433,21 @@ public class RepartoService : IRepartoService
 
         _logger.LogInformation("Entrega {Id} registrada como {Estado} para expedición {Expedicion}",
             entregaId, estado, entrega.NumeroExpedicion);
+
+        // Notificar al repartidor confirmando registro
+        if (entrega.RutaReparto != null)
+        {
+            var repartidor = await _repartidorRepo.GetByIdAsync(entrega.RutaReparto.RepartidorId);
+            if (repartidor != null && !string.IsNullOrEmpty(repartidor.IdentityUserId))
+            {
+                await _notifier.NotificarRepartidorAsync(repartidor.IdentityUserId, "EntregaRegistrada", new
+                {
+                    entregaId = entrega.Id,
+                    numeroSeguimiento = entrega.NumeroSeguimiento,
+                    estado = estado.ToString()
+                });
+            }
+        }
 
         return MapearEntrega(entrega);
     }
@@ -573,6 +690,157 @@ public class RepartoService : IRepartoService
 
     // ═══════════════════════════════════════════
     //  HELPERS PRIVADOS
+    // ═══════════════════════════════════════════
+
+    // ═══════════════════════════════════════════
+    //  TRACKING TIEMPO REAL (JefeReparto)
+    // ═══════════════════════════════════════════
+
+    public async Task RegistrarUbicacionRepartidor(string identityUserId, double latitud, double longitud, int? rutaActivaId)
+    {
+        if (string.IsNullOrWhiteSpace(identityUserId))
+        {
+            return;
+        }
+
+        var repartidor = await _repartidorRepo.GetByIdentityUserIdAsync(identityUserId);
+        if (repartidor == null)
+        {
+            _logger.LogWarning("Ubicación recibida de usuario sin perfil de repartidor: {Identity}", identityUserId);
+            return;
+        }
+
+        await _ubicacionRepo.UpsertAsync(repartidor.Id, latitud, longitud, rutaActivaId);
+    }
+
+    public async Task<List<UbicacionActivaDto>> ObtenerUbicacionesActivas(int? oficinaJsonId = null, int ventanaMinutos = 10)
+    {
+        var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+        var ubicaciones = await _ubicacionRepo.GetActivasAsync(TimeSpan.FromMinutes(Math.Max(1, ventanaMinutos)), oficinaJsonId);
+        if (!ubicaciones.Any()) return new List<UbicacionActivaDto>();
+
+        var rutasHoy = (await _rutaRepo.GetByFechaAsync(hoy)).ToDictionary(r => r.Id);
+        var rutasPorRepartidor = await _rutaRepo.GetAllAsync(hoy);
+        var enCursoPorRepartidor = rutasPorRepartidor
+            .Where(r => r.Estado == EstadoRuta.EnCurso)
+            .GroupBy(r => r.RepartidorId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var ahora = DateTime.UtcNow;
+        return ubicaciones.Select(u =>
+        {
+            RutaReparto? ruta = null;
+            if (u.RutaActivaId.HasValue && rutasHoy.TryGetValue(u.RutaActivaId.Value, out var r))
+            {
+                ruta = r;
+            }
+            else if (enCursoPorRepartidor.TryGetValue(u.RepartidorId, out var rEnCurso))
+            {
+                ruta = rEnCurso;
+            }
+
+            return new UbicacionActivaDto
+            {
+                RepartidorId = u.RepartidorId,
+                NombreRepartidor = u.Repartidor?.NombreCompleto ?? string.Empty,
+                CodigoEmpleado = u.Repartidor?.CodigoEmpleado ?? string.Empty,
+                OficinaJsonId = u.Repartidor?.OficinaJsonId ?? 0,
+                OficinaNombre = u.Repartidor?.OficinaNombre ?? string.Empty,
+                Latitud = u.Latitud,
+                Longitud = u.Longitud,
+                ActualizadoEn = u.ActualizadoEn,
+                SegundosDesdeActualizacion = (int)(ahora - u.ActualizadoEn).TotalSeconds,
+                RutaActivaId = ruta?.Id,
+                RutaCodigo = ruta?.Codigo,
+                RutaEstado = ruta?.Estado.ToString()
+            };
+        }).ToList();
+    }
+
+    // ═══════════════════════════════════════════
+    //  ASIGNACIÓN MANUAL DE PARADAS (JefeReparto)
+    // ═══════════════════════════════════════════
+
+    public async Task<List<EntregaPendienteAsignacionDto>> ObtenerEntregasPendientesAsignacion(int? oficinaJsonId = null)
+    {
+        var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+        var rutas = await _rutaRepo.GetByFechaAsync(hoy, oficinaJsonId);
+        var planificadas = rutas.Where(r => r.Estado == EstadoRuta.Planificada).ToList();
+
+        if (!planificadas.Any()) return new List<EntregaPendienteAsignacionDto>();
+
+        var rutaIds = planificadas.Select(r => r.Id).ToList();
+        var entregas = await _entregaRepo.GetByRutaIdsAsync(rutaIds);
+        var repartidorIds = planificadas.Select(r => r.RepartidorId).Distinct().ToList();
+        var repartidoresAll = await _repartidorRepo.GetAllAsync();
+        var repartidoresMap = repartidoresAll.Where(r => repartidorIds.Contains(r.Id)).ToDictionary(r => r.Id);
+        var rutaMap = planificadas.ToDictionary(r => r.Id);
+
+        return entregas
+            .Where(e => e.Estado == EstadoEntrega.Pendiente)
+            .Select(e =>
+            {
+                var ruta = rutaMap[e.RutaRepartoId];
+                repartidoresMap.TryGetValue(ruta.RepartidorId, out var rep);
+                return new EntregaPendienteAsignacionDto
+                {
+                    EntregaId = e.Id,
+                    NumeroExpedicion = e.NumeroExpedicion,
+                    NumeroSeguimiento = e.NumeroSeguimiento,
+                    DireccionEntrega = e.DireccionEntrega,
+                    CodigoPostal = e.CodigoPostal,
+                    Ciudad = e.Ciudad,
+                    NombreDestinatario = e.NombreDestinatario,
+                    RutaActualId = ruta.Id,
+                    RutaActualCodigo = ruta.Codigo,
+                    RepartidorActualId = ruta.RepartidorId,
+                    RepartidorActualNombre = rep?.NombreCompleto ?? string.Empty,
+                    OficinaJsonId = ruta.OficinaOrigenJsonId,
+                    OficinaNombre = ruta.OficinaOrigenNombre,
+                    FechaReparto = ruta.FechaReparto.ToString("yyyy-MM-dd"),
+                    Estado = e.Estado.ToString()
+                };
+            })
+            .OrderBy(d => d.RutaActualCodigo)
+            .ThenBy(d => d.NumeroExpedicion)
+            .ToList();
+    }
+
+    public async Task<EntregaPaqueteDto?> ReasignarEntregaARuta(int entregaId, int nuevaRutaId)
+    {
+        var entrega = await _entregaRepo.GetWithRutaAsync(entregaId);
+        if (entrega == null) return null;
+
+        if (entrega.Estado != EstadoEntrega.Pendiente)
+        {
+            _logger.LogWarning("Intento de reasignar entrega {Id} en estado {Estado}", entregaId, entrega.Estado);
+            return null;
+        }
+
+        var rutaDestino = await _rutaRepo.GetWithEntregasAsync(nuevaRutaId);
+        if (rutaDestino == null || rutaDestino.Estado != EstadoRuta.Planificada)
+        {
+            _logger.LogWarning("Ruta destino {Id} no existe o no está planificada", nuevaRutaId);
+            return null;
+        }
+
+        if (entrega.RutaRepartoId == nuevaRutaId)
+        {
+            return MapearEntrega(entrega);
+        }
+
+        var ordenSiguiente = rutaDestino.Entregas.Any() ? rutaDestino.Entregas.Max(e => e.OrdenEnRuta) + 1 : 1;
+        entrega.RutaRepartoId = nuevaRutaId;
+        entrega.OrdenEnRuta = ordenSiguiente;
+        await _entregaRepo.UpdateAsync(entrega);
+
+        _logger.LogInformation("Entrega {Id} reasignada a ruta {Ruta}", entregaId, rutaDestino.Codigo);
+
+        return MapearEntrega(entrega);
+    }
+
+    // ═══════════════════════════════════════════
+    //  HELPERS PRIVADOS ORIGINALES
     // ═══════════════════════════════════════════
 
     private static RutaRepartoDetalleDto MapearRutaDetalle(RutaReparto r)

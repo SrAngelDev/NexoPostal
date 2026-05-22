@@ -24,6 +24,7 @@ public class IntranetDbContext : DbContext
     public DbSet<Incidencia> Incidencias { get; set; }
     public DbSet<HistorialEstado> HistorialEstados { get; set; }
     public DbSet<OperarioOficina> OperariosOficina { get; set; }
+    public DbSet<OficinaPostal> OficinasPostales { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -230,9 +231,27 @@ public class IntranetDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // ===== OficinaPostal =====
+        // Migradas desde Data/oficinas.json (JSON-LD) a BD para permitir gestión admin.
+        // Los Ids se preservan del JSON original (1001+) para no romper referencias lógicas
+        // en OperariosOficina.OficinaJsonId ni en Repartidor.OficinaJsonId (Reparto).
+        modelBuilder.Entity<OficinaPostal>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            // Identity BY DEFAULT (permite insertar IDs explícitos en el seed)
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+
+            entity.HasIndex(e => e.CodigoPostal)
+                .HasDatabaseName("IX_OficinasPostales_CodigoPostal");
+
+            entity.HasIndex(e => e.Activo)
+                .HasDatabaseName("IX_OficinasPostales_Activo");
+        });
+
         // ===== OperarioOficina =====
-        // Las oficinas NO están en BD; vienen del JSON estático (Data/oficinas.json).
-        // OficinaJsonId es una referencia lógica, no una FK de EF.
+        // Vinculado a OficinaPostal por referencia lógica (OficinaJsonId == OficinaPostal.Id)
+        // sin FK explícita por compatibilidad histórica con el formato JSON.
         modelBuilder.Entity<OperarioOficina>(entity =>
         {
             entity.HasKey(e => e.Id);

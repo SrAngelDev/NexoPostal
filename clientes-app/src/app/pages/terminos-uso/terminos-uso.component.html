@@ -1,21 +1,5 @@
 <div class="min-h-screen bg-gray-50">
-  <!-- Navbar -->
-  <nav class="bg-[#1A237E] text-white h-[70px] sticky top-0 z-50 shadow-lg">
-    <div class="max-w-7xl mx-auto px-5 h-full flex items-center justify-between">
-      <a (click)="navigateTo('/')" class="flex items-center gap-2 text-2xl font-bold cursor-pointer">
-        <span class="material-symbols-outlined text-3xl">local_shipping</span>
-        <span>Nexo<span class="text-[#FFC107]">Postal</span></span>
-      </a>
-      <ul class="hidden md:flex gap-8">
-        <li><a (click)="navigateTo('/particulares')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Particulares</a></li>
-        <li><a (click)="navigateTo('/empresas')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Empresas</a></li>
-        <li><a (click)="navigateTo('/ayuda')" class="text-sm opacity-90 hover:opacity-100 transition-opacity cursor-pointer">Ayuda</a></li>
-      </ul>
-      <button (click)="navigateTo('/')" class="px-6 py-2 rounded-lg bg-[#FFC107] text-black hover:bg-[#FFB300] transition-all font-semibold text-sm">
-        Ir al inicio
-      </button>
-    </div>
-  </nav>
+  <app-navbar-publico />
 
   <!-- Hero -->
   <header class="bg-gradient-to-br from-[#1A237E] to-[#283593] text-white py-12 text-center">
@@ -159,22 +143,5 @@
   </section>
 
   <!-- Footer -->
-  <footer class="bg-[#263238] text-gray-400 py-12">
-    <div class="max-w-7xl mx-auto px-5">
-      <div class="flex flex-col md:flex-row justify-between pb-8 mb-8 border-b border-gray-700">
-        <div class="mb-6 md:mb-0">
-          <h4 class="text-white text-lg font-bold mb-4">NexoPostal</h4>
-          <p class="max-w-sm">Operador logístico nacional líder en tecnología y rapidez.</p>
-        </div>
-        <div>
-          <h4 class="text-white text-lg font-bold mb-4">Enlaces Legales</h4>
-          <a (click)="navigateTo('/politica-privacidad')" class="block mb-2 hover:text-[#FFC107] transition-colors cursor-pointer">Política de Privacidad</a>
-          <a (click)="navigateTo('/terminos-uso')" class="block text-[#FFC107] font-semibold cursor-pointer">Términos de Uso</a>
-        </div>
-      </div>
-      <div class="text-center text-sm">
-        <p>&copy; 2026 NexoPostal S.A. Todos los derechos reservados.</p>
-      </div>
-    </div>
-  </footer>
+  <app-footer-publico />
 </div>

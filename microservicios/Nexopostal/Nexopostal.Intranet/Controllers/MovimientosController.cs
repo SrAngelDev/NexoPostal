@@ -20,7 +20,7 @@ namespace Nexopostal.Intranet.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico")]
+[Authorize(Roles = "Admin,OperarioCTA")]
 public class MovimientosController : ControllerBase
 {
     private readonly IMovimientoService _movimientoService;
@@ -65,6 +65,25 @@ public class MovimientosController : ControllerBase
             filtro = e;
 
         var movimientos = await _movimientoService.ObtenerMovimientosCta(ctaId, filtro);
+        return Ok(movimientos);
+    }
+
+    /// <summary>
+    /// Vista global de movimientos troncales (solo Admin).
+    /// </summary>
+    [HttpGet("global")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(List<MovimientoResumenDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<MovimientoResumenDto>>> ObtenerGlobales(
+        [FromQuery] string? estado = null,
+        [FromQuery] int? ctaOrigenId = null,
+        [FromQuery] int? ctaDestinoId = null)
+    {
+        EstadoMovimiento? filtroEstado = null;
+        if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoMovimiento>(estado, true, out var e))
+            filtroEstado = e;
+
+        var movimientos = await _movimientoService.ObtenerMovimientosGlobales(filtroEstado, ctaOrigenId, ctaDestinoId);
         return Ok(movimientos);
     }
 

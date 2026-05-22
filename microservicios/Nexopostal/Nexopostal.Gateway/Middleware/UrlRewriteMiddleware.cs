@@ -22,13 +22,23 @@ public class UrlRewriteMiddleware
         _next = next;
     }
 
-    // Rutas que se sirven directamente desde FileProxyController (contenido binario)
+    // Rutas que se sirven directamente desde proxy controllers específicos
     // y NO deben reescribirse al formato /api/Gateway/{api}/{route}
     private static readonly string[] DirectProxyPaths =
     [
         "/api/nexopostal/envios/etiqueta/",
         "/api/nexopostal/envios/factura/",
-        "/api/nexopostal/oficinas/"
+        "/api/nexopostal/oficinas/",
+        "/api/nexopostal/admin-usuarios",  // IDs son GUIDs (strings), no enteros
+        "/api/nexopostal/admin-repartidores",  // rutas mixtas con identity/{guid} y {id}/reactivar
+        "/api/nexopostal/admin-ctas",      // CRUD admin de CTAs con {id}/reactivar
+        "/api/nexopostal/admin-tarifas",   // CRUD admin de tarifas (bandas de precio)
+        "/api/nexopostal/admin-oficinas",  // CRUD admin de oficinas postales
+        "/api/nexopostal/admin-vehiculos", // CRUD admin de vehículos (flota)
+        "/api/nexopostal/admin-envios",    // Panel global de envíos (admin)
+        "/api/nexopostal/admin-clientes",  // Vista 360 de clientes (admin)
+        "/api/nexopostal/notificaciones",  // Broadcast notifications (admin)
+        "/api/nexopostal/tarifas"          // El gateway pierde los query params en GET
     ];
 
     // Compatibilidad para endpoints raíz /api/{apiKey} sin routeKey explícito.
@@ -48,6 +58,35 @@ public class UrlRewriteMiddleware
             ["incidencias"] = "crear",
             ["operarios"] = "operario-crear",
             ["historial"] = "registrar"
+        };
+
+    // Aliases por API para mantener URLs estables mientras las route keys internas son globalmente únicas.
+    private static readonly IReadOnlyDictionary<string, string> RouteKeyAliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["admision|interno"] = "admision-interno",
+            ["asignaciones|crear"] = "asignaciones-crear",
+            ["movimientos|crear"] = "movimientos-crear",
+            ["incidencias|crear"] = "incidencias-crear",
+            ["movimientos|cta"] = "movimientos-cta",
+            ["incidencias|cta"] = "incidencias-cta",
+            ["movimientos|global"] = "movimientos-global",
+            ["incidencias|global"] = "incidencias-global",
+            ["operarios|cta"] = "operarios-cta",
+            ["movimientos|detalle"] = "movimientos-detalle",
+            ["incidencias|detalle"] = "incidencias-detalle",
+            ["operarios|detalle"] = "operarios-detalle",
+            ["ctas|detalle"] = "ctas-detalle",
+            ["oficinaspostales|detalle"] = "oficinaspostales-detalle",
+            ["ctas|dashboard"] = "ctas-dashboard",
+            ["movimientos|cancelar"] = "movimientos-cancelar",
+            ["movimientos|paquete"] = "movimientos-paquete",
+            ["incidencias|paquete"] = "incidencias-paquete",
+            ["historial|interno"] = "historial-interno",
+            ["oficinaspostales|listar"] = "oficinaspostales-listar",
+            ["oficinaspostales|buscar"] = "oficinaspostales-buscar",
+            ["oficinaspostales|resolver"] = "oficinaspostales-resolver",
+            ["reparto|entregas/pendientes-asignacion"] = "entregas-pendientes-asignacion"
         };
 
     public async Task InvokeAsync(HttpContext context)
@@ -107,7 +146,8 @@ public class UrlRewriteMiddleware
 
             if (!string.IsNullOrWhiteSpace(defaultRoute))
             {
-                context.Request.Path = $"{GatewayPrefix}{apiKeyOnly}/{defaultRoute}";
+                var resolvedDefaultRoute = ResolveRouteKeyAlias(apiKeyOnly, defaultRoute);
+                context.Request.Path = $"{GatewayPrefix}{apiKeyOnly}/{resolvedDefaultRoute}";
             }
 
             return;
@@ -135,11 +175,36 @@ public class UrlRewriteMiddleware
             routeKey = segments[2];
             extra    = $"{segments[1]}/{segments[2]}";
         }
+
+        // Patrón /api/{apiKey}/{subresource}/{subaction} (no numéricos) con alias compuesto.
+        // ej: /api/reparto/entregas/pendientes-asignacion → alias "entregas-pendientes-asignacion".
+        // Solo se activa si existe el alias específico, así no rompe URLs existentes.
+        else if (segments.Length == 3
+                 && !int.TryParse(segments[2], out _)
+                 && RouteKeyAliases.ContainsKey($"{apiKey}|{segments[1]}/{segments[2]}"))
+        {
+            routeKey = RouteKeyAliases[$"{apiKey}|{segments[1]}/{segments[2]}"];
+            extra = null;
+            context.Request.Path = $"{GatewayPrefix}{apiKey}/{routeKey}";
+            return;
+        }
+
+        // Patrón /api/{apiKey}/{subresource}/{numericId}/{action}
+        // ej: PATCH /api/reparto/entregas/45/reasignar → routeKey="entregas-reasignar",
+        // parameters="45/reasignar". Combinado con Path="api/reparto/entregas/" produce
+        // upstream: api/reparto/entregas/45/reasignar
+        else if (segments.Length == 4 && int.TryParse(segments[2], out _))
+        {
+            routeKey = $"{segments[1]}-{segments[3]}";
+            extra = $"{segments[2]}/{segments[3]}";
+        }
         else
         {
             routeKey = segments[1];
             extra = segments.Length > 2 ? string.Join("/", segments.Skip(2)) : null;
         }
+
+        routeKey = ResolveRouteKeyAlias(apiKey, routeKey);
 
         context.Request.Path = $"{GatewayPrefix}{apiKey}/{routeKey}";
 
@@ -147,6 +212,13 @@ public class UrlRewriteMiddleware
         {
             context.Request.QueryString = context.Request.QueryString.Add("parameters", extra);
         }
+    }
+
+    private static string ResolveRouteKeyAlias(string apiKey, string routeKey)
+    {
+        return RouteKeyAliases.TryGetValue($"{apiKey}|{routeKey}", out var alias)
+            ? alias
+            : routeKey;
     }
 
     private static string ResolveNumericIdRouteKey(string method)

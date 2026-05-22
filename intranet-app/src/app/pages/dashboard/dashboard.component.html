@@ -55,11 +55,11 @@
   <main class="dashboard-main">
     <h2 class="dashboard-title">Panel de Gestión</h2>
     <p class="dashboard-subtitle">
-      @if (isOperarioJefe) {
+      @if (isSupervisor) {
         Supervisa y gestiona todas las operaciones del centro.
       } @else if (isOperarioOficina) {
         Gestión de atención al público y recepción/entrega de paquetes.
-      } @else if (isOperarioLogistico) {
+      } @else if (isOperarioCTA) {
         Gestión de clasificación, despacho y logística de paquetes.
       } @else {
         Bienvenido al sistema de gestión interna de NexoPostal.
@@ -79,8 +79,8 @@
         <span class="material-symbols-outlined card-arrow">arrow_forward</span>
       </button>
 
-      <!-- Asignaciones — solo OperarioLogistico y OperarioJefe -->
-      @if (isOperarioLogistico || isOperarioJefe) {
+      <!-- Asignaciones — solo OperarioCTA y Supervisor -->
+      @if (isOperarioCTA || isSupervisor) {
         <button class="dashboard-card" (click)="navigateTo('/asignaciones')">
           <div class="card-icon-wrapper card-icon-asignaciones">
             <span class="material-symbols-outlined">assignment</span>
@@ -137,8 +137,8 @@
         <span class="material-symbols-outlined card-arrow">arrow_forward</span>
       </button>
 
-      <!-- Gestión de operarios — solo OperarioJefe -->
-      @if (isOperarioJefe) {
+      <!-- Gestión de equipo — solo Supervisor -->
+      @if (isSupervisor) {
         <button class="dashboard-card" (click)="navigateTo('/gestion-cta')">
           <div class="card-icon-wrapper" style="background: linear-gradient(135deg, #6a1b9a, #8e24aa);">
             <span class="material-symbols-outlined">supervisor_account</span>

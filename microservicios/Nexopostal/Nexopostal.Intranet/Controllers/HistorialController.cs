@@ -43,7 +43,7 @@ public class HistorialController : ControllerBase
     /// </summary>
     /// <param name="numeroExpedicion">Número de expedición interno (NXI-...)</param>
     [HttpGet("interno/{numeroExpedicion}")]
-    [Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico,OperarioOficina")]
+    [Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
     [ProducesResponseType(typeof(List<HistorialEventoInternoDto>), 200)]
     public async Task<IActionResult> ObtenerHistorialInterno(string numeroExpedicion)
     {
@@ -56,7 +56,7 @@ public class HistorialController : ControllerBase
     /// </summary>
     /// <param name="numeroExpedicion">Número de expedición interno (NXI-...)</param>
     [HttpGet("ultimo/{numeroExpedicion}")]
-    [Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico,OperarioOficina")]
+    [Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
     [ProducesResponseType(typeof(HistorialEventoInternoDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> ObtenerUltimoEvento(string numeroExpedicion)
@@ -72,7 +72,7 @@ public class HistorialController : ControllerBase
     /// pero este endpoint permite registros manuales por parte de operarios.
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico")]
+    [Authorize(Roles = "Admin,OperarioCTA")]
     [ProducesResponseType(typeof(HistorialEventoInternoDto), 201)]
     public async Task<IActionResult> RegistrarEvento([FromBody] CrearHistorialEventoDto dto)
     {

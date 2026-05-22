@@ -16,16 +16,21 @@ namespace Nexopostal.Intranet.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico,OperarioOficina")]
+[Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
 public class OperariosController : ControllerBase
 {
     private readonly IOperarioService _operarioService;
     private readonly IClasificacionService _clasificacionService;
+    private readonly IOficinaPostalService _oficinaService;
 
-    public OperariosController(IOperarioService operarioService, IClasificacionService clasificacionService)
+    public OperariosController(
+        IOperarioService operarioService,
+        IClasificacionService clasificacionService,
+        IOficinaPostalService oficinaService)
     {
         _operarioService = operarioService;
         _clasificacionService = clasificacionService;
+        _oficinaService = oficinaService;
     }
 
     /// <summary>
@@ -142,11 +147,100 @@ public class OperariosController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene el detalle operativo (asignaciones CTA) por IdentityUserId para administración.
+    /// </summary>
+    [HttpGet("admin/identity/{identityUserId}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(AdminOperarioDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AdminOperarioDetalleDto>> ObtenerDetalleAdmin(string identityUserId)
+    {
+        var detalle = await _operarioService.ObtenerDetalleAdminPorIdentityUserId(identityUserId);
+        if (detalle == null)
+            return NotFound(new { message = "El usuario no tiene asignaciones CTA activas." });
+
+        return Ok(detalle);
+    }
+
+    /// <summary>
+    /// Mueve la asignación de CTA de un usuario (operación de administración).
+    /// </summary>
+    [HttpPut("admin/identity/{identityUserId}/cta")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ActualizarCtaAdmin(string identityUserId, [FromBody] AdminActualizarCtaDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var (ok, error, conflict) = await _operarioService.ActualizarCtaAdmin(identityUserId, dto);
+        if (ok)
+            return NoContent();
+
+        return conflict
+            ? Conflict(new { message = error })
+            : BadRequest(new { message = error });
+    }
+
+    /// <summary>
+    /// Devuelve la oficina asignada activa al operario autenticado, si existe.
+    /// La utiliza el escáner para preseleccionar y bloquear la oficina del operario.
+    /// </summary>
+    [HttpGet("mi-oficina")]
+    [ProducesResponseType(typeof(MiOficinaInfoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult<MiOficinaInfoDto>> ObtenerMiOficina()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { message = "Usuario no autenticado" });
+
+        var info = await _oficinaService.ObtenerMiOficina(userId);
+        if (info == null) return NoContent();
+        return Ok(info);
+    }
+
+    /// <summary>
+    /// Obtiene la asignación de oficina (cualquiera) de un usuario, vista admin.
+    /// </summary>
+    [HttpGet("admin/identity/{identityUserId}/oficina")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(MiOficinaInfoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult<MiOficinaInfoDto>> ObtenerOficinaAdmin(string identityUserId)
+    {
+        var info = await _oficinaService.ObtenerOficinaAdmin(identityUserId);
+        if (info == null) return NoContent();
+        return Ok(info);
+    }
+
+    /// <summary>
+    /// Crea o cambia la oficina asignada a un operario (operación de administración).
+    /// </summary>
+    [HttpPut("admin/identity/{identityUserId}/oficina")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(MiOficinaInfoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ActualizarOficinaAdmin(string identityUserId, [FromBody] AdminActualizarOficinaDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var (ok, error, resultado) = await _oficinaService.ActualizarOficinaAdmin(identityUserId, dto);
+        if (!ok)
+            return BadRequest(new { message = error });
+
+        return Ok(resultado);
+    }
+
+    /// <summary>
     /// Crea un nuevo operario y lo asigna a un CTA.
-    /// Solo Admin y OperarioJefe pueden crear operarios.
+    /// Solo Admin y Supervisor pueden crear operarios.
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Admin,OperarioJefe")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(typeof(OperarioResumenDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<OperarioResumenDto>> Crear([FromBody] CrearOperarioDto dto)
@@ -164,10 +258,10 @@ public class OperariosController : ControllerBase
 
     /// <summary>
     /// Desactiva un operario (soft delete).
-    /// Solo Admin y OperarioJefe pueden desactivar operarios.
+    /// Solo Admin y Supervisor pueden desactivar operarios.
     /// </summary>
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin,OperarioJefe")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Desactivar(int id)

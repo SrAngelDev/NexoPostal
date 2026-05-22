@@ -5,6 +5,37 @@ namespace Nexopostal.Intranet.DTOs;
 // ============================================================
 
 /// <summary>
+/// Datos requeridos para crear un nuevo CTA.
+/// </summary>
+public class CrearCtaDto
+{
+    public string Codigo { get; set; } = string.Empty;
+    public string Nombre { get; set; } = string.Empty;
+    public string Area { get; set; } = string.Empty; // nombre del enum AreaZonal
+    public string Provincia { get; set; } = string.Empty;
+    public string Ciudad { get; set; } = string.Empty;
+    public string Direccion { get; set; } = string.Empty;
+    public string CodigoPostal { get; set; } = string.Empty;
+    public bool EsNodoAereo { get; set; }
+    public bool EsNodoMaritimo { get; set; }
+}
+
+/// <summary>
+/// Datos editables de un CTA existente. No incluye Activo (usar DELETE/restaurar) ni Codigo (inmutable).
+/// </summary>
+public class EditarCtaDto
+{
+    public string Nombre { get; set; } = string.Empty;
+    public string Area { get; set; } = string.Empty;
+    public string Provincia { get; set; } = string.Empty;
+    public string Ciudad { get; set; } = string.Empty;
+    public string Direccion { get; set; } = string.Empty;
+    public string CodigoPostal { get; set; } = string.Empty;
+    public bool EsNodoAereo { get; set; }
+    public bool EsNodoMaritimo { get; set; }
+}
+
+/// <summary>
 /// Resumen de un CTA para listados.
 /// </summary>
 public class CtaResumenDto

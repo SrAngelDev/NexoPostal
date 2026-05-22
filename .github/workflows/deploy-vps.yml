@@ -243,13 +243,22 @@ jobs:
               -subj "/C=ES/ST=Madrid/L=Madrid/O=NexoPostal/CN=nexopostal.es"
           fi
 
-          if command -v docker-compose >/dev/null 2>&1; then
+          # Prefer Compose V2 plugin (handles OCI images without ContainerConfig)
+          # Only fall back to legacy v1 if V2 is not available
+          if docker compose version >/dev/null 2>&1; then
+            DC="docker compose"
+          elif command -v docker-compose >/dev/null 2>&1; then
             DC="docker-compose"
           else
-            DC="docker compose"
+            echo "ERROR: docker compose not available" && exit 1
           fi
 
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+          # Remove containers with stale names (e.g. left by docker-compose v1 with hash prefix)
+          # 'down' is idempotent: safe even if no containers are running
+          $DC --env-file ./.env -f docker-compose.production.yml down --remove-orphans 2>/dev/null || true
+
           $DC --env-file ./.env -f docker-compose.production.yml pull
           $DC --env-file ./.env -f docker-compose.production.yml up -d --no-build --remove-orphans
           $DC --env-file ./.env -f docker-compose.production.yml restart reverse-proxy

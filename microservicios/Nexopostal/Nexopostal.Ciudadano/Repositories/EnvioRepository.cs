@@ -81,4 +81,53 @@ public class EnvioRepository : IEnvioRepository
     {
         return await _context.Envios.AnyAsync(e => e.NumeroSeguimiento == numeroSeguimiento);
     }
+
+    public async Task<List<Envio>> GetAdminListAsync(
+        EstadoEnvio? estado,
+        EstadoInterno? estadoInterno,
+        DateTime? fechaDesde,
+        DateTime? fechaHasta,
+        string? q,
+        string? codigoPostal,
+        bool? pagado,
+        int limit = 500)
+    {
+        var query = _context.Envios.AsNoTracking().AsQueryable();
+
+        if (estado.HasValue)
+            query = query.Where(e => e.EstadoActual == estado.Value);
+        if (estadoInterno.HasValue)
+            query = query.Where(e => e.EstadoInternoActual == estadoInterno.Value);
+        if (fechaDesde.HasValue)
+            query = query.Where(e => e.FechaCreacion >= fechaDesde.Value);
+        if (fechaHasta.HasValue)
+            query = query.Where(e => e.FechaCreacion <= fechaHasta.Value);
+        if (pagado.HasValue)
+            query = query.Where(e => e.Pagado == pagado.Value);
+        if (!string.IsNullOrWhiteSpace(codigoPostal))
+            query = query.Where(e => e.CodigoPostalDestino == codigoPostal);
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            var like = $"%{term}%";
+            query = query.Where(e =>
+                EF.Functions.ILike(e.NumeroSeguimiento, like) ||
+                EF.Functions.ILike(e.NumeroExpedicion, like) ||
+                EF.Functions.ILike(e.EmailRemitente, like) ||
+                (e.EmailDestinatario != null && EF.Functions.ILike(e.EmailDestinatario, like)) ||
+                EF.Functions.ILike(e.NombreRemitente, like) ||
+                EF.Functions.ILike(e.NombreDestinatario, like));
+        }
+
+        if (limit <= 0 || limit > 2000) limit = 500;
+
+        return await query
+            .OrderByDescending(e => e.FechaCreacion)
+            .Take(limit)
+            .ToListAsync();
+    }
+
+    public Task<int> CountByEstadoAsync(EstadoEnvio estado)
+        => _context.Envios.CountAsync(e => e.EstadoActual == estado);
 }

@@ -1,0 +1,440 @@
+<div class="page">
+  @let activos = kpiActivos();
+  @let bloqueados = kpiBloqueados();
+  @let eliminados = kpiEliminados();
+
+  <main class="page-content fade-in-up">
+
+    <!-- ===== HEADER ===== -->
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg">
+        <span class="material-symbols-outlined">manage_accounts</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Gestión de Usuarios</h1>
+        <p class="page-subheading">Administra empleados, roles y accesos del sistema interno.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading()" title="Actualizar">
+          <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
+          Recargar
+        </button>
+        <button class="btn btn-primary" (click)="abrirModalCrear()">
+          <span class="material-symbols-outlined">person_add</span>
+          Nuevo empleado
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== KPIs ===== -->
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg">
+          <span class="material-symbols-outlined">groups</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ usuarios().length }}</div>
+          <div class="kpi-label">Total</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-success">
+          <span class="material-symbols-outlined">verified_user</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ activos }}</div>
+          <div class="kpi-label">Activos</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-warning">
+          <span class="material-symbols-outlined">block</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ bloqueados }}</div>
+          <div class="kpi-label">Bloqueados</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-danger">
+          <span class="material-symbols-outlined">person_off</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ eliminados }}</div>
+          <div class="kpi-label">Eliminados</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ===== Errores de acción ===== -->
+    @if (actionError()) {
+      <div class="alert alert-danger fade-in">
+        <span class="material-symbols-outlined">error</span>
+        {{ actionError() }}
+      </div>
+    }
+
+    <!-- ===== FILTROS ===== -->
+    <section class="card filters-card">
+      <div class="filters-grid">
+        <div class="field field-icon filter-search">
+          <span class="material-symbols-outlined">search</span>
+          <input
+            type="text"
+            class="input"
+            placeholder="Buscar por nombre, email o código..."
+            [ngModel]="filtroQ()"
+            (ngModelChange)="filtroQ.set($event); cargar()" />
+        </div>
+
+        <div class="field">
+          <label class="field-label">Rol</label>
+          <select
+            class="select"
+            [ngModel]="filtroRol()"
+            (ngModelChange)="filtroRol.set($event); cargar()">
+            @for (r of rolesTodos; track r) {
+              <option [value]="r">{{ r || 'Todos los roles' }}</option>
+            }
+          </select>
+        </div>
+
+        <label class="toggle-pill" [class.toggle-active]="filtroBloqueado() === true">
+          <input
+            type="checkbox"
+            [ngModel]="filtroBloqueado() === true"
+            (ngModelChange)="filtroBloqueado.set($event ? true : undefined); cargar()" />
+          <span class="material-symbols-outlined">block</span>
+          Solo bloqueados
+        </label>
+
+        <label class="toggle-pill" [class.toggle-active]="filtroIncluirEliminados()">
+          <input
+            type="checkbox"
+            [ngModel]="filtroIncluirEliminados()"
+            (ngModelChange)="filtroIncluirEliminados.set($event); cargar()" />
+          <span class="material-symbols-outlined">delete</span>
+          Incluir eliminados
+        </label>
+      </div>
+    </section>
+
+    <!-- ===== TABLA / ESTADOS ===== -->
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando usuarios…
+      </div>
+    } @else if (error()) {
+      <div class="alert alert-danger">
+        <span class="material-symbols-outlined">error</span>
+        {{ error() }}
+      </div>
+    } @else if (usuarios().length === 0) {
+      <div class="empty-state card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">search_off</span>
+        </div>
+        <h3 class="empty-title">Sin resultados</h3>
+        <p class="empty-text">No se encontraron usuarios con los filtros actuales.</p>
+        <button class="btn btn-primary" (click)="abrirModalCrear()">
+          <span class="material-symbols-outlined">person_add</span>
+          Crear el primer empleado
+        </button>
+      </div>
+    } @else {
+      <section class="surface-elevated table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Empleado</th>
+              <th>Código</th>
+              <th>Rol</th>
+              <th>Registro</th>
+              <th>Estado</th>
+              <th class="th-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of usuarios(); track u.id) {
+              <tr class="row-clickable"
+                  [class.row-blocked]="u.bloqueado"
+                  [class.row-deleted]="u.eliminado"
+                  (click)="verDetalle(u)">
+                <td>
+                  <div class="cell-user">
+                    <div class="avatar">{{ u.nombreCompleto.slice(0, 2).toUpperCase() }}</div>
+                    <div class="cell-user-text">
+                      <div class="cell-user-name">{{ u.nombreCompleto }}</div>
+                      <div class="cell-user-email">{{ u.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-mono">{{ u.codigoEmpleado || '—' }}</td>
+                <td>
+                  @switch (u.rol) {
+                    @case ('Admin') {
+                      <span class="chip chip-danger">
+                        <span class="material-symbols-outlined">shield_person</span>
+                        {{ u.rol }}
+                      </span>
+                    }
+                    @case ('Supervisor') {
+                      <span class="chip chip-accent">
+                        <span class="material-symbols-outlined">supervisor_account</span>
+                        {{ u.rol }}
+                      </span>
+                    }
+                    @case ('OperarioCTA') {
+                      <span class="chip chip-brand">
+                        <span class="material-symbols-outlined">conveyor_belt</span>
+                        {{ u.rol }}
+                      </span>
+                    }
+                    @case ('OperarioOficina') {
+                      <span class="chip chip-info">
+                        <span class="material-symbols-outlined">storefront</span>
+                        {{ u.rol }}
+                      </span>
+                    }
+                    @case ('Repartidor') {
+                      <span class="chip chip-success">
+                        <span class="material-symbols-outlined">two_wheeler</span>
+                        {{ u.rol }}
+                      </span>
+                    }
+                    @case ('JefeReparto') {
+                      <span class="chip chip-warning">
+                        <span class="material-symbols-outlined">manage_accounts</span>
+                        {{ u.rol }}
+                      </span>
+                    }
+                    @case ('Cliente') {
+                      <span class="chip">
+                        <span class="material-symbols-outlined">person</span>
+                        {{ u.rol }}
+                      </span>
+                    }
+                    @default {
+                      <span class="chip">{{ u.rol }}</span>
+                    }
+                  }
+                </td>
+                <td class="cell-meta">{{ u.fechaRegistro | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  @if (u.eliminado) {
+                    <span class="chip chip-danger">
+                      <span class="material-symbols-outlined">delete</span>
+                      Eliminado
+                    </span>
+                  } @else if (u.bloqueado) {
+                    <span class="chip chip-warning">
+                      <span class="material-symbols-outlined">block</span>
+                      Bloqueado
+                    </span>
+                  } @else {
+                    <span class="chip chip-success">
+                      <span class="material-symbols-outlined">check_circle</span>
+                      Activo
+                    </span>
+                  }
+                </td>
+                <td class="cell-actions">
+                  <select
+                    [ngModel]="u.rol"
+                    (ngModelChange)="cambiarRol(u, $event)"
+                    (click)="$event.stopPropagation()"
+                    class="select select-compact"
+                    title="Cambiar rol">
+                    @for (r of rolesEmpleado; track r) {
+                      <option [value]="r">{{ r }}</option>
+                    }
+                    @if (u.rol === 'Cliente') {
+                      <option value="Cliente">Cliente</option>
+                    }
+                  </select>
+
+                  @if (!u.bloqueado) {
+                    <button
+                      class="btn btn-icon btn-ghost action-danger"
+                      (click)="$event.stopPropagation(); bloquear(u)"
+                      title="Bloquear acceso">
+                      <span class="material-symbols-outlined">block</span>
+                    </button>
+                  } @else {
+                    <button
+                      class="btn btn-icon btn-ghost action-success"
+                      (click)="$event.stopPropagation(); desbloquear(u)"
+                      title="Desbloquear acceso">
+                      <span class="material-symbols-outlined">lock_open</span>
+                    </button>
+                  }
+
+                  <button
+                    class="btn btn-icon btn-ghost action-warning"
+                    (click)="$event.stopPropagation(); abrirModalReset(u)"
+                    title="Restablecer contraseña">
+                    <span class="material-symbols-outlined">key</span>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+      <p class="result-count">{{ usuarios().length }} usuario(s) encontrado(s)</p>
+    }
+  </main>
+</div>
+
+<!-- ════════════ Modal: Crear empleado ════════════ -->
+@if (modalCrear()) {
+  <div class="modal-overlay fade-in" (click)="cerrarModalCrear()">
+    <div class="modal-card surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile">
+            <span class="material-symbols-outlined">person_add</span>
+          </div>
+          <h2>Nuevo empleado</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarModalCrear()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <form class="modal-form" (ngSubmit)="crearEmpleado()" #formCrearRef="ngForm">
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label">Nombre completo *</label>
+            <input
+              type="text"
+              class="input"
+              [(ngModel)]="formCrear.nombreCompleto"
+              name="nombreCompleto"
+              required
+              placeholder="Juan García López" />
+          </div>
+
+          <div class="field">
+            <label class="field-label">Email *</label>
+            <input
+              type="email"
+              class="input"
+              [(ngModel)]="formCrear.email"
+              name="email"
+              required
+              placeholder="juan@nexopostal.es" />
+          </div>
+
+          <div class="field">
+            <label class="field-label">Código empleado</label>
+            <input
+              type="text"
+              class="input"
+              [(ngModel)]="formCrear.codigoEmpleado"
+              name="codigoEmpleado"
+              placeholder="EMP-001" />
+          </div>
+
+          <div class="field">
+            <label class="field-label">Rol *</label>
+            <select class="select" [(ngModel)]="formCrear.rol" name="rol" required>
+              @for (r of rolesEmpleado; track r) {
+                <option [value]="r">{{ r }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field field-full">
+            <label class="field-label">Contraseña inicial *</label>
+            <input
+              type="password"
+              class="input"
+              [(ngModel)]="formCrear.password"
+              name="password"
+              required
+              minlength="6"
+              placeholder="Mínimo 6 caracteres" />
+          </div>
+        </div>
+
+        @if (formCrearError()) {
+          <div class="alert alert-danger">
+            <span class="material-symbols-outlined">error</span>
+            {{ formCrearError() }}
+          </div>
+        }
+        @if (formCrearOk()) {
+          <div class="alert alert-success">
+            <span class="material-symbols-outlined">check_circle</span>
+            Empleado creado correctamente.
+          </div>
+        }
+
+        <footer class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalCrear()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="formCrearRef.invalid">
+            <span class="material-symbols-outlined">save</span>
+            Crear empleado
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ════════════ Modal: Reset contraseña ════════════ -->
+@if (modalReset()) {
+  <div class="modal-overlay fade-in" (click)="cerrarModalReset()">
+    <div class="modal-card modal-small surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-warning">
+            <span class="material-symbols-outlined">key</span>
+          </div>
+          <h2>Restablecer contraseña</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarModalReset()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div class="modal-form">
+        <p class="modal-subtitle">
+          Usuario: <strong>{{ usuarioReset()?.nombreCompleto }}</strong>
+        </p>
+
+        <div class="field">
+          <label class="field-label">Nueva contraseña *</label>
+          <input
+            type="password"
+            class="input"
+            [(ngModel)]="nuevaPassword"
+            placeholder="Mínimo 6 caracteres" />
+        </div>
+
+        @if (resetOk()) {
+          <div class="alert alert-success">
+            <span class="material-symbols-outlined">check_circle</span>
+            Contraseña restablecida correctamente.
+          </div>
+        }
+
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarModalReset()">Cancelar</button>
+          <button
+            class="btn btn-primary"
+            (click)="confirmarReset()"
+            [disabled]="nuevaPassword.length < 6">
+            <span class="material-symbols-outlined">lock_reset</span>
+            Confirmar
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}

@@ -170,6 +170,15 @@ namespace Nexopostal.Auth.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
+                    b.Property<bool>("Eliminado")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("EliminadoEnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EliminadoPorId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");

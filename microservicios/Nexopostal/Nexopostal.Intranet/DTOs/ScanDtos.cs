@@ -31,15 +31,42 @@ public static class ModosEscaneo
     /// <summary>Paquete sale de oficina para reparto a domicilio</summary>
     public const string SalidaAReparto = "SalidaAReparto";
 
+    /// <summary>Paquete sale de la oficina hacia el CTA origen</summary>
+    public const string SalidaOficinaACta = "SalidaOficinaACta";
+
+    /// <summary>Paquete clasificado de última milla, liberado al equipo de reparto</summary>
+    public const string DisponibleParaReparto = "DisponibleParaReparto";
+
     public static readonly string[] Todos =
     [
         RecepcionOficina,
+        SalidaOficinaACta,
         RecepcionCta,
         Clasificacion,
         DespachoTroncal,
         RecepcionTroncal,
+        DisponibleParaReparto,
         EntregaOficinaDestino,
         SalidaAReparto
+    ];
+
+    /// <summary>Modos exclusivos de oficina postal (OperarioOficina)</summary>
+    public static readonly string[] ModosOficina =
+    [
+        RecepcionOficina,
+        SalidaOficinaACta,
+        EntregaOficinaDestino,
+        SalidaAReparto
+    ];
+
+    /// <summary>Modos exclusivos de CTA / nave logística (OperarioCTA)</summary>
+    public static readonly string[] ModosCta =
+    [
+        RecepcionCta,
+        Clasificacion,
+        DespachoTroncal,
+        RecepcionTroncal,
+        DisponibleParaReparto
     ];
 
     public static bool EsValido(string modo) => Todos.Contains(modo);

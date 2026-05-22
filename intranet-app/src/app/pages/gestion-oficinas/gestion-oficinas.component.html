@@ -1,0 +1,242 @@
+<div class="page">
+  <main class="page-content fade-in-up">
+
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg icon-tile-brand">
+        <span class="material-symbols-outlined">business</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Gestión de oficinas</h1>
+        <p class="page-subheading">Puntos físicos de NexoPostal: nodos de recogida, depósito y atención ciudadana.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading()">
+          <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
+          Recargar
+        </button>
+        <button class="btn btn-primary" (click)="abrirCrear()">
+          <span class="material-symbols-outlined">add</span>
+          Nueva oficina
+        </button>
+      </div>
+    </header>
+
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg"><span class="material-symbols-outlined">business</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ oficinas().length }}</div><div class="kpi-label">Total</div></div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-success"><span class="material-symbols-outlined">check_circle</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ totalActivas() }}</div><div class="kpi-label">Activas</div></div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-warning"><span class="material-symbols-outlined">pause_circle</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ totalInactivas() }}</div><div class="kpi-label">Inactivas</div></div>
+      </article>
+    </section>
+
+    @if (error()) {
+      <div class="alert alert-danger fade-in">
+        <span class="material-symbols-outlined">error</span>
+        <span style="flex:1">{{ error() }}</span>
+        <button class="btn btn-icon btn-ghost" (click)="error.set(null)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    }
+    @if (success()) {
+      <div class="alert alert-success fade-in">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span style="flex:1">{{ success() }}</span>
+        <button class="btn btn-icon btn-ghost" (click)="success.set(null)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    }
+
+    <section class="card filters-card">
+      <div class="filters-grid">
+        <div class="field field-icon filter-search">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" class="input"
+                 placeholder="Buscar por nombre, ciudad o código postal…"
+                 [ngModel]="filtroTexto()"
+                 (ngModelChange)="filtroTexto.set($event)" />
+        </div>
+        <label class="toggle-pill" [class.toggle-active]="incluirInactivas()">
+          <input type="checkbox"
+                 [checked]="incluirInactivas()"
+                 (change)="toggleInactivas()" />
+          <span class="material-symbols-outlined">visibility</span>
+          Incluir inactivas
+        </label>
+      </div>
+    </section>
+
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando oficinas…
+      </div>
+    } @else if (oficinasFiltradas().length === 0) {
+      <div class="empty-state card">
+        <div class="icon-tile icon-tile-lg icon-tile-info"><span class="material-symbols-outlined">domain_disabled</span></div>
+        <h3 class="empty-title">Sin oficinas</h3>
+        <p class="empty-text">No hay oficinas que coincidan con el filtro actual.</p>
+      </div>
+    } @else {
+      <section class="surface-elevated table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Oficina</th>
+              <th>Dirección</th>
+              <th>CP</th>
+              <th>Ciudad</th>
+              <th>Operarios</th>
+              <th>Estado</th>
+              <th class="th-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (o of oficinasFiltradas(); track o.id) {
+              <tr [class.row-blocked]="!o.activo">
+                <td>
+                  <div class="cell-user">
+                    <div class="avatar avatar-accent"><span class="material-symbols-outlined">store</span></div>
+                    <div class="cell-user-text">
+                      <div class="cell-user-name">{{ o.nombre }}</div>
+                      <div class="cell-user-email">#{{ o.id }} · {{ o.provincia || '—' }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-meta">{{ o.direccion }}</td>
+                <td class="cell-mono">{{ o.codigoPostal }}</td>
+                <td>{{ o.ciudad }}</td>
+                <td><span class="chip">{{ o.operariosActivos }}</span></td>
+                <td>
+                  @if (o.activo) {
+                    <span class="chip chip-success"><span class="material-symbols-outlined">check_circle</span>Activa</span>
+                  } @else {
+                    <span class="chip chip-warning"><span class="material-symbols-outlined">pause_circle</span>Inactiva</span>
+                  }
+                </td>
+                <td class="cell-actions">
+                  <button class="btn btn-icon btn-ghost action-info" title="Editar" (click)="abrirEditar(o)">
+                    <span class="material-symbols-outlined">edit</span>
+                  </button>
+                  @if (o.activo) {
+                    <button class="btn btn-icon btn-ghost action-danger" title="Desactivar" (click)="desactivar(o)">
+                      <span class="material-symbols-outlined">block</span>
+                    </button>
+                  } @else {
+                    <button class="btn btn-icon btn-ghost action-success" title="Reactivar" (click)="reactivar(o)">
+                      <span class="material-symbols-outlined">restart_alt</span>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+      <p class="result-count">{{ oficinasFiltradas().length }} oficina(s)</p>
+    }
+  </main>
+</div>
+
+@if (modalAbierto()) {
+  <div class="modal-overlay fade-in" (click)="cerrarModal()">
+    <div class="modal-card modal-large surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-brand"><span class="material-symbols-outlined">{{ modoEdicion() ? 'edit' : 'add_business' }}</span></div>
+          <h2>{{ modoEdicion() ? 'Editar oficina' : 'Nueva oficina' }}</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarModal()"><span class="material-symbols-outlined">close</span></button>
+      </header>
+
+      <div class="modal-form">
+        @if (error()) {
+          <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ error() }}</div>
+        }
+
+        <div class="form-grid">
+          <div class="field field-full">
+            <label class="field-label">Nombre *</label>
+            <input type="text" class="input" maxlength="250"
+                   [ngModel]="form().nombre"
+                   (ngModelChange)="actualizarCampo('nombre', $event)" />
+          </div>
+          <div class="field field-full">
+            <label class="field-label">Dirección *</label>
+            <input type="text" class="input" maxlength="300"
+                   [ngModel]="form().direccion"
+                   (ngModelChange)="actualizarCampo('direccion', $event)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Código postal *</label>
+            <input type="text" class="input" maxlength="10"
+                   [ngModel]="form().codigoPostal"
+                   (ngModelChange)="actualizarCampo('codigoPostal', $event)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Ciudad *</label>
+            <input type="text" class="input" maxlength="100"
+                   [ngModel]="form().ciudad"
+                   (ngModelChange)="actualizarCampo('ciudad', $event)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Provincia</label>
+            <input type="text" class="input" maxlength="100"
+                   [ngModel]="form().provincia"
+                   (ngModelChange)="actualizarCampo('provincia', $event)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Teléfono</label>
+            <input type="text" class="input" maxlength="20"
+                   [ngModel]="form().telefono"
+                   (ngModelChange)="actualizarCampo('telefono', $event)" />
+          </div>
+          <div class="field field-full">
+            <label class="field-label">Horario</label>
+            <input type="text" class="input" maxlength="200" placeholder="Lu-Vi: 09:00-14:00"
+                   [ngModel]="form().horario"
+                   (ngModelChange)="actualizarCampo('horario', $event)" />
+          </div>
+          <div class="field field-full">
+            <label class="field-label">Servicios</label>
+            <input type="text" class="input" maxlength="500"
+                   [ngModel]="form().servicios"
+                   (ngModelChange)="actualizarCampo('servicios', $event)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Latitud</label>
+            <input type="number" class="input" step="0.000001"
+                   [ngModel]="form().latitud"
+                   (ngModelChange)="actualizarCampo('latitud', $event)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Longitud</label>
+            <input type="number" class="input" step="0.000001"
+                   [ngModel]="form().longitud"
+                   (ngModelChange)="actualizarCampo('longitud', $event)" />
+          </div>
+        </div>
+
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarModal()" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardar()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Guardando…
+            } @else {
+              <span class="material-symbols-outlined">save</span>
+              {{ modoEdicion() ? 'Guardar cambios' : 'Crear oficina' }}
+            }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}

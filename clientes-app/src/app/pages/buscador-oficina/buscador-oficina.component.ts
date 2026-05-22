@@ -5,11 +5,13 @@ import { FormsModule } from '@angular/forms';
 import { OficinasService, Oficina, SugerenciaLocal } from '../../services/oficinas.service';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, of, map } from 'rxjs';
 import * as L from 'leaflet';
+import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
+import { FooterPublicoComponent } from '../../components/footer-publico/footer-publico.component';
 
 @Component({
   selector: 'app-buscador-oficina',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NavbarPublicoComponent, FooterPublicoComponent],
   templateUrl: './buscador-oficina.component.html',
   styleUrl: './buscador-oficina.component.css'
 })

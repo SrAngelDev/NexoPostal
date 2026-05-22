@@ -30,6 +30,21 @@ public class CrearIncidenciaDto
 }
 
 /// <summary>
+/// DTO para que un operario reporte un escaneo de un paquete que no está en sus tareas.
+/// Genera siempre una incidencia tipo PaqueteFueraDeTareas.
+/// </summary>
+public class ReportarFueraTareasDto
+{
+    [Required]
+    [MaxLength(20)]
+    public string NumeroExpedicion { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(500)]
+    public string Motivo { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// DTO para actualizar el estado de una incidencia.
 /// </summary>
 public class ActualizarIncidenciaDto
@@ -57,6 +72,11 @@ public class IncidenciaResumenDto
     public string ReportadaPor { get; set; } = string.Empty;
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaResolucion { get; set; }
+    // Opcional: contexto de CTA (sólo se rellena en vistas globales)
+    public int? CtaId { get; set; }
+    public string? CtaCodigo { get; set; }
+    public string? CtaNombre { get; set; }
+    public string? Descripcion { get; set; }
 }
 
 /// <summary>

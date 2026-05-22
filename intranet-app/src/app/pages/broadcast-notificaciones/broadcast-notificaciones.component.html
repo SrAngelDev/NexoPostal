@@ -1,0 +1,145 @@
+<div class="page">
+  <main class="page-content fade-in-up">
+
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg icon-tile-accent">
+        <span class="material-symbols-outlined">campaign</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Notificaciones broadcast</h1>
+        <p class="page-subheading">Envía mensajes en tiempo real (SignalR) a todos los conectados, admins, un CTA o un rol específico.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary action-danger"
+                (click)="limpiarHistorial()"
+                [disabled]="historial().length === 0">
+          <span class="material-symbols-outlined">delete</span>
+          Vaciar historial
+        </button>
+      </div>
+    </header>
+
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-info"><span class="material-symbols-outlined">send</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ totalEnviados() }}</div><div class="kpi-label">Enviados (sesión)</div></div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-brand"><span class="material-symbols-outlined">domain</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ ctas().length }}</div><div class="kpi-label">CTAs disponibles</div></div>
+      </article>
+    </section>
+
+    <div class="broadcast-layout">
+      <section class="card form-card">
+        <header class="section-header">
+          <div class="icon-tile icon-tile-accent"><span class="material-symbols-outlined">edit_note</span></div>
+          <h2>Nuevo mensaje</h2>
+        </header>
+
+        <div class="form-grid">
+          <div class="field field-full">
+            <label class="field-label">Título</label>
+            <input type="text" class="input" maxlength="120"
+                   [ngModel]="titulo()" (ngModelChange)="titulo.set($event)" />
+          </div>
+          <div class="field field-full">
+            <label class="field-label">Mensaje</label>
+            <textarea class="input" rows="4" maxlength="1000"
+                      [ngModel]="mensaje()" (ngModelChange)="mensaje.set($event)"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Tipo</label>
+            <select class="select" [ngModel]="tipo()" (ngModelChange)="tipo.set($event)">
+              <option value="info">Informativo</option>
+              <option value="success">Éxito</option>
+              <option value="warning">Aviso</option>
+              <option value="error">Error / crítico</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Alcance</label>
+            <select class="select" [ngModel]="alcance()" (ngModelChange)="alcanceChange($event)">
+              <option value="all">Todos los conectados</option>
+              <option value="admin">Solo administradores</option>
+              <option value="cta">Un CTA completo</option>
+              <option value="cta-rol">Rol dentro de un CTA</option>
+            </select>
+          </div>
+          @if (alcance() === 'cta' || alcance() === 'cta-rol') {
+            <div class="field">
+              <label class="field-label">CTA</label>
+              <select class="select"
+                      [ngModel]="ctaId()"
+                      (ngModelChange)="ctaId.set($event === '' || $event == null ? null : +$event)">
+                <option [ngValue]="null">— Selecciona —</option>
+                @for (c of ctas(); track c.id) {
+                  <option [ngValue]="c.id">{{ c.codigo }} — {{ c.nombre }}</option>
+                }
+              </select>
+            </div>
+            @if (alcance() === 'cta-rol') {
+              <div class="field">
+                <label class="field-label">Rol</label>
+                <select class="select" [ngModel]="rol()" (ngModelChange)="rol.set($event)">
+                  <option value="cta">OperarioCTA</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="operarios">Todos los operarios</option>
+                </select>
+              </div>
+            }
+          }
+        </div>
+
+        @if (error()) {
+          <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ error() }}</div>
+        }
+        @if (success()) {
+          <div class="alert alert-success"><span class="material-symbols-outlined">check_circle</span>{{ success() }}</div>
+        }
+
+        <div class="modal-footer" style="border-top:none; padding-top:0;">
+          <button class="btn btn-primary" (click)="enviar()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Enviando…
+            } @else {
+              <span class="material-symbols-outlined">send</span>
+              Enviar broadcast
+            }
+          </button>
+        </div>
+      </section>
+
+      <section class="card historial-card">
+        <header class="section-header">
+          <div class="icon-tile icon-tile-info"><span class="material-symbols-outlined">history</span></div>
+          <h2>Historial reciente</h2>
+        </header>
+
+        @if (historial().length === 0) {
+          <div class="empty-state">
+            <div class="icon-tile icon-tile-lg icon-tile-info"><span class="material-symbols-outlined">notifications_off</span></div>
+            <p class="empty-text">Aún no has enviado ninguna notificación en esta sesión.</p>
+          </div>
+        } @else {
+          <ul class="historial-list">
+            @for (h of historial(); track h.fechaIso) {
+              <li class="historial-item" [attr.data-tipo]="h.tipo">
+                <div class="historial-head">
+                  <strong>{{ h.titulo }}</strong>
+                  <span class="chip">{{ badgeAlcance(h) }}</span>
+                </div>
+                <p class="historial-msg">{{ h.mensaje }}</p>
+                <small class="cell-meta">{{ h.fechaIso | date:'dd/MM/yy HH:mm' }} · {{ h.tipo }}</small>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
+  </main>
+</div>

@@ -30,19 +30,18 @@ public enum AreaZonal
 }
 
 /// <summary>
-/// Rol del operario dentro de un Centro de Tratamiento Automatizado (CTA).
-/// Cada CTA tiene al menos un operario de cada rol.
+/// Rol del operario dentro de un Centro de Tratamiento Automatizado (CTA) u oficina postal.
 /// </summary>
 public enum RolOperario
 {
-    /// <summary>Operario de oficina: ejecuta tareas físicas en oficinas postales (recepción, entrega)</summary>
+    /// <summary>Operario de oficina: atiende ventanilla, escanea recepciones y salidas a reparto</summary>
     OperarioOficina = 0,
 
-    /// <summary>Operario logístico: asigna paquetes a operarios y gestiona el flujo</summary>
-    OperarioLogistico = 1,
+    /// <summary>Operario CTA: trabaja en la nave, consolida paquetes y gestiona movimientos troncales</summary>
+    OperarioCTA = 1,
 
-    /// <summary>Operario jefe: gestiona exclusivamente las incidencias del CTA</summary>
-    OperarioJefe = 2
+    /// <summary>Supervisor: gestiona incidencias, altas/bajas de personal y revisa métricas. No opera paquetes directamente</summary>
+    Supervisor = 2
 }
 
 /// <summary>
@@ -68,14 +67,26 @@ public enum TipoTarea
 
     // ===== Tareas para OperarioOficina (oficinas postales) =====
 
-    /// <summary>Salida del paquete desde la oficina origen hacia el CTA asignado</summary>
-    SalidaOficinaACta = 5,
+    /// <summary>Recibir paquete en oficina origen (operario oficina)</summary>
+    RecepcionOficina = 5,
+
+    /// <summary>Marcar la salida del paquete desde la oficina hacia el CTA origen</summary>
+    SalidaOficinaACta = 6,
+
+    /// <summary>Despachar paquete en transporte troncal (CTA origen → CTA destino)</summary>
+    DespachoTroncal = 7,
+
+    /// <summary>Recibir paquete tras movimiento troncal en CTA destino</summary>
+    RecepcionTroncal = 8,
+
+    /// <summary>Liberar paquete al equipo de reparto (lo verá JefeReparto)</summary>
+    DisponibleParaReparto = 9,
 
     /// <summary>Transporte desde el CTA destino hasta la oficina destino (entregas en oficina)</summary>
-    EntregaCtaAOficinaDestino = 6,
+    EntregaCtaAOficinaDestino = 10,
 
     /// <summary>Entrega física del paquete al destinatario que acude a recogerlo a la oficina</summary>
-    EntregaAlClienteEnOficina = 7
+    EntregaAlClienteEnOficina = 11
 }
 
 /// <summary>
@@ -151,7 +162,10 @@ public enum TipoIncidencia
     ErrorClasificacion = 4,
 
     /// <summary>Otra incidencia no categorizada</summary>
-    Otra = 5
+    Otra = 5,
+
+    /// <summary>El operario escaneó un paquete que no estaba en sus tareas asignadas</summary>
+    PaqueteFueraDeTareas = 6
 }
 
 /// <summary>

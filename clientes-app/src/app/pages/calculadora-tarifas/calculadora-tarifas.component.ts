@@ -4,6 +4,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificacionService } from '../../services/notificacion.service';
 import { TarifasService } from '../../services/tarifas.service';
+import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
+import { FooterPublicoComponent } from '../../components/footer-publico/footer-publico.component';
 
 interface TarifaCalculada {
   peso: number;
@@ -25,7 +27,7 @@ interface TarifaCalculada {
 @Component({
   selector: 'app-calculadora-tarifas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NavbarPublicoComponent, FooterPublicoComponent],
   templateUrl: './calculadora-tarifas.component.html',
   styleUrl: './calculadora-tarifas.component.css'
 })

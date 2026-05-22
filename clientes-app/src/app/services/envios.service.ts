@@ -58,8 +58,12 @@ export interface EventoTrazabilidad {
 export interface TrazabilidadResponse {
   numeroSeguimiento: string;
   estadoActual: string;
+  /** Estado interno detallado (nombre del enum EstadoInterno backend). Usado por la barra de progreso. */
+  estadoInterno?: string;
+  descripcion?: string;
   fechaCreacion: string;
   fechaEntrega?: string;
+  numeroBultos?: number;
   eventos: EventoTrazabilidad[];
 }
 

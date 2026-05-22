@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Reparto.DTOs;
 using Nexopostal.Reparto.Services;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -39,21 +40,39 @@ public class RepartoController : ControllerBase
 
     /// <summary>
     /// Obtiene la lista de repartidores, opcionalmente filtrada por oficina.
+    /// Solo JefeReparto y Admin pueden ver la nómina completa.
     /// </summary>
     [HttpGet("repartidores")]
-    public async Task<IActionResult> ObtenerRepartidores([FromQuery] int? oficinaJsonId)
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ObtenerRepartidores([FromQuery] int? oficinaJsonId, [FromQuery] bool incluirInactivos = false)
     {
-        var repartidores = await _repartoService.ObtenerRepartidores(oficinaJsonId);
+        var repartidores = await _repartoService.ObtenerRepartidores(oficinaJsonId, incluirInactivos);
         return Ok(repartidores);
+    }
+
+    /// <summary>
+    /// Obtiene la ficha de un repartidor por su IdentityUserId (uso administrativo).
+    /// </summary>
+    [HttpGet("repartidores/identity/{userId}")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ObtenerRepartidorPorIdentity(string userId)
+    {
+        var repartidor = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
+        if (repartidor == null)
+            return NotFound(new { message = "No existe perfil de repartidor para ese usuario" });
+        return Ok(repartidor);
     }
 
     /// <summary>
     /// Obtiene el perfil de repartidor del usuario autenticado (para driver-app).
     /// </summary>
     [HttpGet("mi-perfil")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> ObtenerMiPerfil()
     {
-        var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value
+                     ?? User.FindFirst("nameid")?.Value;
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "No se pudo identificar al usuario" });
 
@@ -65,9 +84,10 @@ public class RepartoController : ControllerBase
     }
 
     /// <summary>
-    /// Crea un nuevo repartidor (solo jefes/admin).
+    /// Crea un nuevo repartidor (solo JefeReparto y Admin).
     /// </summary>
     [HttpPost("repartidores")]
+    [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> CrearRepartidor([FromBody] CrearRepartidorDto dto)
     {
         try
@@ -82,50 +102,106 @@ public class RepartoController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Edita la ficha de un repartidor (oficina, vehículo, contacto).
+    /// </summary>
+    [HttpPut("repartidores/{id:int}")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> EditarRepartidor(int id, [FromBody] EditarRepartidorDto dto)
+    {
+        var (repartidor, error) = await _repartoService.EditarRepartidor(id, dto);
+        if (repartidor == null)
+            return BadRequest(new { message = error });
+        return Ok(repartidor);
+    }
+
+    /// <summary>
+    /// Desactiva un repartidor (soft). Falla si tiene rutas planificadas o en curso.
+    /// </summary>
+    [HttpDelete("repartidores/{id:int}")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> DesactivarRepartidor(int id)
+    {
+        var (ok, error) = await _repartoService.DesactivarRepartidor(id);
+        return ok ? NoContent() : BadRequest(new { message = error });
+    }
+
+    /// <summary>
+    /// Reactiva un repartidor previamente desactivado.
+    /// </summary>
+    [HttpPost("repartidores/{id:int}/reactivar")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ReactivarRepartidor(int id)
+    {
+        var (ok, error) = await _repartoService.ReactivarRepartidor(id);
+        return ok ? NoContent() : BadRequest(new { message = error });
+    }
+
     // ═══════════════════════════════════════════
     //  RUTAS DE REPARTO
     // ═══════════════════════════════════════════
 
     /// <summary>
-    /// Obtiene las rutas de reparto, con filtros opcionales.
+    /// Obtiene las rutas de reparto. JefeReparto ve todas las rutas de su equipo.
     /// </summary>
     [HttpGet("rutas")]
+    [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> ObtenerRutas(
         [FromQuery] string? fecha,
         [FromQuery] int? repartidorId)
     {
-        DateOnly? fechaParsed = null;
-        if (!string.IsNullOrEmpty(fecha) && DateOnly.TryParse(fecha, out var f))
-            fechaParsed = f;
+        try
+        {
+            DateOnly? fechaParsed = null;
+            if (!string.IsNullOrEmpty(fecha) && DateOnly.TryParse(fecha, out var f))
+                fechaParsed = f;
 
-        var rutas = await _repartoService.ObtenerRutas(fechaParsed, repartidorId);
-        return Ok(rutas);
+            var rutas = await _repartoService.ObtenerRutas(fechaParsed, repartidorId);
+            return Ok(rutas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo rutas (fecha={Fecha}, repartidorId={RepartidorId})", fecha, repartidorId);
+            return StatusCode(500, new { message = "Error obteniendo rutas de reparto.", detail = ex.Message });
+        }
     }
 
     /// <summary>
     /// Obtiene la ruta activa del repartidor autenticado (para driver-app).
     /// </summary>
     [HttpGet("ruta")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> ObtenerMiRuta()
     {
-        var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized();
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                         ?? User.FindFirst("sub")?.Value
+                         ?? User.FindFirst("nameid")?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
-        var repartidor = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
-        if (repartidor == null)
-            return NotFound(new { message = "No existe perfil de repartidor" });
+            var repartidor = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
+            if (repartidor == null)
+                return NotFound(new { message = "No existe perfil de repartidor" });
 
-        var hoy = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
-        var rutas = await _repartoService.ObtenerRutas(DateOnly.FromDateTime(DateTime.UtcNow), repartidor.Id);
+            var hoy = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
+            var rutas = await _repartoService.ObtenerRutas(DateOnly.FromDateTime(DateTime.UtcNow), repartidor.Id);
 
-        return Ok(rutas);
+            return Ok(rutas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo ruta del repartidor autenticado");
+            return StatusCode(500, new { message = "Error obteniendo ruta del repartidor.", detail = ex.Message });
+        }
     }
 
     /// <summary>
     /// Obtiene el detalle de una ruta por ID.
     /// </summary>
     [HttpGet("rutas/{id:int}")]
+    [Authorize(Roles = "Admin,JefeReparto,Repartidor")]
     public async Task<IActionResult> ObtenerRutaPorId(int id)
     {
         var ruta = await _repartoService.ObtenerRutaPorId(id);
@@ -138,6 +214,7 @@ public class RepartoController : ControllerBase
     /// Obtiene el detalle de una ruta por código.
     /// </summary>
     [HttpGet("rutas/codigo/{codigo}")]
+    [Authorize(Roles = "Admin,JefeReparto,Repartidor")]
     public async Task<IActionResult> ObtenerRutaPorCodigo(string codigo)
     {
         var ruta = await _repartoService.ObtenerRutaPorCodigo(codigo);
@@ -147,9 +224,10 @@ public class RepartoController : ControllerBase
     }
 
     /// <summary>
-    /// Crea una nueva ruta de reparto.
+    /// Crea una nueva ruta de reparto. Solo JefeReparto y Admin pueden planificar rutas.
     /// </summary>
     [HttpPost("rutas")]
+    [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> CrearRuta([FromBody] CrearRutaRepartoDto dto)
     {
         try
@@ -168,6 +246,7 @@ public class RepartoController : ControllerBase
     /// Inicia una ruta de reparto (el repartidor sale de la oficina).
     /// </summary>
     [HttpPost("rutas/{id:int}/iniciar")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> IniciarRuta(int id)
     {
         var ruta = await _repartoService.IniciarRuta(id);
@@ -180,6 +259,7 @@ public class RepartoController : ControllerBase
     /// Finaliza una ruta de reparto (el repartidor regresa a la oficina).
     /// </summary>
     [HttpPost("rutas/{id:int}/finalizar")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> FinalizarRuta(int id, [FromBody] FinalizarRutaRequest? request = null)
     {
         var ruta = await _repartoService.FinalizarRuta(id, request?.Observaciones);
@@ -196,6 +276,7 @@ public class RepartoController : ControllerBase
     /// Obtiene las entregas de una ruta.
     /// </summary>
     [HttpGet("entregas")]
+    [Authorize(Roles = "Admin,JefeReparto,Repartidor")]
     public async Task<IActionResult> ObtenerEntregas([FromQuery] int? rutaId, [FromQuery] string? seguimiento)
     {
         if (rutaId.HasValue)
@@ -214,9 +295,10 @@ public class RepartoController : ControllerBase
     }
 
     /// <summary>
-    /// Agrega un paquete a una ruta de reparto.
+    /// Agrega un paquete a una ruta de reparto. Solo JefeReparto y Admin.
     /// </summary>
     [HttpPost("rutas/{rutaId:int}/entregas")]
+    [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> AgregarEntrega(int rutaId, [FromBody] AgregarEntregaDto dto)
     {
         var entrega = await _repartoService.AgregarEntregaARuta(rutaId, dto);
@@ -230,6 +312,7 @@ public class RepartoController : ControllerBase
     /// Endpoint principal para el repartidor desde la driver-app.
     /// </summary>
     [HttpPost("confirmar")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> ConfirmarEntrega([FromQuery] int entregaId, [FromBody] RegistrarEntregaDto dto)
     {
         var entrega = await _repartoService.RegistrarEntrega(entregaId, dto);
@@ -244,6 +327,7 @@ public class RepartoController : ControllerBase
     /// Registra el resultado de entrega por ID en ruta.
     /// </summary>
     [HttpPut("entregas/{entregaId:int}/registrar")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> RegistrarEntrega(int entregaId, [FromBody] RegistrarEntregaDto dto)
     {
         var entrega = await _repartoService.RegistrarEntrega(entregaId, dto);
@@ -259,23 +343,112 @@ public class RepartoController : ControllerBase
     // ═══════════════════════════════════════════
 
     /// <summary>
-    /// Dashboard de reparto del día actual.
+    /// Dashboard de reparto del día actual. Solo JefeReparto y Admin.
     /// </summary>
     [HttpGet("dashboard")]
+    [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> ObtenerDashboard([FromQuery] int? oficinaJsonId)
     {
-        var dashboard = await _repartoService.ObtenerDashboard(oficinaJsonId);
-        return Ok(dashboard);
+        try
+        {
+            var dashboard = await _repartoService.ObtenerDashboard(oficinaJsonId);
+            return Ok(dashboard);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo dashboard de reparto (oficinaJsonId={OficinaJsonId})", oficinaJsonId);
+            return StatusCode(500, new { message = "Error obteniendo dashboard de reparto.", detail = ex.Message });
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    //  TRACKING TIEMPO REAL (JefeReparto)
+    // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// Devuelve la última ubicación conocida de cada repartidor activo
+    /// (que ha enviado una posición en los últimos N minutos).
+    /// Pensado para el mapa en tiempo real del JefeReparto.
+    /// </summary>
+    [HttpGet("ubicaciones-activas")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ObtenerUbicacionesActivas(
+        [FromQuery] int? oficinaJsonId,
+        [FromQuery] int ventanaMinutos = 10)
+    {
+        try
+        {
+            var ubicaciones = await _repartoService.ObtenerUbicacionesActivas(oficinaJsonId, ventanaMinutos);
+            return Ok(ubicaciones);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo ubicaciones activas");
+            return StatusCode(500, new { message = "Error obteniendo ubicaciones activas.", detail = ex.Message });
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    //  ASIGNACIÓN MANUAL DE PARADAS (JefeReparto)
+    // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// Lista las entregas pendientes de rutas planificadas del día actual,
+    /// para que el JefeReparto pueda redistribuirlas entre repartidores.
+    /// </summary>
+    [HttpGet("entregas/pendientes-asignacion")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ObtenerEntregasPendientesAsignacion([FromQuery] int? oficinaJsonId)
+    {
+        try
+        {
+            var pendientes = await _repartoService.ObtenerEntregasPendientesAsignacion(oficinaJsonId);
+            return Ok(pendientes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo entregas pendientes de asignación");
+            return StatusCode(500, new { message = "Error obteniendo entregas pendientes.", detail = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Reasigna una entrega pendiente a otra ruta planificada del día.
+    /// </summary>
+    [HttpPatch("entregas/{entregaId:int}/reasignar")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ReasignarEntrega(int entregaId, [FromBody] ReasignarEntregaDto dto)
+    {
+        var entrega = await _repartoService.ReasignarEntregaARuta(entregaId, dto.NuevaRutaId);
+        if (entrega == null)
+            return BadRequest(new { message = "No se pudo reasignar la entrega. Verifique que está pendiente y que la ruta destino existe y está planificada." });
+        return Ok(entrega);
     }
 
     /// <summary>
     /// Registra la ubicación en tiempo real del repartidor (para tracking).
+    /// Además de notificar al servicio Ciudadano para el seguimiento público,
+    /// persiste la última ubicación del repartidor para el mapa del JefeReparto.
     /// </summary>
     [HttpPost("ubicacion")]
+    [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> RegistrarUbicacion([FromBody] UbicacionRepartidorRequest request)
     {
         _logger.LogInformation("Ubicación recibida de repartidor: lat={Lat}, lng={Lng}",
             request.Latitud, request.Longitud);
+
+        // Persistir última ubicación del repartidor autenticado
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value
+                     ?? User.FindFirst("nameid")?.Value;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            await _repartoService.RegistrarUbicacionRepartidor(
+                userId,
+                request.Latitud,
+                request.Longitud,
+                request.RutaId);
+        }
 
         var seguimientos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 

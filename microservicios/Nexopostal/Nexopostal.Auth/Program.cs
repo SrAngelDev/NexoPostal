@@ -84,6 +84,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

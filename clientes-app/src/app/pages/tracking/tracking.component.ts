@@ -51,14 +51,30 @@ export class TrackingComponent implements OnInit, OnDestroy {
 
   /** Pasos de la barra de progreso */
   pasos: PasoLogistico[] = [
-    { etiqueta: 'Recogido', icono: '📦', estados: ['Admitido', 'Recogido', 'AdmitidoOficina'], activo: false, completado: false },
-    { etiqueta: 'En oficina origen', icono: '🏤', estados: ['EnOficinaOrigen', 'SalidaOficinaOrigen'], activo: false, completado: false },
-    { etiqueta: 'En clasificación', icono: '🏭', estados: ['RecibidoCtaOrigen', 'EnClasificacion', 'Clasificado'], activo: false, completado: false },
-    { etiqueta: 'En tránsito', icono: '🚚', estados: ['EnTransitoTerrestre', 'EnTransitoAereo', 'EnTransitoMaritimo', 'ExpedidoCtaOrigen'], activo: false, completado: false },
-    { etiqueta: 'En CTA destino', icono: '🏭', estados: ['RecibidoCtaDestino', 'ClasificadoCtaDestino', 'ExpedidoCtaDestino'], activo: false, completado: false },
-    { etiqueta: 'En oficina destino', icono: '🏤', estados: ['RecibidoOficinaDestino', 'DisponibleRecogida'], activo: false, completado: false },
-    { etiqueta: 'En reparto', icono: '🛵', estados: ['EnReparto', 'IntentadoEntrega', 'EnRepartoSegundoIntento'], activo: false, completado: false },
-    { etiqueta: 'Entregado', icono: '✅', estados: ['Entregado', 'EntregadoEnOficina', 'RecogidoPorDestinatario'], activo: false, completado: false }
+    { etiqueta: 'Recogido', icono: '📦',
+      estados: ['Admitido', 'PendienteRecogida', 'RecogidoEnOrigen'],
+      activo: false, completado: false },
+    { etiqueta: 'En oficina origen', icono: '🏤',
+      estados: ['RecogidoEnOrigen'],
+      activo: false, completado: false },
+    { etiqueta: 'En clasificación', icono: '🏭',
+      estados: ['RecibidoEnCentroOrigen', 'EnClasificacionOrigen', 'ClasificadoParaExpedicion'],
+      activo: false, completado: false },
+    { etiqueta: 'En tránsito', icono: '🚚',
+      estados: ['EnTransitoHaciaCentroDestino', 'EnTransitoIntermedio'],
+      activo: false, completado: false },
+    { etiqueta: 'En CTA destino', icono: '🏭',
+      estados: ['RecibidoEnCentroDestino', 'EnClasificacionDestino', 'AsignadoARuta'],
+      activo: false, completado: false },
+    { etiqueta: 'En oficina destino', icono: '🏤',
+      estados: ['DepositadoEnOficina'],
+      activo: false, completado: false },
+    { etiqueta: 'En reparto', icono: '🛵',
+      estados: ['EnReparto', 'PrimerIntentoFallido', 'SegundoIntentoFallido'],
+      activo: false, completado: false },
+    { etiqueta: 'Entregado', icono: '✅',
+      estados: ['EntregadoEnDomicilio', 'EntregadoEnOficina', 'EntregadoAAutorizado', 'Entregado'],
+      activo: false, completado: false }
   ];
 
   private subs: Subscription[] = [];
@@ -110,7 +126,9 @@ export class TrackingComponent implements OnInit, OnDestroy {
     this.enviosService.obtenerTrazabilidad(this.numeroSeguimiento).subscribe({
       next: (resp) => {
         this.trazabilidad = resp;
-        this.actualizarBarraProgreso(resp.estadoActual);
+        // La barra de progreso se dirige por el estado interno detallado.
+        // Como fallback para envíos antiguos sin estado interno, usamos el estado público.
+        this.actualizarBarraProgreso(resp.estadoInterno || resp.estadoActual);
         this.buscando = false;
 
         // 2. Suscribirse a actualizaciones en tiempo real
@@ -200,29 +218,54 @@ export class TrackingComponent implements OnInit, OnDestroy {
   /** Traduce el estado técnico a un texto legible */
   traducirEstado(estado: string): string {
     const traducciones: Record<string, string> = {
+      // === EstadoEnvio (público) ===
+      'PendientePago': 'Pendiente de pago',
       'Admitido': 'Paquete admitido',
-      'Recogido': 'Recogido por repartidor',
-      'AdmitidoOficina': 'Admitido en oficina',
-      'EnOficinaOrigen': 'En oficina de origen',
-      'SalidaOficinaOrigen': 'Ha salido de la oficina de origen',
-      'RecibidoCtaOrigen': 'Recibido en centro de clasificación',
-      'EnClasificacion': 'En proceso de clasificación',
-      'Clasificado': 'Clasificado para envío',
-      'EnTransitoTerrestre': 'En tránsito por carretera',
-      'EnTransitoAereo': 'En tránsito aéreo',
-      'EnTransitoMaritimo': 'En tránsito marítimo',
-      'ExpedidoCtaOrigen': 'Expedido del centro de origen',
-      'RecibidoCtaDestino': 'Recibido en centro de destino',
-      'ClasificadoCtaDestino': 'Clasificado en destino',
-      'ExpedidoCtaDestino': 'Expedido del centro de destino',
-      'RecibidoOficinaDestino': 'Recibido en oficina de destino',
-      'DisponibleRecogida': 'Disponible para recogida',
+      'EnTransito': 'En tránsito',
+      'EnOficina': 'En oficina',
       'EnReparto': 'En reparto',
-      'IntentadoEntrega': 'Intento de entrega',
       'Entregado': 'Entregado',
-      'EntregadoEnOficina': 'Entregado en oficina',
-      'RecogidoPorDestinatario': 'Recogido por destinatario',
-      'Incidencia': 'Incidencia'
+      'Incidencia': 'Incidencia',
+      'Devuelto': 'Devuelto al remitente',
+
+      // === EstadoInterno (detallado) ===
+      // Admisión
+      'PendienteRecogida': 'Pendiente de recogida',
+      'RecogidoEnOrigen': 'Recogido en origen',
+
+      // Clasificación origen
+      'RecibidoEnCentroOrigen': 'Recibido en centro de clasificación origen',
+      'EnClasificacionOrigen': 'En clasificación (origen)',
+      'ClasificadoParaExpedicion': 'Clasificado y listo para expedición',
+
+      // Tránsito
+      'EnTransitoHaciaCentroDestino': 'En tránsito hacia centro destino',
+      'EnTransitoIntermedio': 'En tránsito por centro intermedio',
+
+      // Clasificación destino
+      'RecibidoEnCentroDestino': 'Recibido en centro de destino',
+      'EnClasificacionDestino': 'En clasificación (destino)',
+      'AsignadoARuta': 'Asignado a ruta de reparto',
+
+      // Reparto
+      'PrimerIntentoFallido': 'Primer intento de entrega fallido',
+      'SegundoIntentoFallido': 'Segundo intento de entrega fallido',
+      'DepositadoEnOficina': 'Depositado en oficina para recogida',
+
+      // Entrega
+      'EntregadoEnDomicilio': 'Entregado en domicilio',
+      'EntregadoEnOficina': 'Recogido en oficina',
+      'EntregadoAAutorizado': 'Entregado a persona autorizada',
+
+      // Incidencias
+      'IncidenciaDireccionIncorrecta': 'Dirección incorrecta o incompleta',
+      'IncidenciaPaqueteDanado': 'Paquete dañado en el transporte',
+      'IncidenciaDestinatarioRechaza': 'El destinatario rechaza el envío',
+      'IncidenciaOtra': 'Incidencia',
+
+      // Devolución
+      'EnDevolucionAlRemitente': 'En devolución al remitente',
+      'DevueltoAlRemitente': 'Devuelto al remitente'
     };
     return traducciones[estado] || estado;
   }

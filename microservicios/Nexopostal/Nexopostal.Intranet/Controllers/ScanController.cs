@@ -2,17 +2,22 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Intranet.DTOs;
 using Nexopostal.Intranet.Services;
+using System.Security.Claims;
 
 namespace Nexopostal.Intranet.Controllers;
 
 /// <summary>
 /// Controlador para el procesamiento de escaneos de códigos de barras.
-/// Permite a los operarios escanear paquetes y avanzar automáticamente
-/// su estado en el flujo logístico.
+/// 
+/// Separación de responsabilidades por rol:
+///   - OperarioOficina: solo modos de oficina (RecepcionOficina, EntregaOficinaDestino, SalidaAReparto)
+///   - OperarioCTA:     solo modos de CTA (RecepcionCta, Clasificacion, DespachoTroncal, RecepcionTroncal)
+///   - Supervisor:      sin acceso a escaneo (solo supervisión y dashboards)
+///   - Admin:           acceso a todos los modos
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico,OperarioOficina")]
+[Authorize(Roles = "Admin,OperarioCTA,OperarioOficina")]
 public class ScanController : ControllerBase
 {
     private readonly IScanProcessorService _scanProcessor;
@@ -26,11 +31,8 @@ public class ScanController : ControllerBase
 
     /// <summary>
     /// Procesa un escaneo de código de barras individual.
-    /// El sistema determina automáticamente la acción a realizar
-    /// basándose en el modo de operación seleccionado.
+    /// Valida que el modo solicitado sea compatible con el rol del operario.
     /// </summary>
-    /// <param name="request">Datos del escaneo: código, modo, contexto</param>
-    /// <returns>Resultado del procesamiento con el nuevo estado</returns>
     [HttpPost("procesar")]
     public async Task<IActionResult> ProcesarEscaneo([FromBody] ScanRequestDto request)
     {
@@ -39,6 +41,11 @@ public class ScanController : ControllerBase
 
         if (!ModosEscaneo.EsValido(request.ModoOperacion))
             return BadRequest(new { message = $"Modo de operación inválido: {request.ModoOperacion}" });
+
+        // Validar que el modo sea compatible con el rol del operario
+        var rolUsuario = User.FindFirstValue(ClaimTypes.Role);
+        if (!EsModoPermitidoParaRol(request.ModoOperacion, rolUsuario))
+            return Forbid();
 
         var resultado = await _scanProcessor.ProcesarEscaneo(request);
 
@@ -68,6 +75,10 @@ public class ScanController : ControllerBase
         if (!ModosEscaneo.EsValido(request.ModoOperacion))
             return BadRequest(new { message = $"Modo de operación inválido: {request.ModoOperacion}" });
 
+        var rolUsuario = User.FindFirstValue(ClaimTypes.Role);
+        if (!EsModoPermitidoParaRol(request.ModoOperacion, rolUsuario))
+            return Forbid();
+
         var resultado = await _scanProcessor.ProcesarLote(request);
 
         _logger.LogInformation("Lote procesado: {Total} total, {Ok} exitosos, {Fail} fallidos",
@@ -77,22 +88,41 @@ public class ScanController : ControllerBase
     }
 
     /// <summary>
-    /// Devuelve los modos de escaneo disponibles con sus descripciones.
+    /// Devuelve los modos de escaneo disponibles para el rol del usuario autenticado.
     /// </summary>
     [HttpGet("modos")]
-    [AllowAnonymous]
     public IActionResult ObtenerModos()
     {
-        var modos = new[]
+        var rolUsuario = User.FindFirstValue(ClaimTypes.Role);
+        var todosModos = new[]
         {
-            new { valor = ModosEscaneo.RecepcionOficina, etiqueta = "Recepción en oficina", icono = "store", requiere = "oficina" },
-            new { valor = ModosEscaneo.RecepcionCta, etiqueta = "Recepción en CTA", icono = "warehouse", requiere = "cta" },
-            new { valor = ModosEscaneo.Clasificacion, etiqueta = "Clasificación", icono = "sort", requiere = "cta" },
-            new { valor = ModosEscaneo.DespachoTroncal, etiqueta = "Despacho troncal", icono = "local_shipping", requiere = "cta" },
-            new { valor = ModosEscaneo.RecepcionTroncal, etiqueta = "Recepción troncal", icono = "move_to_inbox", requiere = "cta" },
-            new { valor = ModosEscaneo.EntregaOficinaDestino, etiqueta = "Entrega a oficina destino", icono = "storefront", requiere = "oficina" },
-            new { valor = ModosEscaneo.SalidaAReparto, etiqueta = "Salida a reparto", icono = "delivery_dining", requiere = "oficina" }
+            new { valor = ModosEscaneo.RecepcionOficina,    etiqueta = "Recepción en oficina",       icono = "store",          requiere = "oficina" },
+            new { valor = ModosEscaneo.SalidaOficinaACta,   etiqueta = "Salida hacia CTA origen",     icono = "local_shipping", requiere = "oficina" },
+            new { valor = ModosEscaneo.RecepcionCta,        etiqueta = "Recepción en CTA",            icono = "warehouse",      requiere = "cta"     },
+            new { valor = ModosEscaneo.Clasificacion,       etiqueta = "Clasificación",               icono = "sort",           requiere = "cta"     },
+            new { valor = ModosEscaneo.DespachoTroncal,     etiqueta = "Despacho troncal",            icono = "local_shipping", requiere = "cta"     },
+            new { valor = ModosEscaneo.RecepcionTroncal,    etiqueta = "Recepción troncal",           icono = "move_to_inbox",  requiere = "cta"     },
+            new { valor = ModosEscaneo.DisponibleParaReparto,etiqueta = "Disponible para reparto",    icono = "outbox",         requiere = "cta"     },
+            new { valor = ModosEscaneo.EntregaOficinaDestino, etiqueta = "Entrega a oficina destino", icono = "storefront",     requiere = "oficina" },
+            new { valor = ModosEscaneo.SalidaAReparto,      etiqueta = "Salida a reparto",            icono = "delivery_dining",requiere = "oficina" }
         };
-        return Ok(modos);
+
+        var modosFiltrados = todosModos.Where(m => EsModoPermitidoParaRol(m.valor, rolUsuario));
+        return Ok(modosFiltrados);
+    }
+
+    // ─── Helpers privados ───
+
+    private static bool EsModoPermitidoParaRol(string modo, string? rol)
+    {
+        if (rol == "Admin") return true;
+
+        if (rol == "OperarioOficina")
+            return ModosEscaneo.ModosOficina.Contains(modo);
+
+        if (rol == "OperarioCTA")
+            return ModosEscaneo.ModosCta.Contains(modo);
+
+        return false;
     }
 }

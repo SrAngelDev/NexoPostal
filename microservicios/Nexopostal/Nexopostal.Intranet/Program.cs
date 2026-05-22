@@ -96,15 +96,18 @@ builder.Services.AddScoped<IAsignacionPaqueteRepository, AsignacionPaqueteReposi
 builder.Services.AddScoped<IMovimientoPaqueteRepository, MovimientoPaqueteRepository>();
 builder.Services.AddScoped<IIncidenciaRepository, IncidenciaRepository>();
 builder.Services.AddScoped<IHistorialEstadoRepository, HistorialEstadoRepository>();
+builder.Services.AddScoped<IOficinaRepository, OficinaRepository>();
 
 // 4. Registrar servicios propios
 builder.Services.AddScoped<IClasificacionService, ClasificacionService>();
+builder.Services.AddScoped<IAdminCtaService, AdminCtaService>();
 builder.Services.AddScoped<IOperarioService, OperarioService>();
 builder.Services.AddScoped<IAsignacionService, AsignacionService>();
 builder.Services.AddScoped<IMovimientoService, MovimientoService>();
 builder.Services.AddScoped<IIncidenciaService, IncidenciaService>();
 builder.Services.AddScoped<IAdmisionService, AdmisionService>();
 builder.Services.AddScoped<INotificacionService, NotificacionService>();
+builder.Services.AddScoped<IBroadcastService, BroadcastService>();
 builder.Services.AddScoped<IHistorialService, HistorialService>();
 builder.Services.AddSingleton<OficinasJsonService>();
 builder.Services.AddScoped<IOficinaPostalService, OficinaPostalService>();
@@ -122,11 +125,11 @@ builder.Services.AddHttpClient<IRepartoOrquestacionService, RepartoOrquestacionS
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
-// 4.0.b Cliente inter-servicio hacia Ciudadano (lookup de envíos por expedición)
-var ciudadanoBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoApi:BaseUrl"]);
+// 4.0.b Cliente inter-servicio hacia Ciudadano (lookup/alta de envíos + notificaciones de estado)
+var ciudadanoBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoSettings:BaseUrl"]);
 if (string.IsNullOrWhiteSpace(ciudadanoBaseUrl) || ciudadanoBaseUrl.Contains("${"))
 {
-    ciudadanoBaseUrl = "http://localhost:5200";
+    ciudadanoBaseUrl = "http://localhost:5100";
 }
 var interServiceKey = ResolveConfigValue(builder.Configuration["InterServiceSettings:ServiceKey"]);
 if (string.IsNullOrWhiteSpace(interServiceKey) || interServiceKey.Contains("${"))
@@ -135,6 +138,13 @@ if (string.IsNullOrWhiteSpace(interServiceKey) || interServiceKey.Contains("${")
 }
 
 builder.Services.AddMemoryCache();
+
+builder.Services.AddHttpClient<ICiudadanoEstadoNotifierService, CiudadanoEstadoNotifierService>(client =>
+{
+    client.BaseAddress = new Uri(ciudadanoBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 builder.Services.AddHttpClient<ICiudadanoEnvioLookupService, CiudadanoEnvioLookupService>(client =>
 {
     client.BaseAddress = new Uri(ciudadanoBaseUrl);

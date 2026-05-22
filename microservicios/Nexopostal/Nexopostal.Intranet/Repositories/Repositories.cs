@@ -27,6 +27,19 @@ public class CentroTratamientoRepository : ICentroTratamientoRepository
             .Include(c => c.Operarios)
             .Include(c => c.RutasAsignadas)
             .FirstOrDefaultAsync(c => c.Id == id);
+
+    public async Task<CentroTratamiento> CreateAsync(CentroTratamiento entity)
+    {
+        _context.CentrosTratamiento.Add(entity);
+        await _context.SaveChangesAsync();
+        return entity;
+    }
+
+    public async Task UpdateAsync(CentroTratamiento entity)
+    {
+        _context.CentrosTratamiento.Update(entity);
+        await _context.SaveChangesAsync();
+    }
 }
 
 public class RutaCtaRepository : IRutaCtaRepository
@@ -57,6 +70,13 @@ public class OperarioCtaRepository : IOperarioCtaRepository
         => await _context.OperariosCta.Include(o => o.CentroTratamiento)
             .Where(o => o.IdentityUserId == identityUserId && o.Activo)
             .OrderBy(o => o.CentroTratamiento.Codigo)
+            .ToListAsync();
+
+    public async Task<List<OperarioCta>> GetAllByIdentityUserIdIncludingInactiveAsync(string identityUserId)
+        => await _context.OperariosCta.Include(o => o.CentroTratamiento)
+            .Where(o => o.IdentityUserId == identityUserId)
+            .OrderByDescending(o => o.Activo)
+            .ThenBy(o => o.CentroTratamiento.Codigo)
             .ToListAsync();
 
     public async Task<OperarioCta?> GetWithCtaAsync(int id)
@@ -93,7 +113,7 @@ public class OperarioCtaRepository : IOperarioCtaRepository
 
     public async Task<bool> ExistsByIdentityUserIdAndCtaAsync(string identityUserId, int ctaId)
         => await _context.OperariosCta.AnyAsync(o =>
-            o.IdentityUserId == identityUserId && o.CentroTratamientoId == ctaId);
+            o.IdentityUserId == identityUserId && o.CentroTratamientoId == ctaId && o.Activo);
 }
 
 public class OperarioOficinaRepository : IOperarioOficinaRepository
@@ -105,12 +125,28 @@ public class OperarioOficinaRepository : IOperarioOficinaRepository
         => await _context.OperariosOficina.FindAsync(id);
 
     public async Task<OperarioOficina?> GetByIdentityUserIdAsync(string identityUserId)
+        => await _context.OperariosOficina.FirstOrDefaultAsync(o => o.IdentityUserId == identityUserId && o.Activo);
+
+    public async Task<OperarioOficina?> GetByIdentityUserIdAnyAsync(string identityUserId)
         => await _context.OperariosOficina.FirstOrDefaultAsync(o => o.IdentityUserId == identityUserId);
 
     public async Task<List<OperarioOficina>> GetByOficinaAsync(int oficinaJsonId, bool soloActivos = true)
         => await _context.OperariosOficina
             .Where(o => o.OficinaJsonId == oficinaJsonId && (!soloActivos || o.Activo))
             .ToListAsync();
+
+    public async Task<OperarioOficina> CreateAsync(OperarioOficina entity)
+    {
+        _context.OperariosOficina.Add(entity);
+        await _context.SaveChangesAsync();
+        return entity;
+    }
+
+    public async Task UpdateAsync(OperarioOficina entity)
+    {
+        _context.OperariosOficina.Update(entity);
+        await _context.SaveChangesAsync();
+    }
 }
 
 public class AsignacionPaqueteRepository : IAsignacionPaqueteRepository
@@ -184,6 +220,28 @@ public class AsignacionPaqueteRepository : IAsignacionPaqueteRepository
             .OrderByDescending(a => a.EsUrgente)
             .ThenByDescending(a => a.FechaAsignacion)
             .ToListAsync();
+    }
+
+    public async Task<AsignacionPaquete?> GetByExpedicionTipoCtaAsync(
+        string numeroExpedicion,
+        TipoTarea tipoTarea,
+        int ctaId,
+        bool incluirCanceladas = false)
+    {
+        var query = _context.AsignacionesPaquetes
+            .Where(a =>
+                a.NumeroExpedicion == numeroExpedicion &&
+                a.TipoTarea == tipoTarea &&
+                a.CtaId == ctaId);
+
+        if (!incluirCanceladas)
+        {
+            query = query.Where(a => a.EstadoTarea != EstadoTarea.Cancelada);
+        }
+
+        return await query
+            .OrderByDescending(a => a.FechaAsignacion)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<AsignacionPaquete> CreateAsync(AsignacionPaquete asignacion)
@@ -265,6 +323,24 @@ public class MovimientoPaqueteRepository : IMovimientoPaqueteRepository
             .OrderBy(m => m.FechaCreacion)
             .ToListAsync();
 
+    public async Task<List<MovimientoPaquete>> GetAllAsync(EstadoMovimiento? filtroEstado = null, int? ctaOrigenId = null, int? ctaDestinoId = null)
+    {
+        var query = _context.MovimientosPaquetes
+            .Include(m => m.CtaOrigen)
+            .Include(m => m.CtaDestino)
+            .AsQueryable();
+
+        if (filtroEstado.HasValue) query = query.Where(m => m.Estado == filtroEstado.Value);
+        if (ctaOrigenId.HasValue) query = query.Where(m => m.CtaOrigenId == ctaOrigenId.Value);
+        if (ctaDestinoId.HasValue) query = query.Where(m => m.CtaDestinoId == ctaDestinoId.Value);
+
+        return await query
+            .OrderByDescending(m => m.EsUrgente)
+            .ThenByDescending(m => m.FechaCreacion)
+            .Take(500)
+            .ToListAsync();
+    }
+
     public async Task<MovimientoPaquete> CreateAsync(MovimientoPaquete movimiento)
     {
         _context.MovimientosPaquetes.Add(movimiento);
@@ -316,6 +392,15 @@ public class MovimientoPaqueteRepository : IMovimientoPaqueteRepository
                 m.CtaDestinoId == ctaDestinoId &&
                 m.Estado == EstadoMovimiento.EnTransito);
 
+    public async Task<MovimientoPaquete?> GetRecibidoByExpedicionAndCtaDestinoAsync(string expedicion, int ctaDestinoId)
+        => await _context.MovimientosPaquetes
+            .Include(m => m.CtaOrigen)
+            .Include(m => m.CtaDestino)
+            .FirstOrDefaultAsync(m =>
+                m.NumeroExpedicion == expedicion &&
+                m.CtaDestinoId == ctaDestinoId &&
+                m.Estado == EstadoMovimiento.Recibido);
+
     public async Task<List<MovimientoPaquete>> GetEnTransitoAnterioresAAsync(DateTime umbral)
         => await _context.MovimientosPaquetes
             .Include(m => m.CtaOrigen)
@@ -350,6 +435,20 @@ public class IncidenciaRepository : IIncidenciaRepository
             query = query.Where(i => i.Estado == filtroEstado.Value);
 
         return await query.OrderByDescending(i => i.FechaCreacion).ToListAsync();
+    }
+
+    public async Task<List<Incidencia>> GetAllAsync(EstadoIncidencia? filtroEstado = null, int? ctaId = null, TipoIncidencia? tipo = null)
+    {
+        var query = _context.Incidencias
+            .Include(i => i.ReportadaPor)
+            .Include(i => i.Cta)
+            .AsQueryable();
+
+        if (filtroEstado.HasValue) query = query.Where(i => i.Estado == filtroEstado.Value);
+        if (ctaId.HasValue) query = query.Where(i => i.CtaId == ctaId.Value);
+        if (tipo.HasValue) query = query.Where(i => i.Tipo == tipo.Value);
+
+        return await query.OrderByDescending(i => i.FechaCreacion).Take(500).ToListAsync();
     }
 
     public async Task<List<Incidencia>> GetByExpedicionAsync(string numeroExpedicion)

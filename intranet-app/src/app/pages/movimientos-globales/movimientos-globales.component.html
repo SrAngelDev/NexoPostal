@@ -1,0 +1,204 @@
+<div class="page">
+  <main class="page-content fade-in-up">
+
+    <!-- ===== HEADER ===== -->
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg icon-tile-info">
+        <span class="material-symbols-outlined">route</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Movimientos troncales globales</h1>
+        <p class="page-subheading">Vista en tiempo real de las expediciones entre Centros de Tratamiento Automatizado.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading()">
+          <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
+          Recargar
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== KPIs ===== -->
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg">
+          <span class="material-symbols-outlined">route</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ resumen().total }}</div>
+          <div class="kpi-label">Total</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">schedule</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ resumen().programados }}</div>
+          <div class="kpi-label">Programados</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-warning">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ resumen().enTransito }}</div>
+          <div class="kpi-label">En tránsito</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-success">
+          <span class="material-symbols-outlined">check_circle</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ resumen().recibidos }}</div>
+          <div class="kpi-label">Recibidos</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-danger">
+          <span class="material-symbols-outlined">bolt</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ resumen().urgentes }}</div>
+          <div class="kpi-label">Urgentes</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ===== FILTROS ===== -->
+    <section class="card filters-card">
+      <div class="filters-grid">
+        <div class="field">
+          <label class="field-label">Estado</label>
+          <select class="select"
+                  [ngModel]="filtroEstado()"
+                  (ngModelChange)="filtroEstado.set($event); cargar()">
+            @for (e of ESTADOS; track e) {
+              <option [value]="e">{{ e || 'Todos los estados' }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">CTA origen</label>
+          <select class="select"
+                  [ngModel]="filtroOrigen()"
+                  (ngModelChange)="filtroOrigen.set($event); cargar()">
+            <option [ngValue]="null">Todos</option>
+            @for (c of ctas(); track c.id) {
+              <option [ngValue]="c.id">{{ c.codigo }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">CTA destino</label>
+          <select class="select"
+                  [ngModel]="filtroDestino()"
+                  (ngModelChange)="filtroDestino.set($event); cargar()">
+            <option [ngValue]="null">Todos</option>
+            @for (c of ctas(); track c.id) {
+              <option [ngValue]="c.id">{{ c.codigo }}</option>
+            }
+          </select>
+        </div>
+        <button class="btn btn-secondary" (click)="limpiarFiltros()">
+          <span class="material-symbols-outlined">filter_alt_off</span>
+          Limpiar
+        </button>
+      </div>
+    </section>
+
+    @if (error(); as msg) {
+      <div class="alert alert-danger">
+        <span class="material-symbols-outlined">error</span>
+        {{ msg }}
+      </div>
+    }
+
+    <!-- ===== TABLA ===== -->
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando movimientos…
+      </div>
+    } @else if (movimientos().length === 0) {
+      <div class="empty-state card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">route</span>
+        </div>
+        <h3 class="empty-title">Sin movimientos</h3>
+        <p class="empty-text">No hay movimientos que coincidan con los filtros actuales.</p>
+      </div>
+    } @else {
+      <section class="surface-elevated table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Expedición</th>
+              <th>Origen</th>
+              <th>Destino</th>
+              <th>Transporte</th>
+              <th>Estado</th>
+              <th>Urgente</th>
+              <th>Creado</th>
+              <th>Salida</th>
+              <th>Llegada</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of movimientos(); track m.id) {
+              <tr [class.row-clickable]="m.esUrgente">
+                <td class="cell-mono cell-strong">{{ m.numeroExpedicion }}</td>
+                <td>
+                  <span class="chip chip-brand">
+                    <span class="material-symbols-outlined">factory</span>
+                    {{ m.ctaOrigenCodigo }}
+                  </span>
+                </td>
+                <td>
+                  <span class="chip chip-accent">
+                    <span class="material-symbols-outlined">flag</span>
+                    {{ m.ctaDestinoCodigo }}
+                  </span>
+                </td>
+                <td>
+                  <span class="chip">
+                    <span class="material-symbols-outlined">{{ iconTransporte(m.tipoTransporte) }}</span>
+                    {{ m.tipoTransporte }}
+                  </span>
+                </td>
+                <td>
+                  @switch (m.estado) {
+                    @case ('Programado') { <span class="chip chip-info"><span class="material-symbols-outlined">schedule</span>{{ m.estado }}</span> }
+                    @case ('EnTransito') { <span class="chip chip-warning"><span class="material-symbols-outlined">local_shipping</span>En tránsito</span> }
+                    @case ('Recibido') { <span class="chip chip-success"><span class="material-symbols-outlined">check_circle</span>{{ m.estado }}</span> }
+                    @case ('Cancelado') { <span class="chip chip-danger"><span class="material-symbols-outlined">cancel</span>{{ m.estado }}</span> }
+                    @default { <span class="chip">{{ m.estado }}</span> }
+                  }
+                </td>
+                <td>
+                  @if (m.esUrgente) {
+                    <span class="chip chip-danger">
+                      <span class="material-symbols-outlined">bolt</span>
+                      Urgente
+                    </span>
+                  } @else {
+                    <span class="text-subtle">—</span>
+                  }
+                </td>
+                <td class="cell-meta">{{ m.fechaCreacion | date:'short' }}</td>
+                <td class="cell-meta">{{ m.fechaSalida ? (m.fechaSalida | date:'short') : '—' }}</td>
+                <td class="cell-meta">{{ m.fechaLlegada ? (m.fechaLlegada | date:'short') : '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+      <p class="result-count">{{ movimientos().length }} movimiento(s)</p>
+    }
+  </main>
+</div>

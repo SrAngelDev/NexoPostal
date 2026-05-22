@@ -1,30 +1,51 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Nexopostal.Intranet.Data;
 using Nexopostal.Intranet.DTOs;
+using Nexopostal.Intranet.Models;
 
 namespace Nexopostal.Intranet.Services;
 
 /// <summary>
-/// Servicio que carga y cachea las oficinas desde el archivo JSON estático
-/// de oficinas reales de NexoPostal (Data/oficinas.json).
-/// 
-/// Proporciona métodos de búsqueda por CP, texto libre y resolución automática
-/// de la oficina más cercana a un código postal dado (para el flujo logístico).
-/// 
-/// Formato del JSON: JSON-LD con @graph[] donde cada oficina tiene:
-///   id, title, address { locality, postal-code, street-address },
-///   location { latitude, longitude }, schedule, services
+/// Servicio que expone las oficinas postales.
+///
+/// FUENTE DE VERDAD: tabla <c>OficinasPostales</c> en BD (Intranet).
+/// FALLBACK: <c>Data/oficinas.json</c> JSON-LD si la tabla está vacía o falla la BD
+/// (transición / arranque inicial antes del seeding).
+///
+/// El servicio se registra como <b>Singleton</b> y mantiene una caché en memoria que
+/// se invalida vía <see cref="Invalidar"/> tras cualquier escritura administrativa.
 /// </summary>
 public class OficinasJsonService
 {
     private readonly ILogger<OficinasJsonService> _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly string _jsonPath;
-    private List<OficinaJsonDto>? _cache;
-    private readonly object _lock = new();
 
-    public OficinasJsonService(ILogger<OficinasJsonService> logger, IWebHostEnvironment env)
+    private static readonly object _cacheLock = new();
+    private static List<OficinaJsonDto>? _cache;
+
+    public OficinasJsonService(
+        ILogger<OficinasJsonService> logger,
+        IServiceScopeFactory scopeFactory,
+        IWebHostEnvironment env)
     {
         _logger = logger;
+        _scopeFactory = scopeFactory;
         _jsonPath = Path.Combine(env.ContentRootPath, "Data", "oficinas.json");
+    }
+
+    /// <summary>
+    /// Invalida la caché en memoria. Llamar tras cualquier escritura administrativa.
+    /// </summary>
+    public void Invalidar()
+    {
+        lock (_cacheLock)
+        {
+            _cache = null;
+        }
+        _logger.LogInformation("Caché de oficinas invalidada");
     }
 
     // ───────────────────────────────────────────────────────────────
@@ -32,33 +53,81 @@ public class OficinasJsonService
     // ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Obtiene todas las oficinas (cacheadas en memoria).
+    /// Obtiene todas las oficinas activas (cacheadas en memoria).
     /// </summary>
     public List<OficinaJsonDto> ObtenerTodas()
     {
         if (_cache != null) return _cache;
 
-        lock (_lock)
+        lock (_cacheLock)
         {
             if (_cache != null) return _cache;
-
-            _logger.LogInformation("Cargando oficinas desde {Path}", _jsonPath);
-
-            var json = File.ReadAllText(_jsonPath);
-            using var doc = JsonDocument.Parse(json);
-
-            var graph = doc.RootElement.GetProperty("@graph");
-            var oficinas = new List<OficinaJsonDto>();
-
-            foreach (var item in graph.EnumerateArray())
-            {
-                oficinas.Add(TransformarOficina(item));
-            }
-
-            _cache = oficinas;
-            _logger.LogInformation("Cargadas {Count} oficinas desde JSON", oficinas.Count);
+            _cache = CargarDesdeBdConFallback();
             return _cache;
         }
+    }
+
+    /// <summary>
+    /// Carga las oficinas leyendo directamente del fichero JSON estático.
+    /// Usado por el seeder en la primera ejecución y como fallback si la BD no responde.
+    /// </summary>
+    public List<OficinaJsonDto> CargarDesdeJsonFile()
+    {
+        _logger.LogInformation("Cargando oficinas desde fichero {Path}", _jsonPath);
+
+        var json = File.ReadAllText(_jsonPath);
+        using var doc = JsonDocument.Parse(json);
+
+        var graph = doc.RootElement.GetProperty("@graph");
+        var oficinas = new List<OficinaJsonDto>();
+
+        foreach (var item in graph.EnumerateArray())
+        {
+            oficinas.Add(TransformarOficina(item));
+        }
+
+        _logger.LogInformation("Cargadas {Count} oficinas desde JSON", oficinas.Count);
+        return oficinas;
+    }
+
+    private List<OficinaJsonDto> CargarDesdeBdConFallback()
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<IntranetDbContext>();
+            var lista = db.OficinasPostales
+                .AsNoTracking()
+                .Where(o => o.Activo)
+                .OrderBy(o => o.Id)
+                .Select(o => new OficinaJsonDto
+                {
+                    Id = o.Id,
+                    Nombre = o.Nombre,
+                    Direccion = o.Direccion,
+                    CodigoPostal = o.CodigoPostal,
+                    Ciudad = o.Ciudad,
+                    Horario = o.Horario,
+                    Servicios = o.Servicios,
+                    Latitud = o.Latitud,
+                    Longitud = o.Longitud
+                })
+                .ToList();
+
+            if (lista.Count > 0)
+            {
+                _logger.LogInformation("Cargadas {Count} oficinas desde BD", lista.Count);
+                return lista;
+            }
+
+            _logger.LogWarning("La tabla OficinasPostales está vacía; usando fallback JSON");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "No se pudo leer OficinasPostales de BD; usando fallback JSON");
+        }
+
+        return CargarDesdeJsonFile();
     }
 
     /// <summary>
@@ -70,11 +139,9 @@ public class OficinasJsonService
         var todas = ObtenerTodas();
         var cp = codigoPostal.Trim();
 
-        // Coincidencia exacta
         var exactas = todas.Where(o => o.CodigoPostal == cp).ToList();
         if (exactas.Count > 0) return exactas;
 
-        // Prefijo de 3 dígitos
         var prefijo = cp.Length >= 3 ? cp[..3] : cp;
         return todas
             .Where(o => o.CodigoPostal.StartsWith(prefijo))
@@ -102,7 +169,7 @@ public class OficinasJsonService
     }
 
     /// <summary>
-    /// Obtiene una oficina por su ID del JSON.
+    /// Obtiene una oficina por su ID.
     /// </summary>
     public OficinaJsonDto? ObtenerPorId(int id)
     {
@@ -113,34 +180,21 @@ public class OficinasJsonService
     //  Resolución automática: CP → Oficina más cercana
     // ───────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Resuelve la oficina más cercana a un código postal dado.
-    /// 
-    /// Algoritmo:
-    ///   1. Coincidencia exacta de CP → la primera
-    ///   2. Prefijo de 3 dígitos → la más cercana por coordenadas
-    ///   3. Prefijo de 2 dígitos (misma provincia) → la más cercana por coordenadas
-    /// 
-    /// Devuelve null si no hay ninguna oficina para esa zona.
-    /// </summary>
     public OficinaJsonDto? ResolverOficinaMasCercana(string codigoPostal)
     {
         var todas = ObtenerTodas();
         var cp = codigoPostal.Trim();
 
-        // 1. Coincidencia exacta de CP
         var exactas = todas.Where(o => o.CodigoPostal == cp).ToList();
         if (exactas.Count > 0) return exactas[0];
 
-        // 2. Prefijo de 3 dígitos (misma zona)
         if (cp.Length >= 3)
         {
             var prefijo3 = cp[..3];
             var zona3 = todas.Where(o => o.CodigoPostal.StartsWith(prefijo3)).ToList();
-            if (zona3.Count > 0) return zona3[0]; // No hay coordenadas de referencia, toma la primera
+            if (zona3.Count > 0) return zona3[0];
         }
 
-        // 3. Prefijo de 2 dígitos (misma provincia)
         if (cp.Length >= 2)
         {
             var prefijo2 = cp[..2];
@@ -151,11 +205,6 @@ public class OficinasJsonService
         return null;
     }
 
-    /// <summary>
-    /// Resuelve la oficina más cercana a unas coordenadas geográficas
-    /// dentro de un radio de búsqueda limitado (por prefijo de CP).
-    /// Si no se proporcionan coordenadas, busca por CP textual.
-    /// </summary>
     public OficinaJsonDto? ResolverOficinaMasCercana(
         string codigoPostal,
         double latitudReferencia,
@@ -164,43 +213,35 @@ public class OficinasJsonService
         var todas = ObtenerTodas();
         var cp = codigoPostal.Trim();
 
-        // Primero reducir el universo de búsqueda por prefijo de CP
         List<OficinaJsonDto> candidatas;
 
-        // Intentar exacto
         candidatas = todas.Where(o => o.CodigoPostal == cp).ToList();
         if (candidatas.Count == 1) return candidatas[0];
 
-        // Si hay múltiples exactas o ninguna, ampliar a prefijo 3
         if (candidatas.Count == 0 && cp.Length >= 3)
             candidatas = todas.Where(o => o.CodigoPostal.StartsWith(cp[..3])).ToList();
 
-        // Si aún vacío, ampliar a prefijo 2
         if (candidatas.Count == 0 && cp.Length >= 2)
             candidatas = todas.Where(o => o.CodigoPostal.StartsWith(cp[..2])).ToList();
 
         if (candidatas.Count == 0) return null;
 
-        // Ordenar por distancia Haversine
         return candidatas
             .Where(o => o.Latitud.HasValue && o.Longitud.HasValue)
             .OrderBy(o => CalcularDistanciaKm(
                 latitudReferencia, longitudReferencia,
                 o.Latitud!.Value, o.Longitud!.Value))
             .FirstOrDefault()
-            ?? candidatas[0]; // Fallback si ninguna tiene coordenadas
+            ?? candidatas[0];
     }
 
     // ───────────────────────────────────────────────────────────────
     //  Utilidades
     // ───────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Calcula la distancia en kilómetros entre dos puntos usando la fórmula de Haversine.
-    /// </summary>
     public static double CalcularDistanciaKm(double lat1, double lon1, double lat2, double lon2)
     {
-        const double R = 6371; // Radio de la Tierra en km
+        const double R = 6371;
 
         var dLat = ToRad(lat2 - lat1);
         var dLon = ToRad(lon2 - lon1);
@@ -215,9 +256,6 @@ public class OficinasJsonService
 
     private static double ToRad(double deg) => deg * Math.PI / 180.0;
 
-    /// <summary>
-    /// Transforma un elemento JSON del @graph al DTO de oficina.
-    /// </summary>
     private static OficinaJsonDto TransformarOficina(JsonElement item)
     {
         var address = item.GetProperty("address");

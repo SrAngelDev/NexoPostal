@@ -12,6 +12,8 @@ public interface ICentroTratamientoRepository
     Task<List<CentroTratamiento>> GetAllAsync();
     Task<List<CentroTratamiento>> GetAllWithOperariosAsync();
     Task<CentroTratamiento?> GetWithDetailAsync(int id);
+    Task<CentroTratamiento> CreateAsync(CentroTratamiento entity);
+    Task UpdateAsync(CentroTratamiento entity);
 }
 
 /// <summary>
@@ -31,6 +33,7 @@ public interface IOperarioCtaRepository
     Task<OperarioCta?> GetByIdAsync(int id);
     Task<OperarioCta?> GetByIdentityUserIdAsync(string identityUserId);
     Task<List<OperarioCta>> GetAllByIdentityUserIdAsync(string identityUserId);
+    Task<List<OperarioCta>> GetAllByIdentityUserIdIncludingInactiveAsync(string identityUserId);
     Task<OperarioCta?> GetWithCtaAsync(int id);
     Task<List<OperarioCta>> GetByCtaIdAsync(int ctaId, bool? soloActivos = true);
     Task<int> CountByCtaIdAsync(int ctaId, bool? soloActivos = null);
@@ -46,7 +49,10 @@ public interface IOperarioOficinaRepository
 {
     Task<OperarioOficina?> GetByIdAsync(int id);
     Task<OperarioOficina?> GetByIdentityUserIdAsync(string identityUserId);
+    Task<OperarioOficina?> GetByIdentityUserIdAnyAsync(string identityUserId);
     Task<List<OperarioOficina>> GetByOficinaAsync(int oficinaJsonId, bool soloActivos = true);
+    Task<OperarioOficina> CreateAsync(OperarioOficina entity);
+    Task UpdateAsync(OperarioOficina entity);
 }
 
 /// <summary>
@@ -60,6 +66,7 @@ public interface IAsignacionPaqueteRepository
     Task<List<AsignacionPaquete>> GetByOperarioOficinaAsync(int operarioOficinaId, EstadoTarea? estado = null);
     Task<List<AsignacionPaquete>> GetByOficinaAsync(int oficinaJsonId, EstadoTarea? estado = null);
     Task<List<AsignacionPaquete>> GetByCtaAsync(int ctaId, EstadoTarea? filtroEstado = null);
+    Task<AsignacionPaquete?> GetByExpedicionTipoCtaAsync(string numeroExpedicion, TipoTarea tipoTarea, int ctaId, bool incluirCanceladas = false);
     Task<AsignacionPaquete> CreateAsync(AsignacionPaquete asignacion);
     Task UpdateAsync(AsignacionPaquete asignacion);
     Task<int> CountByCtaAndEstadoAsync(int ctaId, EstadoTarea estado);
@@ -77,6 +84,7 @@ public interface IMovimientoPaqueteRepository
     Task<MovimientoPaquete?> GetByIdAsync(int id);
     Task<MovimientoPaquete?> GetDetailAsync(int id);
     Task<List<MovimientoPaquete>> GetByCtaAsync(int ctaId, EstadoMovimiento? filtroEstado = null);
+    Task<List<MovimientoPaquete>> GetAllAsync(EstadoMovimiento? filtroEstado = null, int? ctaOrigenId = null, int? ctaDestinoId = null);
     Task<List<MovimientoPaquete>> GetByExpedicionAsync(string numeroExpedicion);
     Task<MovimientoPaquete> CreateAsync(MovimientoPaquete movimiento);
     Task UpdateAsync(MovimientoPaquete movimiento);
@@ -85,6 +93,7 @@ public interface IMovimientoPaqueteRepository
     Task<List<MovimientoPaquete>> GetPendientesTransporteAsync();
     Task<MovimientoPaquete?> GetProgramadoByExpedicionAndCtaOrigenAsync(string expedicion, int ctaOrigenId);
     Task<MovimientoPaquete?> GetEnTransitoByExpedicionAndCtaDestinoAsync(string expedicion, int ctaDestinoId);
+    Task<MovimientoPaquete?> GetRecibidoByExpedicionAndCtaDestinoAsync(string expedicion, int ctaDestinoId);
     Task<List<MovimientoPaquete>> GetEnTransitoAnterioresAAsync(DateTime umbral);
 }
 
@@ -96,6 +105,7 @@ public interface IIncidenciaRepository
     Task<Incidencia?> GetByIdAsync(int id);
     Task<Incidencia?> GetDetailAsync(int id);
     Task<List<Incidencia>> GetByCtaAsync(int ctaId, EstadoIncidencia? filtroEstado = null);
+    Task<List<Incidencia>> GetAllAsync(EstadoIncidencia? filtroEstado = null, int? ctaId = null, TipoIncidencia? tipo = null);
     Task<List<Incidencia>> GetByExpedicionAsync(string numeroExpedicion);
     Task<Incidencia> CreateAsync(Incidencia incidencia);
     Task UpdateAsync(Incidencia incidencia);

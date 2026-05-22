@@ -1,0 +1,14 @@
+/* gestion-envios — overrides puntuales.
+   Layout y componentes vienen de utilidades globales en src/styles.css. */
+.observaciones {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+}

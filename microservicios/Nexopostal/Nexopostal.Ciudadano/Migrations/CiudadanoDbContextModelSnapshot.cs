@@ -333,6 +333,260 @@ namespace Nexopostal.Ciudadano.Migrations
                     b.ToTable("Oficinas");
                 });
 
+            modelBuilder.Entity("Nexopostal.Ciudadano.Models.TarifaBanda", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModificadoPorUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<int>("OrdenBanda")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PesoHastaKg")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("PrecioBase")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("Serie")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Serie", "OrdenBanda")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TarifaBanda_Serie_Orden");
+
+                    b.ToTable("TarifasBandas");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 0,
+                            PesoHastaKg = 1m,
+                            PrecioBase = 4.50m,
+                            Serie = 0
+                        },
+                        new
+                        {
+                            Id = 2,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 0,
+                            PesoHastaKg = 1m,
+                            PrecioBase = 6.50m,
+                            Serie = 1
+                        },
+                        new
+                        {
+                            Id = 3,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 0,
+                            PesoHastaKg = 1m,
+                            PrecioBase = 5.95m,
+                            Serie = 2
+                        },
+                        new
+                        {
+                            Id = 4,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 0,
+                            PesoHastaKg = 1m,
+                            PrecioBase = 8.95m,
+                            Serie = 3
+                        },
+                        new
+                        {
+                            Id = 5,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 1,
+                            PesoHastaKg = 2m,
+                            PrecioBase = 5.25m,
+                            Serie = 0
+                        },
+                        new
+                        {
+                            Id = 6,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 1,
+                            PesoHastaKg = 2m,
+                            PrecioBase = 7.75m,
+                            Serie = 1
+                        },
+                        new
+                        {
+                            Id = 7,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 1,
+                            PesoHastaKg = 2m,
+                            PrecioBase = 6.95m,
+                            Serie = 2
+                        },
+                        new
+                        {
+                            Id = 8,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 1,
+                            PesoHastaKg = 2m,
+                            PrecioBase = 10.50m,
+                            Serie = 3
+                        },
+                        new
+                        {
+                            Id = 9,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 2,
+                            PesoHastaKg = 5m,
+                            PrecioBase = 6.95m,
+                            Serie = 0
+                        },
+                        new
+                        {
+                            Id = 10,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 2,
+                            PesoHastaKg = 5m,
+                            PrecioBase = 10.50m,
+                            Serie = 1
+                        },
+                        new
+                        {
+                            Id = 11,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 2,
+                            PesoHastaKg = 5m,
+                            PrecioBase = 8.95m,
+                            Serie = 2
+                        },
+                        new
+                        {
+                            Id = 12,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 2,
+                            PesoHastaKg = 5m,
+                            PrecioBase = 13.95m,
+                            Serie = 3
+                        },
+                        new
+                        {
+                            Id = 13,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 3,
+                            PesoHastaKg = 10m,
+                            PrecioBase = 9.95m,
+                            Serie = 0
+                        },
+                        new
+                        {
+                            Id = 14,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 3,
+                            PesoHastaKg = 10m,
+                            PrecioBase = 14.95m,
+                            Serie = 1
+                        },
+                        new
+                        {
+                            Id = 15,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 3,
+                            PesoHastaKg = 10m,
+                            PrecioBase = 12.95m,
+                            Serie = 2
+                        },
+                        new
+                        {
+                            Id = 16,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 3,
+                            PesoHastaKg = 10m,
+                            PrecioBase = 19.95m,
+                            Serie = 3
+                        },
+                        new
+                        {
+                            Id = 17,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 4,
+                            PesoHastaKg = 20m,
+                            PrecioBase = 14.95m,
+                            Serie = 0
+                        },
+                        new
+                        {
+                            Id = 18,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 4,
+                            PesoHastaKg = 20m,
+                            PrecioBase = 21.95m,
+                            Serie = 1
+                        },
+                        new
+                        {
+                            Id = 19,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 4,
+                            PesoHastaKg = 20m,
+                            PrecioBase = 18.95m,
+                            Serie = 2
+                        },
+                        new
+                        {
+                            Id = 20,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 4,
+                            PesoHastaKg = 20m,
+                            PrecioBase = 28.95m,
+                            Serie = 3
+                        },
+                        new
+                        {
+                            Id = 21,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 5,
+                            PesoHastaKg = 30m,
+                            PrecioBase = 19.95m,
+                            Serie = 0
+                        },
+                        new
+                        {
+                            Id = 22,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 5,
+                            PesoHastaKg = 30m,
+                            PrecioBase = 29.95m,
+                            Serie = 1
+                        },
+                        new
+                        {
+                            Id = 23,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 5,
+                            PesoHastaKg = 30m,
+                            PrecioBase = 25.95m,
+                            Serie = 2
+                        },
+                        new
+                        {
+                            Id = 24,
+                            FechaModificacion = new DateTime(2026, 5, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OrdenBanda = 5,
+                            PesoHastaKg = 30m,
+                            PrecioBase = 38.95m,
+                            Serie = 3
+                        });
+                });
+
             modelBuilder.Entity("Nexopostal.Ciudadano.Models.DireccionFavorita", b =>
                 {
                     b.HasOne("Nexopostal.Ciudadano.Models.ClientePerfil", "ClientePerfil")

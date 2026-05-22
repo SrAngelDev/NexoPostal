@@ -62,6 +62,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
                 logger.LogWarning("Autenticación JWT fallida: {Message}", context.Exception.Message);
                 return Task.CompletedTask;
+            },
+            // Permitir token vía query string para SignalR (WebSocket no soporta headers custom).
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/reparto"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
             }
         };
     });
@@ -72,15 +83,23 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IRepartidorRepository, RepartidorRepository>();
 builder.Services.AddScoped<IRutaRepartoRepository, RutaRepartoRepository>();
 builder.Services.AddScoped<IEntregaPaqueteRepository, EntregaPaqueteRepository>();
+builder.Services.AddScoped<IUbicacionRepartidorRepository, UbicacionRepartidorRepository>();
 
 // 4. Registrar servicios propios
 builder.Services.AddScoped<IRepartoService, RepartoService>();
 builder.Services.AddScoped<IOptimizacionRutasService, OptimizacionRutasService>();
 builder.Services.AddScoped<IReintentoEntregaService, ReintentoEntregaService>();
 builder.Services.AddScoped<IBalanceoCargaService, BalanceoCargaService>();
+builder.Services.AddScoped<IVehiculoRepository, VehiculoRepository>();
+builder.Services.AddScoped<IVehiculoService, VehiculoService>();
+
+// Notificador SignalR (singleton: usa IHubContext que es thread-safe)
+builder.Services.AddSingleton<IRepartoNotifier, RepartoNotifier>();
+builder.Services.AddSignalR();
 
 var ciudadanoTrackingBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoTrackingSettings:BaseUrl"]);
-if (string.IsNullOrWhiteSpace(ciudadanoTrackingBaseUrl))
+// Fallback: vacío o placeholder sin resolver (${...}) — usar valor por defecto en red Docker.
+if (string.IsNullOrWhiteSpace(ciudadanoTrackingBaseUrl) || ciudadanoTrackingBaseUrl.Contains("${"))
 {
     ciudadanoTrackingBaseUrl = "http://modulo-ciudadano:80";
 }
@@ -187,12 +206,13 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<Nexopostal.Reparto.Hubs.RepartoHub>("/hubs/reparto");
 
 // ===== INICIALIZACIÓN DE BASE DE DATOS =====
+// Migraciones y seeding se aplican en TODOS los entornos (el seeder es idempotente).
 
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<RepartoDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
@@ -201,6 +221,7 @@ if (app.Environment.IsDevelopment())
         await dbContext.Database.MigrateAsync();
         logger.LogInformation("Migraciones de Reparto aplicadas correctamente");
 
+        // El seeder es idempotente (chequea AnyAsync antes de insertar), se ejecuta en cualquier entorno.
         await RepartoDataSeeder.SeedAsync(dbContext, logger);
     }
     catch (Exception ex)

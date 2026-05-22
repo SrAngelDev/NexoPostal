@@ -1,0 +1,437 @@
+<div class="page">
+  <main class="page-content fade-in-up">
+
+    <!-- ===== HEADER ===== -->
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg icon-tile-brand">
+        <span class="material-symbols-outlined">inventory_2</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Panel global de envíos</h1>
+        <p class="page-subheading">Vista administrativa: cambia estados, anula y reabre envíos. Cada acción queda registrada.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading()">
+          <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
+          Recargar
+        </button>
+        <button class="btn btn-secondary" (click)="limpiarFiltros()" [disabled]="loading()">
+          <span class="material-symbols-outlined">filter_alt_off</span>
+          Limpiar
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== KPIs ===== -->
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg">
+          <span class="material-symbols-outlined">summarize</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ totalListados() }}</div>
+          <div class="kpi-label">Listados</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ totalEnTransito() }}</div>
+          <div class="kpi-label">En tránsito</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-success">
+          <span class="material-symbols-outlined">check_circle</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ totalEntregados() }}</div>
+          <div class="kpi-label">Entregados</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-warning">
+          <span class="material-symbols-outlined">report</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ totalIncidencias() }}</div>
+          <div class="kpi-label">Incidencias</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-danger">
+          <span class="material-symbols-outlined">undo</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ totalDevueltos() }}</div>
+          <div class="kpi-label">Devueltos</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ===== FILTROS ===== -->
+    <section class="card filters-card">
+      <div class="filters-grid filters-grid-wide">
+        <div class="field field-icon filter-search">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" class="input" placeholder="Tracking, email o nombre…"
+                 [ngModel]="filtroQ()"
+                 (ngModelChange)="filtroQ.set($event)"
+                 (keyup.enter)="cargar()" />
+        </div>
+        <div class="field">
+          <label class="field-label">Estado público</label>
+          <select class="select"
+                  [ngModel]="filtroEstado()"
+                  (ngModelChange)="filtroEstado.set($event === '' || $event == null ? null : +$event)">
+            <option [ngValue]="null">— Todos —</option>
+            @for (opt of estadosPublicos; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Estado interno</label>
+          <select class="select"
+                  [ngModel]="filtroEstadoInterno()"
+                  (ngModelChange)="filtroEstadoInterno.set($event === '' || $event == null ? null : +$event)">
+            <option [ngValue]="null">— Todos —</option>
+            @for (opt of estadosInternos; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">CP destino</label>
+          <input type="text" class="input" maxlength="10"
+                 [ngModel]="filtroCp()"
+                 (ngModelChange)="filtroCp.set($event)" />
+        </div>
+        <div class="field">
+          <label class="field-label">Pagado</label>
+          <select class="select"
+                  [ngModel]="filtroPagado()"
+                  (ngModelChange)="filtroPagado.set($event)">
+            <option value="todos">Todos</option>
+            <option value="pagados">Solo pagados</option>
+            <option value="pendientes">Solo pendientes</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Desde</label>
+          <input type="date" class="input"
+                 [ngModel]="filtroFechaDesde()"
+                 (ngModelChange)="filtroFechaDesde.set($event)" />
+        </div>
+        <div class="field">
+          <label class="field-label">Hasta</label>
+          <input type="date" class="input"
+                 [ngModel]="filtroFechaHasta()"
+                 (ngModelChange)="filtroFechaHasta.set($event)" />
+        </div>
+        <button class="btn btn-primary" (click)="cargar()" [disabled]="loading()">
+          <span class="material-symbols-outlined">search</span>
+          Aplicar
+        </button>
+      </div>
+    </section>
+
+    @if (error()) {
+      <div class="alert alert-danger fade-in">
+        <span class="material-symbols-outlined">error</span>
+        <span style="flex:1">{{ error() }}</span>
+        <button class="btn btn-icon btn-ghost" (click)="error.set(null)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    }
+    @if (success()) {
+      <div class="alert alert-success fade-in">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span style="flex:1">{{ success() }}</span>
+        <button class="btn btn-icon btn-ghost" (click)="success.set(null)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    }
+
+    <!-- ===== TABLA ===== -->
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando envíos…
+      </div>
+    } @else if (envios().length === 0) {
+      <div class="empty-state card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">inventory_2</span>
+        </div>
+        <h3 class="empty-title">Sin envíos</h3>
+        <p class="empty-text">No hay envíos para los filtros aplicados.</p>
+      </div>
+    } @else {
+      <section class="surface-elevated table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tracking</th>
+              <th>Fecha</th>
+              <th>Origen → Destino</th>
+              <th>CP</th>
+              <th>Estado público</th>
+              <th>Estado interno</th>
+              <th>Pago</th>
+              <th>Coste</th>
+              <th class="th-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of envios(); track e.numeroSeguimiento) {
+              <tr class="row-clickable" (click)="verDetalle(e)">
+                <td>
+                  <div class="cell-mono cell-strong">{{ e.numeroSeguimiento }}</div>
+                  <div class="cell-user-email">{{ e.numeroExpedicion }}</div>
+                </td>
+                <td class="cell-meta">{{ e.fechaCreacion | date:'dd/MM/yy HH:mm' }}</td>
+                <td>
+                  <div class="cell-user-name">{{ e.nombreRemitente }} → {{ e.nombreDestinatario }}</div>
+                  <div class="cell-user-email">{{ e.origen }} → {{ e.destino }}</div>
+                </td>
+                <td class="cell-mono">{{ e.codigoPostalDestino }}</td>
+                <td>
+                  <span class="chip" [class.chip-success]="e.estadoActual === 4"
+                        [class.chip-info]="e.estadoActual === 1 || e.estadoActual === 2 || e.estadoActual === 3"
+                        [class.chip-warning]="e.estadoActual === -1"
+                        [class.chip-danger]="e.estadoActual === 5 || e.estadoActual === 6">
+                    {{ estadoPublicoLabel(e.estadoActual) }}
+                  </span>
+                </td>
+                <td class="cell-meta">{{ estadoInternoLabel(e.estadoInternoActual) }}</td>
+                <td>
+                  @if (e.pagado) {
+                    <span class="chip chip-success">
+                      <span class="material-symbols-outlined">paid</span>
+                      Pagado
+                    </span>
+                  } @else {
+                    <span class="chip chip-warning">
+                      <span class="material-symbols-outlined">schedule</span>
+                      Pendiente
+                    </span>
+                  }
+                </td>
+                <td class="cell-mono">{{ e.costeCalculado | number:'1.2-2' }} €</td>
+                <td class="cell-actions">
+                  <button class="btn btn-icon btn-ghost action-info" (click)="$event.stopPropagation(); verDetalle(e)" title="Ver detalle">
+                    <span class="material-symbols-outlined">open_in_new</span>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+      <p class="result-count">{{ envios().length }} envío(s)</p>
+    }
+  </main>
+</div>
+
+<!-- ════════════ Modal: Detalle ════════════ -->
+@if (detalle(); as d) {
+  <div class="modal-overlay fade-in" (click)="cerrarDetalle()">
+    <div class="modal-card modal-large surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-brand">
+            <span class="material-symbols-outlined">inventory_2</span>
+          </div>
+          <h2>{{ d.numeroSeguimiento }}</h2>
+          <span class="chip" [class.chip-success]="d.estadoActual === 4"
+                [class.chip-info]="d.estadoActual === 1 || d.estadoActual === 2 || d.estadoActual === 3"
+                [class.chip-warning]="d.estadoActual === -1"
+                [class.chip-danger]="d.estadoActual === 5 || d.estadoActual === 6">
+            {{ estadoPublicoLabel(d.estadoActual) }}
+          </span>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarDetalle()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div class="modal-form">
+        <div class="form-grid">
+          <div class="field">
+            <h3 class="field-label">Identificación</h3>
+            <p><strong>Tracking:</strong> <span class="cell-mono">{{ d.numeroSeguimiento }}</span></p>
+            <p><strong>Expedición:</strong> <span class="cell-mono">{{ d.numeroExpedicion }}</span></p>
+            <p><strong>Estado interno:</strong> {{ estadoInternoLabel(d.estadoInternoActual) }}</p>
+            <p><strong>Creado:</strong> {{ d.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</p>
+            <p>
+              <strong>Pago:</strong>
+              @if (d.pagado) { <span class="chip chip-success">Pagado</span> }
+              @else { <span class="chip chip-warning">Pendiente</span> }
+              @if (d.fechaPago) { · <span class="cell-meta">{{ d.fechaPago | date:'dd/MM/yy HH:mm' }}</span> }
+            </p>
+          </div>
+
+          <div class="field">
+            <h3 class="field-label">Paquete</h3>
+            <p><strong>Peso:</strong> {{ d.pesoKg }} kg</p>
+            <p><strong>Dimensiones:</strong> {{ d.dimensiones }}</p>
+            <p><strong>Tarifa:</strong> {{ d.tipoTarifa }} ({{ d.tiempoEntregaEstimado }})</p>
+            <p><strong>Coste:</strong> {{ d.costeCalculado | number:'1.2-2' }} €</p>
+          </div>
+
+          <div class="field">
+            <h3 class="field-label">Remitente</h3>
+            <p>{{ d.nombreRemitente }} {{ d.apellidosRemitente }}</p>
+            <p class="cell-user-email">{{ d.emailRemitente }} · {{ d.telefonoRemitente }}</p>
+            @if (d.dniRemitente) { <p class="cell-user-email">DNI: {{ d.dniRemitente }}</p> }
+            <p>{{ d.origen }} ({{ d.codigoPostalOrigen }})</p>
+          </div>
+
+          <div class="field">
+            <h3 class="field-label">Destinatario</h3>
+            <p>{{ d.nombreDestinatario }} {{ d.apellidosDestinatario }}</p>
+            <p class="cell-user-email">
+              @if (d.emailDestinatario) { {{ d.emailDestinatario }} · }
+              {{ d.telefonoDestinatario }}
+            </p>
+            @if (d.dniDestinatario) { <p class="cell-user-email">DNI: {{ d.dniDestinatario }}</p> }
+            <p>{{ d.destino }} ({{ d.codigoPostalDestino }})</p>
+          </div>
+
+          @if (d.observaciones) {
+            <div class="field field-full">
+              <h3 class="field-label">Observaciones / historial</h3>
+              <pre class="observaciones">{{ d.observaciones }}</pre>
+            </div>
+          }
+        </div>
+
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarDetalle()">Cerrar</button>
+          <button class="btn btn-primary" (click)="abrirCambiarEstado(d)">
+            <span class="material-symbols-outlined">edit</span>
+            Cambiar estado
+          </button>
+          <button class="btn btn-secondary" (click)="abrirReabrir()">
+            <span class="material-symbols-outlined">restart_alt</span>
+            Reabrir
+          </button>
+          <button class="btn btn-secondary action-danger" (click)="abrirAnular()">
+            <span class="material-symbols-outlined">block</span>
+            Anular
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════ Modal: Cambiar estado ════════════ -->
+@if (modalEstadoAbierto()) {
+  <div class="modal-overlay fade-in" (click)="modalEstadoAbierto.set(false)">
+    <div class="modal-card modal-small surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-info"><span class="material-symbols-outlined">edit</span></div>
+          <h2>Cambiar estado</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="modalEstadoAbierto.set(false)"><span class="material-symbols-outlined">close</span></button>
+      </header>
+      <div class="modal-form">
+        <div class="field">
+          <label class="field-label">Estado público</label>
+          <select class="select" [ngModel]="estadoPublicoEdit()" (ngModelChange)="estadoPublicoEdit.set(+$event)">
+            @for (o of estadosPublicos; track o.value) {
+              <option [ngValue]="o.value">{{ o.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Estado interno</label>
+          <select class="select" [ngModel]="estadoInternoEdit()" (ngModelChange)="estadoInternoEdit.set(+$event)">
+            @for (o of estadosInternos; track o.value) {
+              <option [ngValue]="o.value">{{ o.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Motivo (opcional)</label>
+          <textarea class="input" rows="3" [ngModel]="motivoEstado()" (ngModelChange)="motivoEstado.set($event)" maxlength="500"></textarea>
+        </div>
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="modalEstadoAbierto.set(false)" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary" (click)="confirmarCambiarEstado()" [disabled]="saving()">
+            @if (saving()) { <span class="material-symbols-outlined spinning">progress_activity</span> Guardando… }
+            @else { <span class="material-symbols-outlined">save</span> Guardar }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════ Modal: Anular ════════════ -->
+@if (modalAnularAbierto()) {
+  <div class="modal-overlay fade-in" (click)="modalAnularAbierto.set(false)">
+    <div class="modal-card modal-small surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-danger"><span class="material-symbols-outlined">block</span></div>
+          <h2>Anular envío</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="modalAnularAbierto.set(false)"><span class="material-symbols-outlined">close</span></button>
+      </header>
+      <div class="modal-form">
+        <div class="alert alert-warning">
+          <span class="material-symbols-outlined">warning</span>
+          El envío pasará a estado <strong>Devuelto</strong> y se registrará en sus observaciones. Esta acción no realiza reembolsos.
+        </div>
+        <div class="field">
+          <label class="field-label">Motivo</label>
+          <textarea class="input" rows="3" [ngModel]="motivoAnular()" (ngModelChange)="motivoAnular.set($event)" maxlength="500"></textarea>
+        </div>
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="modalAnularAbierto.set(false)" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary action-danger" (click)="confirmarAnular()" [disabled]="saving()">
+            @if (saving()) { Anulando… } @else { Confirmar anulación }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════ Modal: Reabrir ════════════ -->
+@if (modalReabrirAbierto()) {
+  <div class="modal-overlay fade-in" (click)="modalReabrirAbierto.set(false)">
+    <div class="modal-card modal-small surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-success"><span class="material-symbols-outlined">restart_alt</span></div>
+          <h2>Reabrir envío</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="modalReabrirAbierto.set(false)"><span class="material-symbols-outlined">close</span></button>
+      </header>
+      <div class="modal-form">
+        <div class="alert alert-info">
+          <span class="material-symbols-outlined">info</span>
+          El envío volverá a estado <strong>Admitido / Pendiente Recogida</strong>.
+        </div>
+        <div class="field">
+          <label class="field-label">Motivo</label>
+          <textarea class="input" rows="3" [ngModel]="motivoReabrir()" (ngModelChange)="motivoReabrir.set($event)" maxlength="500"></textarea>
+        </div>
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="modalReabrirAbierto.set(false)" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary" (click)="confirmarReabrir()" [disabled]="saving()">
+            @if (saving()) { Reabriendo… } @else { Confirmar reapertura }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}

@@ -11,16 +11,16 @@ namespace Nexopostal.Intranet.Controllers;
 /// Controlador para la gestión de asignaciones de paquetes a operarios.
 /// 
 /// Flujo:
-///   1. El OperarioLogistico escanea un paquete → POST /api/asignaciones (crea tarea)
-///   2. El Operario ve sus tareas pendientes → GET /api/asignaciones/mis-pendientes
-///   3. El Operario inicia la tarea → PUT /api/asignaciones/{id}/iniciar
-///   4. El Operario completa la tarea → PUT /api/asignaciones/{id}/completar
+///   1. El OperarioCTA escanea un paquete → POST /api/asignaciones (crea tarea)
+///   2. El OperarioOficina ve sus tareas pendientes → GET /api/asignaciones/mis-pendientes
+///   3. El OperarioOficina inicia la tarea → PUT /api/asignaciones/{id}/iniciar
+///   4. El OperarioOficina completa la tarea → PUT /api/asignaciones/{id}/completar
 /// 
 /// Los envíos urgentes aparecen siempre primero (pase VIP).
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico,OperarioOficina")]
+[Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
 public class AsignacionesController : ControllerBase
 {
     private readonly IAsignacionService _asignacionService;
@@ -34,11 +34,12 @@ public class AsignacionesController : ControllerBase
 
     /// <summary>
     /// Crea una nueva asignación de tarea.
-    /// Solo el OperarioLogistico puede asignar paquetes a operarios de su CTA.
+    /// El OperarioCTA asigna paquetes a operarios de su CTA.
+    /// El OperarioOficina puede auto-asignarse tareas de la cola de su oficina.
     /// </summary>
     [HttpPost]
     [HttpPost("crear")]
-    [Authorize(Roles = "Admin,OperarioLogistico")]
+    [Authorize(Roles = "Admin,OperarioCTA,OperarioOficina")]
     [ProducesResponseType(typeof(AsignacionDetalleDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -88,10 +89,31 @@ public class AsignacionesController : ControllerBase
     }
 
     /// <summary>
+    /// Busca una tarea (pendiente o en progreso) del operario por número de expedición.
+    /// Si no la encuentra devuelve 404 — el frontend debe ofrecer crear incidencia
+    /// "PaqueteFueraDeTareas".
+    /// </summary>
+    [HttpGet("buscar")]
+    [ProducesResponseType(typeof(AsignacionResumenDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AsignacionResumenDto>> BuscarEnMisTareas([FromQuery] string codigo)
+    {
+        if (string.IsNullOrWhiteSpace(codigo))
+            return BadRequest(new { message = "Código requerido" });
+
+        var operario = await ObtenerOperarioActual();
+        if (operario == null) return Forbid();
+
+        var resultado = await _asignacionService.BuscarEnMisTareasAsync(operario.Id, codigo);
+        if (resultado == null) return NotFound(new { message = "Paquete fuera de tus tareas" });
+        return Ok(resultado);
+    }
+
+    /// <summary>
     /// Obtiene todas las asignaciones de un CTA, opcionalmente filtradas por estado.
     /// </summary>
     [HttpGet("cta/{ctaId:int}")]
-    [Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico")]
+    [Authorize(Roles = "Admin,Supervisor,OperarioCTA")]
     [ProducesResponseType(typeof(List<AsignacionResumenDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<AsignacionResumenDto>>> ObtenerPorCta(
         int ctaId, [FromQuery] string? estado = null)
@@ -122,7 +144,7 @@ public class AsignacionesController : ControllerBase
     /// Solo el operario asignado puede iniciar su tarea.
     /// </summary>
     [HttpPut("{id:int}/iniciar")]
-    [Authorize(Roles = "Admin,OperarioOficina")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(typeof(AsignacionDetalleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AsignacionDetalleDto>> Iniciar(int id)
@@ -147,7 +169,7 @@ public class AsignacionesController : ControllerBase
     /// Solo el operario asignado puede completar su tarea.
     /// </summary>
     [HttpPut("{id:int}/completar")]
-    [Authorize(Roles = "Admin,OperarioOficina")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(typeof(AsignacionDetalleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AsignacionDetalleDto>> Completar(int id)
@@ -168,10 +190,10 @@ public class AsignacionesController : ControllerBase
     }
 
     /// <summary>
-    /// Cancela una tarea. Solo OperarioLogistico o Admin.
+    /// Cancela una tarea. Solo OperarioCTA o Admin.
     /// </summary>
     [HttpPut("{id:int}/cancelar")]
-    [Authorize(Roles = "Admin,OperarioLogistico")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Cancelar(int id)

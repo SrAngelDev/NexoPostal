@@ -1,0 +1,3 @@
+/* gestion-repartidores — overrides puntuales.
+   Layout y componentes vienen de utilidades globales en src/styles.css. */
+.icon-muted { color: var(--text-subtle); font-size: 1.25rem; }

@@ -1,0 +1,316 @@
+<div class="page">
+  <main class="page-content fade-in-up">
+
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div class="icon-tile icon-tile-lg icon-tile-info">
+        <span class="material-symbols-outlined">groups</span>
+      </div>
+      <div class="header-text">
+        <h1 class="page-heading">Gestión de clientes</h1>
+        <p class="page-subheading">Vista 360 de clientes ciudadanos: identidad, agenda y envíos. Bloqueo/desbloqueo y reset de contraseña.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading()">
+          <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
+          Recargar
+        </button>
+      </div>
+    </header>
+
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg"><span class="material-symbols-outlined">groups</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ totalClientes() }}</div><div class="kpi-label">Total</div></div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-success"><span class="material-symbols-outlined">verified_user</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ totalActivos() }}</div><div class="kpi-label">Activos</div></div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-danger"><span class="material-symbols-outlined">block</span></div>
+        <div class="kpi-body"><div class="kpi-value">{{ totalBloqueados() }}</div><div class="kpi-label">Bloqueados</div></div>
+      </article>
+    </section>
+
+    @if (error()) {
+      <div class="alert alert-danger fade-in">
+        <span class="material-symbols-outlined">error</span>
+        <span style="flex:1">{{ error() }}</span>
+        <button class="btn btn-icon btn-ghost" (click)="error.set(null)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    }
+    @if (success()) {
+      <div class="alert alert-success fade-in">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span style="flex:1">{{ success() }}</span>
+        <button class="btn btn-icon btn-ghost" (click)="success.set(null)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    }
+
+    <section class="card filters-card">
+      <div class="filters-grid">
+        <div class="field field-icon filter-search">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" class="input"
+                 placeholder="Buscar por email o nombre…"
+                 [ngModel]="filtroTexto()"
+                 (ngModelChange)="filtroTexto.set($event)"
+                 (keyup.enter)="cargar()" />
+        </div>
+        <div class="field">
+          <label class="field-label">Estado</label>
+          <select class="select"
+                  [ngModel]="filtroBloqueado()"
+                  (ngModelChange)="filtroBloqueado.set($event); cargar()">
+            <option value="todos">Todos</option>
+            <option value="activos">Activos</option>
+            <option value="bloqueados">Bloqueados</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" (click)="cargar()" [disabled]="loading()">
+          <span class="material-symbols-outlined">search</span>
+          Aplicar
+        </button>
+      </div>
+    </section>
+
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando clientes…
+      </div>
+    } @else if (clientes().length === 0) {
+      <div class="empty-state card">
+        <div class="icon-tile icon-tile-lg icon-tile-info">
+          <span class="material-symbols-outlined">person_off</span>
+        </div>
+        <h3 class="empty-title">Sin clientes</h3>
+        <p class="empty-text">No hay clientes registrados con los filtros actuales.</p>
+      </div>
+    } @else {
+      <section class="surface-elevated table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Teléfono</th>
+              <th>Registro</th>
+              <th>Estado</th>
+              <th class="th-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of clientes(); track c.id) {
+              <tr [class.row-blocked]="c.bloqueado" [class.row-deleted]="c.eliminado">
+                <td>
+                  <div class="cell-user">
+                    <div class="avatar">{{ c.nombreCompleto.slice(0, 2).toUpperCase() }}</div>
+                    <div class="cell-user-text">
+                      <div class="cell-user-name">{{ c.nombreCompleto }}</div>
+                      <div class="cell-user-email">{{ c.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-meta">{{ c.phoneNumber || '—' }}</td>
+                <td class="cell-meta">{{ c.fechaRegistro | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  @if (c.eliminado) { <span class="chip chip-danger"><span class="material-symbols-outlined">delete</span>Eliminado</span> }
+                  @else if (c.bloqueado) { <span class="chip chip-warning"><span class="material-symbols-outlined">block</span>Bloqueado</span> }
+                  @else { <span class="chip chip-success"><span class="material-symbols-outlined">check_circle</span>Activo</span> }
+                </td>
+                <td class="cell-actions">
+                  <button class="btn btn-icon btn-ghost action-info" (click)="verPerfil(c)" title="Ver perfil 360">
+                    <span class="material-symbols-outlined">badge</span>
+                  </button>
+                  @if (!c.bloqueado) {
+                    <button class="btn btn-icon btn-ghost action-danger" (click)="bloquear(c)" [disabled]="saving()" title="Bloquear">
+                      <span class="material-symbols-outlined">lock</span>
+                    </button>
+                  } @else {
+                    <button class="btn btn-icon btn-ghost action-success" (click)="desbloquear(c)" [disabled]="saving()" title="Desbloquear">
+                      <span class="material-symbols-outlined">lock_open</span>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+      <p class="result-count">{{ clientes().length }} cliente(s)</p>
+    }
+  </main>
+</div>
+
+<!-- ════════════ Modal: Perfil 360 ════════════ -->
+@if (clienteSeleccionado(); as c) {
+  <div class="modal-overlay fade-in" (click)="cerrarPerfil()">
+    <div class="modal-card modal-large surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="avatar">{{ c.nombreCompleto.slice(0, 2).toUpperCase() }}</div>
+          <h2>{{ c.nombreCompleto }}</h2>
+          @if (c.bloqueado) { <span class="chip chip-warning">Bloqueado</span> }
+          @else { <span class="chip chip-success">Activo</span> }
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarPerfil()"><span class="material-symbols-outlined">close</span></button>
+      </header>
+
+      <div class="tabs-row">
+        <button class="tab-btn" [class.tab-active]="vistaPerfil() === 'datos'" (click)="vistaPerfil.set('datos')">
+          <span class="material-symbols-outlined">person</span>
+          Datos
+        </button>
+        <button class="tab-btn" [class.tab-active]="vistaPerfil() === 'agenda'" (click)="vistaPerfil.set('agenda')">
+          <span class="material-symbols-outlined">contacts</span>
+          Agenda
+          @if (perfil()?.perfil?.agenda?.length) { <span class="chip">{{ perfil()!.perfil!.agenda.length }}</span> }
+        </button>
+        <button class="tab-btn" [class.tab-active]="vistaPerfil() === 'envios'" (click)="vistaPerfil.set('envios')">
+          <span class="material-symbols-outlined">inventory_2</span>
+          Envíos
+          @if (perfil()?.envios?.length) { <span class="chip">{{ perfil()!.envios.length }}</span> }
+        </button>
+      </div>
+
+      <div class="modal-form">
+        @if (!perfil()) {
+          <div class="loading-state"><span class="material-symbols-outlined spinning">progress_activity</span> Cargando perfil…</div>
+        } @else {
+          @if (vistaPerfil() === 'datos') {
+            <div class="form-grid">
+              <div class="field">
+                <h3 class="field-label">Identidad</h3>
+                <p><strong>Email:</strong> {{ c.email }}</p>
+                <p><strong>Teléfono:</strong> {{ c.phoneNumber || '—' }}</p>
+                <p><strong>Registro:</strong> {{ c.fechaRegistro | date:'dd/MM/yyyy HH:mm' }}</p>
+                <p><strong>ID:</strong> <span class="cell-mono">{{ c.id }}</span></p>
+              </div>
+              <div class="field">
+                <h3 class="field-label">Perfil ciudadano</h3>
+                @if (perfil()!.perfil; as p) {
+                  <p><strong>DNI:</strong> {{ p.dni || '—' }}</p>
+                  <p><strong>Teléfono:</strong> {{ p.telefono || '—' }}</p>
+                  <p><strong>Dirección predet.:</strong> {{ p.direccionPredeterminada || '—' }}</p>
+                  <p><strong>Creado:</strong> {{ p.fechaCreacion | date:'dd/MM/yyyy' }}</p>
+                } @else {
+                  <p class="text-subtle">Sin perfil ciudadano (aún no ha completado datos en Mi Cuenta).</p>
+                }
+              </div>
+              <div class="field field-full">
+                <h3 class="field-label">Estadísticas</h3>
+                <div class="stats-row">
+                  <div class="stat-pill"><span class="stat-num">{{ perfil()!.estadisticas.totalEnvios }}</span><span class="stat-label">Envíos</span></div>
+                  <div class="stat-pill stat-success"><span class="stat-num">{{ perfil()!.estadisticas.entregados }}</span><span class="stat-label">Entregados</span></div>
+                  <div class="stat-pill stat-warning"><span class="stat-num">{{ perfil()!.estadisticas.incidencias }}</span><span class="stat-label">Incidencias</span></div>
+                  <div class="stat-pill stat-info"><span class="stat-num">{{ perfil()!.estadisticas.pagados }}</span><span class="stat-label">Pagados</span></div>
+                  <div class="stat-pill stat-accent"><span class="stat-num">{{ perfil()!.estadisticas.gastoTotal | number:'1.2-2' }} €</span><span class="stat-label">Gasto total</span></div>
+                </div>
+              </div>
+            </div>
+          }
+          @if (vistaPerfil() === 'agenda') {
+            @if (perfil()!.perfil?.agenda?.length) {
+              <div class="agenda-grid">
+                @for (d of perfil()!.perfil!.agenda; track d.id) {
+                  <article class="card agenda-card">
+                    <div class="icon-tile icon-tile-info">
+                      <span class="material-symbols-outlined">contact_page</span>
+                    </div>
+                    <h4 class="agenda-alias">{{ d.alias }}</h4>
+                    <p class="cell-user-name">{{ d.nombreDestinatario }}</p>
+                    <p class="cell-user-email">{{ d.direccion }}</p>
+                    <p class="cell-user-email">{{ d.codigoPostal }} {{ d.ciudad }} ({{ d.provincia }})</p>
+                    @if (d.telefono) { <p class="cell-user-email">Tel: {{ d.telefono }}</p> }
+                  </article>
+                }
+              </div>
+            } @else {
+              <p class="text-subtle">El cliente no tiene direcciones favoritas guardadas.</p>
+            }
+          }
+          @if (vistaPerfil() === 'envios') {
+            @if (perfil()!.envios.length) {
+              <div class="surface-elevated table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Tracking</th><th>Fecha</th><th>Destino</th><th>Estado</th><th>Pago</th><th>Coste</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (e of perfil()!.envios; track e.numeroSeguimiento) {
+                      <tr>
+                        <td class="cell-mono">{{ e.numeroSeguimiento }}</td>
+                        <td class="cell-meta">{{ e.fechaCreacion | date:'dd/MM/yy HH:mm' }}</td>
+                        <td class="cell-meta">{{ e.destino }} ({{ e.codigoPostalDestino }})</td>
+                        <td><span class="chip">{{ estadoPublicoLabel(e.estadoActual) }}</span></td>
+                        <td>
+                          @if (e.pagado) { <span class="chip chip-success">Sí</span> }
+                          @else { <span class="chip chip-warning">No</span> }
+                        </td>
+                        <td class="cell-mono">{{ e.costeCalculado | number:'1.2-2' }} €</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="text-subtle">El cliente todavía no ha realizado ningún envío.</p>
+            }
+          }
+        }
+
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarPerfil()">Cerrar</button>
+          <button class="btn btn-secondary action-warning" (click)="abrirResetPassword()">
+            <span class="material-symbols-outlined">key</span> Restablecer contraseña
+          </button>
+          @if (!c.bloqueado) {
+            <button class="btn btn-primary action-danger" (click)="bloquear(c)" [disabled]="saving()">
+              <span class="material-symbols-outlined">lock</span> Bloquear
+            </button>
+          } @else {
+            <button class="btn btn-primary" (click)="desbloquear(c)" [disabled]="saving()">
+              <span class="material-symbols-outlined">lock_open</span> Desbloquear
+            </button>
+          }
+        </footer>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════ Modal: Reset Password ════════════ -->
+@if (modalResetAbierto()) {
+  <div class="modal-overlay fade-in" (click)="modalResetAbierto.set(false)">
+    <div class="modal-card modal-small surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-warning"><span class="material-symbols-outlined">key</span></div>
+          <h2>Restablecer contraseña</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="modalResetAbierto.set(false)"><span class="material-symbols-outlined">close</span></button>
+      </header>
+      <div class="modal-form">
+        <div class="alert alert-info">
+          <span class="material-symbols-outlined">info</span>
+          Define una contraseña temporal. El usuario debería cambiarla en su próximo acceso.
+        </div>
+        <div class="field">
+          <label class="field-label">Nueva contraseña</label>
+          <input type="text" class="input"
+                 [ngModel]="nuevaPassword()"
+                 (ngModelChange)="nuevaPassword.set($event)" minlength="6" />
+        </div>
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="modalResetAbierto.set(false)" [disabled]="saving()">Cancelar</button>
+          <button class="btn btn-primary action-warning" (click)="confirmarReset()" [disabled]="saving()">
+            @if (saving()) { Guardando… } @else { Confirmar }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}

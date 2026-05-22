@@ -171,10 +171,15 @@ export class AuthService {
   }
 
   /**
-   * Solicita el envío del email de recuperación de contraseña
+   * Solicita el envío del email de recuperación de contraseña.
+   * Envía window.location.origin para que el backend genere el enlace correcto
+   * independientemente del entorno (local, staging, producción).
    */
   solicitarResetPassword(email: string): Observable<{ mensaje: string }> {
-    return this.http.post<{ mensaje: string }>(`${this.API_URL}/solicitar-reset`, { email });
+    return this.http.post<{ mensaje: string }>(`${this.API_URL}/solicitar-reset`, {
+      email,
+      frontendUrl: window.location.origin
+    });
   }
 
   /**

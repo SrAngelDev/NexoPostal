@@ -143,7 +143,11 @@ public class PagosController : ControllerBase
         {
             SessionUrl = sessionUrl,
             SessionId = sessionId,
-            NumeroSeguimiento = envio.NumeroSeguimiento
+            NumeroSeguimiento = envio.NumeroSeguimiento,
+            PrecioCalculado = tarifa.PrecioTotal,
+            TiempoEntregaEstimado = tarifa.TiempoEntregaEstimado,
+            Zona = tarifa.Zona,
+            TipoTarifa = tarifa.TipoTarifa
         });
     }
 
@@ -232,7 +236,11 @@ public class PagosController : ControllerBase
         {
             SessionUrl = sessionUrl,
             SessionId = sessionId,
-            NumeroSeguimiento = envio.NumeroSeguimiento
+            NumeroSeguimiento = envio.NumeroSeguimiento,
+            PrecioCalculado = envio.CosteCalculado,
+            TiempoEntregaEstimado = envio.TiempoEntregaEstimado,
+            Zona = string.Empty,
+            TipoTarifa = envio.TipoTarifa ?? string.Empty
         });
     }
 
@@ -310,16 +318,27 @@ public class PagosController : ControllerBase
             "Pago confirmado para envío {NumeroSeguimiento}. Generando documentos...",
             envio.NumeroSeguimiento);
 
-        // Generar PDFs
-        var etiquetaPdf = _etiquetaPdfService.GenerarEtiqueta(envio);
-        var facturaPdf = _facturaPdfService.GenerarFactura(envio);
+        // Generación de PDFs + envío de email (best-effort).
+        // Si falla cualquier paso, el pago ya está confirmado en BD: no debemos devolver HTTP 500
+        // ni bloquear el alta del paquete en la red logística.
+        try
+        {
+            var etiquetaPdf = _etiquetaPdfService.GenerarEtiqueta(envio);
+            var facturaPdf = _facturaPdfService.GenerarFactura(envio);
 
-        // Enviar email con adjuntos
-        await _emailService.EnviarConfirmacionEnvio(envio, facturaPdf, etiquetaPdf);
+            await _emailService.EnviarConfirmacionEnvio(envio, facturaPdf, etiquetaPdf);
 
-        _logger.LogInformation(
-            "Documentos generados y email enviado para envío {NumeroSeguimiento}",
-            envio.NumeroSeguimiento);
+            _logger.LogInformation(
+                "Documentos generados y email enviado para envío {NumeroSeguimiento}",
+                envio.NumeroSeguimiento);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "❌ Error generando documentos o enviando email para {NumeroSeguimiento}. " +
+                "El pago ya está confirmado; se podrá reenviar manualmente.",
+                envio.NumeroSeguimiento);
+        }
 
         // 📡 Notificar al microservicio de logística (Intranet) para que
         // resuelva el CTA por código postal y notifique vía SignalR

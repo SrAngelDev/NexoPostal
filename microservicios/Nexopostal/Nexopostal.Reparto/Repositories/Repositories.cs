@@ -17,9 +17,11 @@ public class RepartidorRepository : IRepartidorRepository
             .Include(r => r.Rutas)
             .FirstOrDefaultAsync(r => r.IdentityUserId == identityUserId);
 
-    public async Task<List<Repartidor>> GetAllAsync(int? oficinaJsonId = null)
+    public async Task<List<Repartidor>> GetAllAsync(int? oficinaJsonId = null, bool incluirInactivos = false)
     {
         var query = _context.Repartidores.Include(r => r.Rutas).AsQueryable();
+        if (!incluirInactivos)
+            query = query.Where(r => r.Activo);
         if (oficinaJsonId.HasValue)
             query = query.Where(r => r.OficinaJsonId == oficinaJsonId.Value);
         return await query.OrderBy(r => r.NombreCompleto).ToListAsync();
@@ -30,6 +32,19 @@ public class RepartidorRepository : IRepartidorRepository
         _context.Repartidores.Add(repartidor);
         await _context.SaveChangesAsync();
         return repartidor;
+    }
+
+    public async Task UpdateAsync(Repartidor repartidor)
+    {
+        _context.Repartidores.Update(repartidor);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> TieneRutasActivasAsync(int repartidorId)
+    {
+        return await _context.RutasReparto
+            .AnyAsync(r => r.RepartidorId == repartidorId
+                        && (r.Estado == EstadoRuta.Planificada || r.Estado == EstadoRuta.EnCurso));
     }
 }
 
@@ -150,3 +165,93 @@ public class EntregaPaqueteRepository : IEntregaPaqueteRepository
             .Where(e => rutaIds.Contains(e.RutaRepartoId))
             .ToListAsync();
 }
+
+public class UbicacionRepartidorRepository : IUbicacionRepartidorRepository
+{
+    private readonly RepartoDbContext _context;
+    public UbicacionRepartidorRepository(RepartoDbContext context) => _context = context;
+
+    public async Task UpsertAsync(int repartidorId, double latitud, double longitud, int? rutaActivaId)
+    {
+        var existente = await _context.UbicacionesRepartidores
+            .FirstOrDefaultAsync(u => u.RepartidorId == repartidorId);
+
+        if (existente == null)
+        {
+            _context.UbicacionesRepartidores.Add(new UbicacionRepartidor
+            {
+                RepartidorId = repartidorId,
+                Latitud = latitud,
+                Longitud = longitud,
+                RutaActivaId = rutaActivaId,
+                ActualizadoEn = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            existente.Latitud = latitud;
+            existente.Longitud = longitud;
+            existente.RutaActivaId = rutaActivaId;
+            existente.ActualizadoEn = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<UbicacionRepartidor>> GetActivasAsync(TimeSpan ventana, int? oficinaJsonId = null)
+    {
+        var umbral = DateTime.UtcNow - ventana;
+        var query = _context.UbicacionesRepartidores
+            .Include(u => u.Repartidor)
+            .Where(u => u.ActualizadoEn >= umbral);
+
+        if (oficinaJsonId.HasValue)
+            query = query.Where(u => u.Repartidor.OficinaJsonId == oficinaJsonId.Value);
+
+        return await query
+            .OrderByDescending(u => u.ActualizadoEn)
+            .ToListAsync();
+    }
+}
+
+public class VehiculoRepository : IVehiculoRepository
+{
+    private readonly RepartoDbContext _context;
+    public VehiculoRepository(RepartoDbContext context) => _context = context;
+
+    public async Task<List<Vehiculo>> GetAllAsync(bool incluirInactivos = false, int? oficinaJsonId = null, int? repartidorId = null)
+    {
+        var q = _context.Vehiculos.AsQueryable();
+        if (!incluirInactivos) q = q.Where(v => v.Activo);
+        if (oficinaJsonId.HasValue) q = q.Where(v => v.OficinaJsonId == oficinaJsonId.Value);
+        if (repartidorId.HasValue) q = q.Where(v => v.RepartidorAsignadoId == repartidorId.Value);
+        return await q.OrderBy(v => v.Matricula).ToListAsync();
+    }
+
+    public Task<Vehiculo?> GetByIdAsync(int id) =>
+        _context.Vehiculos.FirstOrDefaultAsync(v => v.Id == id);
+
+    public Task<Vehiculo?> GetByMatriculaAsync(string matricula) =>
+        _context.Vehiculos.FirstOrDefaultAsync(v => v.Matricula == matricula);
+
+    public Task<Vehiculo?> GetByRepartidorAsync(int repartidorId) =>
+        _context.Vehiculos.FirstOrDefaultAsync(v => v.RepartidorAsignadoId == repartidorId && v.Activo);
+
+    public Task<bool> MatriculaExistsAsync(string matricula, int? excluyendoId = null) =>
+        _context.Vehiculos.AnyAsync(v => v.Matricula == matricula && (!excluyendoId.HasValue || v.Id != excluyendoId.Value));
+
+    public async Task<Vehiculo> CreateAsync(Vehiculo vehiculo)
+    {
+        _context.Vehiculos.Add(vehiculo);
+        await _context.SaveChangesAsync();
+        return vehiculo;
+    }
+
+    public async Task UpdateAsync(Vehiculo vehiculo)
+    {
+        _context.Vehiculos.Update(vehiculo);
+        await _context.SaveChangesAsync();
+    }
+}
+
+

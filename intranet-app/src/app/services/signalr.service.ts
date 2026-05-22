@@ -27,6 +27,16 @@ export interface ConexionInfo {
   mensaje: string;
 }
 
+export interface CtaCambiadaPayload {
+  operarioCtaId: number;
+  ctaAnteriorId: number;
+  ctaAnteriorCodigo: string;
+  ctaNuevoId: number;
+  ctaNuevoCodigo: string;
+  ctaNuevoNombre: string;
+  mensaje: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -39,6 +49,7 @@ export class SignalrService {
   readonly notificaciones = signal<NotificacionSignalR[]>([]);
   readonly notificacionesNoLeidas = signal(0);
   readonly ultimaNotificacion = signal<NotificacionSignalR | null>(null);
+  readonly ctaCambiada = signal<CtaCambiadaPayload | null>(null);
 
   constructor(private authService: AuthService) {}
 
@@ -105,6 +116,14 @@ export class SignalrService {
   }
 
   /**
+   * Desconecta y vuelve a conectar (útil tras un cambio de CTA)
+   */
+  reconectar(): void {
+    this.desconectar();
+    setTimeout(() => this.conectar(), 500);
+  }
+
+  /**
    * Marca todas las notificaciones como leídas
    */
   marcarComoLeidas(): void {
@@ -131,6 +150,8 @@ export class SignalrService {
 
     // Eventos de paquetes
     this.hubConnection.on('PaqueteRecibidoEnCta', (n: NotificacionSignalR) => this.agregarNotificacion(n));
+    this.hubConnection.on('NuevoPaqueteEnOficina', (n: NotificacionSignalR) => this.agregarNotificacion(n));
+    this.hubConnection.on('PaqueteDisponibleParaReparto', (n: NotificacionSignalR) => this.agregarNotificacion(n));
     
     // Eventos de tareas
     this.hubConnection.on('TareaAsignada', (n: NotificacionSignalR) => this.agregarNotificacion(n));
@@ -148,6 +169,29 @@ export class SignalrService {
 
     // Notificación general
     this.hubConnection.on('NotificacionGeneral', (n: NotificacionSignalR) => this.agregarNotificacion(n));
+
+    // Broadcast administrativo (enviado desde /broadcast-notificaciones)
+    // El payload del servidor es { tipo, titulo, mensaje, fechaUtc, alcance, ctaId, rol }
+    // y hay que mapearlo al formato NotificacionSignalR esperado por el panel.
+    this.hubConnection.on('NotificacionBroadcast', (p: any) => {
+      const tipo: string = p?.tipo ?? 'info';
+      const notif: NotificacionSignalR = {
+        tipo: 'Broadcast',
+        titulo: p?.titulo ?? 'Notificación',
+        mensaje: p?.mensaje ?? '',
+        ctaId: p?.ctaId ?? 0,
+        ctaCodigo: '',
+        esUrgente: tipo === 'warning' || tipo === 'error',
+        fechaHora: p?.fechaUtc ?? new Date().toISOString(),
+        datos: { alcance: p?.alcance, rol: p?.rol, tipoOriginal: tipo }
+      };
+      this.agregarNotificacion(notif);
+    });
+
+    // Cambio de CTA asignado al operario
+    this.hubConnection.on('CtaCambiada', (payload: CtaCambiadaPayload) => {
+      this.ctaCambiada.set(payload);
+    });
   }
 
   private agregarNotificacion(n: NotificacionSignalR): void {

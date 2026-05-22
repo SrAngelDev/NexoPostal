@@ -45,6 +45,9 @@ public class AsignacionResumenDto
     public string AsignadoPor { get; set; } = string.Empty;
     public DateTime FechaAsignacion { get; set; }
     public DateTime? FechaCompletada { get; set; }
+
+    /// <summary>Modo de escaneo sugerido para esta tarea (derivado del TipoTarea).</summary>
+    public string? ModoSugerido { get; set; }
 }
 
 /// <summary>

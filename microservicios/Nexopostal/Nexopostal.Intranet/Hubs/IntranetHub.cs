@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Nexopostal.Intranet.Models;
+using Nexopostal.Intranet.Repositories;
 using Nexopostal.Intranet.Services;
 using System.Security.Claims;
 
@@ -11,8 +12,8 @@ namespace Nexopostal.Intranet.Hubs;
 /// 
 /// Grupos:
 ///   - "cta-{ctaId}" → Todos los operarios de un CTA (reciben notificaciones generales)
-///   - "cta-{ctaId}-logistico" → Solo OperarioLogisticos del CTA (paquetes pendientes de asignar)
-///   - "cta-{ctaId}-jefe" → Solo OperarioJefes del CTA (incidencias)
+///   - "cta-{ctaId}-cta" → Solo OperariosCTA del CTA (paquetes pendientes de asignar)
+///   - "cta-{ctaId}-supervisor" → Solo Supervisores del CTA (incidencias)
 ///   - "operario-{operarioId}" → Operario individual (tareas asignadas personalmente)
 /// 
 /// Eventos que emite el servidor:
@@ -26,18 +27,25 @@ namespace Nexopostal.Intranet.Hubs;
 ///   - "IncidenciaCreada" → Se ha reportado una nueva incidencia
 ///   - "IncidenciaActualizada" → Una incidencia ha cambiado de estado
 ///   - "NotificacionGeneral" → Mensaje genérico para todo el CTA
+///   - "CtaCambiada" → El operario ha sido reasignado a un nuevo CTA por un administrador
 /// </summary>
-[Authorize(Roles = "Admin,OperarioJefe,OperarioLogistico,OperarioOficina")]
+[Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
 public class IntranetHub : Hub
 {
     private readonly IOperarioService _operarioService;
     private readonly IClasificacionService _clasificacionService;
+    private readonly IOperarioOficinaRepository _operarioOficinaRepo;
     private readonly ILogger<IntranetHub> _logger;
 
-    public IntranetHub(IOperarioService operarioService, IClasificacionService clasificacionService, ILogger<IntranetHub> logger)
+    public IntranetHub(
+        IOperarioService operarioService,
+        IClasificacionService clasificacionService,
+        IOperarioOficinaRepository operarioOficinaRepo,
+        ILogger<IntranetHub> logger)
     {
         _operarioService = operarioService;
         _clasificacionService = clasificacionService;
+        _operarioOficinaRepo = operarioOficinaRepo;
         _logger = logger;
     }
 
@@ -65,8 +73,8 @@ public class IntranetHub : Hub
             foreach (var cta in todasCtas)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}");
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-logistico");
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-jefe");
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-cta");
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-supervisor");
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{cta.Id}-operarios");
             }
 
@@ -85,6 +93,42 @@ public class IntranetHub : Hub
                 totalCtas = todasCtas.Count,
                 mensaje = $"Conectado como Administrador — monitorizando {todasCtas.Count} CTAs"
             });
+            await base.OnConnectedAsync();
+            return;
+        }
+
+        // El rol OperarioOficina se gestiona aparte: vive en OperariosOficina (no en OperariosCta).
+        var isOperarioOficina = Context.User?.IsInRole("OperarioOficina") == true;
+        if (isOperarioOficina)
+        {
+            var operarioOficina = await _operarioOficinaRepo.GetByIdentityUserIdAsync(userId);
+            if (operarioOficina == null)
+            {
+                _logger.LogWarning("OperarioOficina {UserId} sin oficina asignada — conexión SignalR rechazada", userId);
+                Context.Abort();
+                return;
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"oficina-{operarioOficina.OficinaJsonId}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"operario-oficina-{operarioOficina.Id}");
+
+            _logger.LogInformation(
+                "OperarioOficina {Nombre} conectado a SignalR · Oficina {OficinaId} ({OficinaNombre}) · ConnectionId: {ConnId}",
+                operarioOficina.NombreCompleto,
+                operarioOficina.OficinaJsonId,
+                operarioOficina.OficinaNombre,
+                Context.ConnectionId);
+
+            await Clients.Caller.SendAsync("ConexionEstablecida", new
+            {
+                operarioId = operarioOficina.Id,
+                nombre = operarioOficina.NombreCompleto,
+                rol = "OperarioOficina",
+                oficinaJsonId = operarioOficina.OficinaJsonId,
+                oficinaNombre = operarioOficina.OficinaNombre,
+                mensaje = $"Conectado a la oficina {operarioOficina.OficinaNombre}"
+            });
+
             await base.OnConnectedAsync();
             return;
         }
@@ -114,11 +158,11 @@ public class IntranetHub : Hub
             // Grupo específico del rol dentro del CTA
             switch (operario.Rol)
             {
-                case RolOperario.OperarioLogistico:
-                    await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{ctaId}-logistico");
+                case RolOperario.OperarioCTA:
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{ctaId}-cta");
                     break;
-                case RolOperario.OperarioJefe:
-                    await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{ctaId}-jefe");
+                case RolOperario.Supervisor:
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{ctaId}-supervisor");
                     break;
                 case RolOperario.OperarioOficina:
                     await Groups.AddToGroupAsync(Context.ConnectionId, $"cta-{ctaId}-operarios");

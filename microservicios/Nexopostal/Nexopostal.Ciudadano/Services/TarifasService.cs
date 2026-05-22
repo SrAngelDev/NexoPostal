@@ -1,5 +1,9 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Nexopostal.Ciudadano.Data;
+using Nexopostal.Ciudadano.Models;
 
 namespace Nexopostal.Ciudadano.Services;
 
@@ -59,6 +63,7 @@ public interface ITarifasService
     TarifaConsultaResult Consultar(TarifaConsultaInput input);
     TarifaCalculoResult Calcular(TarifaCalculoInput input);
     (decimal? Largo, decimal? Ancho, decimal? Alto) ParseDimensiones(string? dimensiones);
+    void Invalidar();
 }
 
 public class TarifasService : ITarifasService
@@ -68,23 +73,77 @@ public class TarifasService : ITarifasService
     private const decimal IvaPorcentaje = 0.21m;
     private static readonly decimal[] BandasPeso = [1m, 2m, 5m, 10m, 20m, 30m];
 
-    // Precios base sin IVA — Zona Local/Provincial (misma provincia)
-    private static readonly decimal[] LocalEstandar = [
-        4.50m, 5.25m, 6.95m, 9.95m, 14.95m, 19.95m
-    ];
+    // Fallback estático (defaults históricos) usado si la BD no tiene datos.
+    private static readonly decimal[] DefaultLocalEstandar     = [4.50m, 5.25m, 6.95m,  9.95m, 14.95m, 19.95m];
+    private static readonly decimal[] DefaultLocalPremium      = [6.50m, 7.75m, 10.50m, 14.95m, 21.95m, 29.95m];
+    private static readonly decimal[] DefaultPeninsulaEstandar = [5.95m, 6.95m, 8.95m, 12.95m, 18.95m, 25.95m];
+    private static readonly decimal[] DefaultPeninsulaPremium  = [8.95m, 10.50m, 13.95m, 19.95m, 28.95m, 38.95m];
 
-    private static readonly decimal[] LocalPremium = [
-        6.50m, 7.75m, 10.50m, 14.95m, 21.95m, 29.95m
-    ];
+    // Caché en memoria de los precios actuales (cargados desde BD on-demand).
+    private static readonly object _cacheLock = new();
+    private static decimal[]? _localEstandar;
+    private static decimal[]? _localPremium;
+    private static decimal[]? _peninsulaEstandar;
+    private static decimal[]? _peninsulaPremium;
 
-    // Precios base sin IVA — Zona Península (nacional)
-    private static readonly decimal[] PeninsulaEstandar = [
-        5.95m, 6.95m, 8.95m, 12.95m, 18.95m, 25.95m
-    ];
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<TarifasService> _logger;
 
-    private static readonly decimal[] PeninsulaPremium = [
-        8.95m, 10.50m, 13.95m, 19.95m, 28.95m, 38.95m
-    ];
+    public TarifasService(IServiceScopeFactory scopeFactory, ILogger<TarifasService> logger)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
+    public void Invalidar()
+    {
+        lock (_cacheLock)
+        {
+            _localEstandar = null;
+            _localPremium = null;
+            _peninsulaEstandar = null;
+            _peninsulaPremium = null;
+        }
+    }
+
+    private void EnsureLoaded()
+    {
+        if (_localEstandar is not null) return;
+        lock (_cacheLock)
+        {
+            if (_localEstandar is not null) return;
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<CiudadanoDbContext>();
+                var bandas = db.TarifasBandas.AsNoTracking().OrderBy(b => b.OrdenBanda).ToList();
+                if (bandas.Count == 0)
+                {
+                    _localEstandar     = DefaultLocalEstandar;
+                    _localPremium      = DefaultLocalPremium;
+                    _peninsulaEstandar = DefaultPeninsulaEstandar;
+                    _peninsulaPremium  = DefaultPeninsulaPremium;
+                    return;
+                }
+                _localEstandar     = bandas.Where(b => b.Serie == TarifaSerie.LocalEstandar).OrderBy(b => b.OrdenBanda).Select(b => b.PrecioBase).ToArray();
+                _localPremium      = bandas.Where(b => b.Serie == TarifaSerie.LocalPremium).OrderBy(b => b.OrdenBanda).Select(b => b.PrecioBase).ToArray();
+                _peninsulaEstandar = bandas.Where(b => b.Serie == TarifaSerie.PeninsulaEstandar).OrderBy(b => b.OrdenBanda).Select(b => b.PrecioBase).ToArray();
+                _peninsulaPremium  = bandas.Where(b => b.Serie == TarifaSerie.PeninsulaPremium).OrderBy(b => b.OrdenBanda).Select(b => b.PrecioBase).ToArray();
+                if (_localEstandar.Length     != BandasPeso.Length) _localEstandar     = DefaultLocalEstandar;
+                if (_localPremium.Length      != BandasPeso.Length) _localPremium      = DefaultLocalPremium;
+                if (_peninsulaEstandar.Length != BandasPeso.Length) _peninsulaEstandar = DefaultPeninsulaEstandar;
+                if (_peninsulaPremium.Length  != BandasPeso.Length) _peninsulaPremium  = DefaultPeninsulaPremium;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudieron cargar tarifas desde BD; usando defaults");
+                _localEstandar     = DefaultLocalEstandar;
+                _localPremium      = DefaultLocalPremium;
+                _peninsulaEstandar = DefaultPeninsulaEstandar;
+                _peninsulaPremium  = DefaultPeninsulaPremium;
+            }
+        }
+    }
 
     // Multiplicadores aplicados sobre precio Península para zonas especiales
     private static readonly Dictionary<string, decimal> MultiplicadorZona = new(StringComparer.OrdinalIgnoreCase)
@@ -108,6 +167,7 @@ public class TarifasService : ITarifasService
 
     public TarifaConsultaResult Consultar(TarifaConsultaInput input)
     {
+        EnsureLoaded();
         var baseCalc = BuildBaseCalculo(input);
         var tarifas = new List<TarifaOpcion>
         {
@@ -127,6 +187,7 @@ public class TarifasService : ITarifasService
 
     public TarifaCalculoResult Calcular(TarifaCalculoInput input)
     {
+        EnsureLoaded();
         var baseCalc = BuildBaseCalculo(new TarifaConsultaInput(
             input.Peso,
             input.Largo,
@@ -281,7 +342,7 @@ public class TarifasService : ITarifasService
                codigoPostal.StartsWith("52", StringComparison.Ordinal);
     }
 
-    private static TarifaOpcion CalcularOpcion(BaseCalculo baseCalc, string tipoTarifa)
+    private TarifaOpcion CalcularOpcion(BaseCalculo baseCalc, string tipoTarifa)
     {
         var index = GetBandIndex(baseCalc.PesoFacturable);
         var zona = baseCalc.Zona;
@@ -291,11 +352,11 @@ public class TarifasService : ITarifasService
         decimal precioBase;
         if (zona.Equals("Local", StringComparison.OrdinalIgnoreCase))
         {
-            precioBase = esPremium ? LocalPremium[index] : LocalEstandar[index];
+            precioBase = esPremium ? _localPremium![index] : _localEstandar![index];
         }
         else
         {
-            var tablaBase = esPremium ? PeninsulaPremium[index] : PeninsulaEstandar[index];
+            var tablaBase = esPremium ? _peninsulaPremium![index] : _peninsulaEstandar![index];
             precioBase = RedondearMoneda(tablaBase * MultiplicadorZona[zona]);
         }
 

@@ -1,0 +1,91 @@
+<div class="page-container">
+  <nav class="page-nav">
+    <div class="nav-brand">
+      <span class="material-symbols-outlined">supervisor_account</span>
+      <h2 class="page-title">Panel del Jefe de Reparto</h2>
+    </div>
+    <div class="nav-actions">
+      <span class="nav-user">{{ userName }}</span>
+      <app-notification-bell />
+      <button class="btn-refresh" (click)="cargarDashboard()" title="Refrescar">
+        <span class="material-symbols-outlined">refresh</span>
+      </button>
+      <button class="btn-logout" (click)="logout()" title="Cerrar sesión">
+        <span class="material-symbols-outlined">logout</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Accesos rápidos a las herramientas del jefe -->
+  <div class="quick-actions">
+    <button class="quick-card quick-blue" (click)="ir('/gestion-rutas')">
+      <span class="material-symbols-outlined">route</span>
+      <div class="quick-title">Gestión de Rutas</div>
+      <div class="quick-desc">Planifica y supervisa las rutas del día</div>
+    </button>
+    <button class="quick-card quick-green" (click)="ir('/mapa-tiempo-real')">
+      <span class="material-symbols-outlined">my_location</span>
+      <div class="quick-title">Mapa en tiempo real</div>
+      <div class="quick-desc">Ubicación GPS de tu equipo ahora mismo</div>
+    </button>
+    <button class="quick-card quick-orange" (click)="ir('/asignar-paradas')">
+      <span class="material-symbols-outlined">swap_horiz</span>
+      <div class="quick-title">Asignar paradas</div>
+      <div class="quick-desc">Redistribuye paquetes entre repartidores</div>
+    </button>
+  </div>
+
+  <h3 class="section-title">Métricas del día</h3>
+
+  @if (cargando()) {
+    <div class="loading">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+      Cargando métricas...
+    </div>
+  } @else if (error()) {
+    <div class="error-msg">
+      <span class="material-symbols-outlined">error</span>
+      {{ error() }}
+    </div>
+  } @else if (stats(); as s) {
+    <div class="stats-grid">
+
+      <div class="stat-card stat-blue">
+        <span class="material-symbols-outlined">group</span>
+        <div class="stat-value">{{ s.repartidoresActivos }}</div>
+        <div class="stat-label">Repartidores activos</div>
+      </div>
+
+      <div class="stat-card stat-orange">
+        <span class="material-symbols-outlined">route</span>
+        <div class="stat-value">{{ s.rutasEnCurso }}</div>
+        <div class="stat-label">Rutas en curso</div>
+      </div>
+
+      <div class="stat-card stat-green">
+        <span class="material-symbols-outlined">check_circle</span>
+        <div class="stat-value">{{ s.rutasHoy }}</div>
+        <div class="stat-label">Rutas hoy</div>
+      </div>
+
+      <div class="stat-card stat-purple">
+        <span class="material-symbols-outlined">inventory_2</span>
+        <div class="stat-value">{{ s.tasaEntregaExitosa }}%</div>
+        <div class="stat-label">Tasa de entrega</div>
+      </div>
+
+      <div class="stat-card stat-red">
+        <span class="material-symbols-outlined">warning</span>
+        <div class="stat-value">{{ s.entregasFallidas }}</div>
+        <div class="stat-label">Con incidencias</div>
+      </div>
+
+      <div class="stat-card stat-gray">
+        <span class="material-symbols-outlined">schedule</span>
+        <div class="stat-value">{{ s.entregasPendientes }}</div>
+        <div class="stat-label">Pendientes</div>
+      </div>
+
+    </div>
+  }
+</div>

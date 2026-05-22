@@ -6,7 +6,7 @@ namespace Nexopostal.Intranet.Services;
 
 /// <summary>
 /// Servicio para gestionar las incidencias de un CTA.
-/// Solo el OperarioJefe puede crear, actualizar y resolver incidencias.
+/// Solo el Supervisor puede crear, actualizar y resolver incidencias.
 /// </summary>
 public interface IIncidenciaService
 {
@@ -18,6 +18,9 @@ public interface IIncidenciaService
 
     /// <summary>Obtiene las incidencias de un CTA</summary>
     Task<List<IncidenciaResumenDto>> ObtenerIncidenciasCta(int ctaId, EstadoIncidencia? filtroEstado = null);
+
+    /// <summary>Obtiene incidencias globales (Admin)</summary>
+    Task<List<IncidenciaResumenDto>> ObtenerIncidenciasGlobales(EstadoIncidencia? filtroEstado = null, int? ctaId = null, TipoIncidencia? tipo = null);
 
     /// <summary>Obtiene el detalle de una incidencia</summary>
     Task<IncidenciaDetalleDto?> ObtenerDetalle(int incidenciaId);
@@ -70,7 +73,7 @@ public class IncidenciaService : IIncidenciaService
 
         // 📡 Notificar a todo el CTA de la nueva incidencia
         var jefe = await _operarioRepo.GetWithCtaAsync(operarioJefeId)
-            ?? throw new InvalidOperationException("Operario jefe no encontrado");
+            ?? throw new InvalidOperationException("Supervisor no encontrado");
         await _notificacionService.NotificarIncidenciaCreada(
             ctaId,
             jefe.CentroTratamiento.Codigo,
@@ -135,6 +138,26 @@ public class IncidenciaService : IIncidenciaService
             ReportadaPor = i.ReportadaPor.NombreCompleto,
             FechaCreacion = i.FechaCreacion,
             FechaResolucion = i.FechaResolucion
+        }).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<IncidenciaResumenDto>> ObtenerIncidenciasGlobales(EstadoIncidencia? filtroEstado = null, int? ctaId = null, TipoIncidencia? tipo = null)
+    {
+        var incidencias = await _incidenciaRepo.GetAllAsync(filtroEstado, ctaId, tipo);
+        return incidencias.Select(i => new IncidenciaResumenDto
+        {
+            Id = i.Id,
+            NumeroExpedicion = i.NumeroExpedicion,
+            Tipo = i.Tipo.ToString(),
+            Estado = i.Estado.ToString(),
+            ReportadaPor = i.ReportadaPor.NombreCompleto,
+            FechaCreacion = i.FechaCreacion,
+            FechaResolucion = i.FechaResolucion,
+            CtaId = i.CtaId,
+            CtaCodigo = i.Cta?.Codigo,
+            CtaNombre = i.Cta?.Nombre,
+            Descripcion = i.Descripcion
         }).ToList();
     }
 

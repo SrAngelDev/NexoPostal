@@ -1,0 +1,28 @@
+<div class="mapa-page">
+  <nav class="mapa-nav">
+    <button class="btn-back" (click)="volver()" title="Volver">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+    <div class="nav-info">
+      <h2 class="nav-title">Mapa en tiempo real</h2>
+      <span class="nav-sub">
+        {{ ubicaciones().length }} repartidor(es) activo(s)
+        @if (ultimaActualizacion(); as t) {
+          · actualizado {{ t | date:'HH:mm:ss' }}
+        }
+      </span>
+    </div>
+    <button class="btn-refresh" (click)="refrescar()" [disabled]="cargando()" title="Refrescar">
+      <span class="material-symbols-outlined" [class.spinning]="cargando()">refresh</span>
+    </button>
+  </nav>
+
+  @if (error(); as e) {
+    <div class="error-banner">
+      <span class="material-symbols-outlined">error</span>
+      {{ e }}
+    </div>
+  }
+
+  <div id="mapa" class="mapa-canvas"></div>
+</div>

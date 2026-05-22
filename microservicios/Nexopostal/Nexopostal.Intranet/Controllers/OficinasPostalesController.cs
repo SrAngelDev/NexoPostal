@@ -107,4 +107,18 @@ public class OficinasPostalesController : ControllerBase
         var operarios = await _oficinaService.ObtenerOperariosOficina(oficinaJsonId);
         return Ok(operarios);
     }
+
+    /// <summary>
+    /// Obtiene las oficinas cuyo CP cae dentro de las rutas de un CTA.
+    /// Usado por el escáner para mostrar al operario las oficinas válidas
+    /// dentro del CTA en el que está trabajando.
+    /// </summary>
+    /// <param name="ctaId">ID del Centro de Tratamiento</param>
+    [HttpGet("por-cta/{ctaId:int}")]
+    [ProducesResponseType(typeof(List<OficinaJsonDto>), 200)]
+    public async Task<IActionResult> ObtenerPorCta(int ctaId)
+    {
+        var resultado = await _oficinaService.ObtenerOficinasPorCta(ctaId);
+        return Ok(resultado);
+    }
 }

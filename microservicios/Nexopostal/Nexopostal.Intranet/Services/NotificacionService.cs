@@ -10,14 +10,14 @@ namespace Nexopostal.Intranet.Services;
 /// 
 /// Grupos definidos en IntranetHub:
 ///   - "cta-{ctaId}" → Todos los operarios del CTA
-///   - "cta-{ctaId}-logistico" → Solo OperarioLogisticos
-///   - "cta-{ctaId}-jefe" → Solo OperarioJefes
-///   - "cta-{ctaId}-operarios" → Solo Operarios base
+///   - "cta-{ctaId}-cta" → Solo OperarioCTA
+///   - "cta-{ctaId}-supervisor" → Solo Supervisores
+///   - "cta-{ctaId}-operarios" → Solo OperarioOficina
 ///   - "operario-{operarioId}" → Operario individual
 /// </summary>
 public interface INotificacionService
 {
-    /// <summary>Notifica a los logísticos de un CTA que un paquete ha llegado y necesita clasificación</summary>
+    /// <summary>Notifica al rol OperarioCTA de un CTA que un paquete ha llegado y necesita clasificación</summary>
     Task NotificarPaqueteRecibidoEnCta(int ctaId, string ctaCodigo, string numeroExpedicion,
         bool esUrgente, string provincia, string? observaciones = null);
 
@@ -25,23 +25,23 @@ public interface INotificacionService
     Task NotificarTareaAsignada(int operarioId, int ctaId, string ctaCodigo,
         string numeroExpedicion, string tipoTarea, bool esUrgente, string asignadoPor);
 
-    /// <summary>Notifica a los logísticos del CTA que un operario ha iniciado una tarea</summary>
+    /// <summary>Notifica al rol OperarioCTA del CTA que un operario ha iniciado una tarea</summary>
     Task NotificarTareaIniciada(int ctaId, string ctaCodigo, string numeroExpedicion,
         string tipoTarea, string operarioNombre);
 
-    /// <summary>Notifica a los logísticos del CTA que un operario ha completado una tarea</summary>
+    /// <summary>Notifica al rol OperarioCTA del CTA que un operario ha completado una tarea</summary>
     Task NotificarTareaCompletada(int ctaId, string ctaCodigo, string numeroExpedicion,
         string tipoTarea, string operarioNombre);
 
-    /// <summary>Notifica a los logísticos del CTA que se ha cancelado una tarea</summary>
+    /// <summary>Notifica al rol OperarioCTA del CTA que se ha cancelado una tarea</summary>
     Task NotificarTareaCancelada(int ctaId, string ctaCodigo, string numeroExpedicion,
         string tipoTarea, string canceladoPor);
 
-    /// <summary>Notifica a los logísticos del CTA destino que un movimiento ha sido despachado desde otro CTA</summary>
+    /// <summary>Notifica al rol OperarioCTA del CTA destino que un movimiento ha sido despachado desde otro CTA</summary>
     Task NotificarMovimientoDespachado(int ctaDestinoId, string ctaDestinoCodigo,
         string ctaOrigenCodigo, string numeroExpedicion, string tipoTransporte, bool esUrgente);
 
-    /// <summary>Notifica a los logísticos del CTA que un paquete ha llegado desde otro CTA (movimiento recibido)</summary>
+    /// <summary>Notifica al rol OperarioCTA del CTA que un paquete ha llegado desde otro CTA (movimiento recibido)</summary>
     Task NotificarMovimientoRecibido(int ctaDestinoId, string ctaDestinoCodigo,
         string ctaOrigenCodigo, string numeroExpedicion, bool esUrgente);
 
@@ -55,6 +55,13 @@ public interface INotificacionService
 
     /// <summary>Envía una notificación general a todo un CTA</summary>
     Task NotificarGeneralCta(int ctaId, string ctaCodigo, string titulo, string mensaje);
+
+    /// <summary>Notifica a los OperarioOficina de una oficina origen que ha llegado un paquete nuevo recién admitido</summary>
+    Task NotificarNuevoPaqueteEnOficina(int oficinaJsonId, string? oficinaNombre, string numeroExpedicion,
+        bool esUrgente, string? cpOrigen = null, string? cpDestino = null, string? observaciones = null);
+
+    /// <summary>Notifica al equipo de reparto (JefeReparto) que un paquete está disponible para asignar a ruta</summary>
+    Task NotificarPaqueteDisponibleParaReparto(int ctaId, string ctaCodigo, string numeroExpedicion, bool esUrgente);
 }
 
 public class NotificacionService : INotificacionService
@@ -69,6 +76,64 @@ public class NotificacionService : INotificacionService
     }
 
     /// <inheritdoc />
+    public async Task NotificarNuevoPaqueteEnOficina(int oficinaJsonId, string? oficinaNombre, string numeroExpedicion,
+        bool esUrgente, string? cpOrigen = null, string? cpDestino = null, string? observaciones = null)
+    {
+        var prioridad = esUrgente ? "🔴 URGENTE" : "📦 Nuevo paquete";
+        var notificacion = new NotificacionDto
+        {
+            Tipo = "NuevoPaqueteEnOficina",
+            Titulo = $"{prioridad} pendiente de recepción",
+            Mensaje = $"El paquete {numeroExpedicion} debe ser entregado en la oficina {oficinaNombre ?? oficinaJsonId.ToString()} antes de continuar el flujo logístico.",
+            CtaId = 0,
+            CtaCodigo = string.Empty,
+            NumeroExpedicion = numeroExpedicion,
+            EsUrgente = esUrgente,
+            Datos = new
+            {
+                oficinaJsonId,
+                oficinaNombre,
+                cpOrigen,
+                cpDestino,
+                observaciones,
+                accionRequerida = "Esperar entrega y registrar recepción del paquete en la oficina"
+            }
+        };
+
+        await _hubContext.Clients.Group($"oficina-{oficinaJsonId}")
+            .SendAsync("NuevoPaqueteEnOficina", notificacion);
+
+        _logger.LogInformation(
+            "📡 SignalR → NuevoPaqueteEnOficina · {Expedicion} → Oficina {OficinaId} ({OficinaNombre})",
+            numeroExpedicion, oficinaJsonId, oficinaNombre);
+    }
+
+    /// <inheritdoc />
+    public async Task NotificarPaqueteDisponibleParaReparto(int ctaId, string ctaCodigo, string numeroExpedicion, bool esUrgente)
+    {
+        var prioridad = esUrgente ? "🔴 URGENTE" : "🚚";
+        var notificacion = new NotificacionDto
+        {
+            Tipo = "PaqueteDisponibleParaReparto",
+            Titulo = $"{prioridad} Paquete listo para asignar a ruta",
+            Mensaje = $"El paquete {numeroExpedicion} está clasificado y disponible para asignar a un repartidor desde {ctaCodigo}.",
+            CtaId = ctaId,
+            CtaCodigo = ctaCodigo,
+            NumeroExpedicion = numeroExpedicion,
+            EsUrgente = esUrgente,
+            Datos = new { accionRequerida = "Asignar paquete a una ruta de reparto" }
+        };
+
+        // Difundir al grupo general del CTA destino (JefeReparto se suscribe vía Reparto, pero notificamos también aquí).
+        await _hubContext.Clients.Group($"cta-{ctaId}")
+            .SendAsync("PaqueteDisponibleParaReparto", notificacion);
+
+        _logger.LogInformation(
+            "📡 SignalR → PaqueteDisponibleParaReparto · {Expedicion} en {Cta}",
+            numeroExpedicion, ctaCodigo);
+    }
+
+    /// <inheritdoc />
     public async Task NotificarPaqueteRecibidoEnCta(int ctaId, string ctaCodigo, string numeroExpedicion,
         bool esUrgente, string provincia, string? observaciones = null)
     {
@@ -76,8 +141,8 @@ public class NotificacionService : INotificacionService
         var notificacion = new NotificacionDto
         {
             Tipo = "PaqueteRecibidoEnCta",
-            Titulo = $"{prioridad} · Paquete pendiente de asignar",
-            Mensaje = $"El paquete {numeroExpedicion} con destino a {provincia} ha llegado al {ctaCodigo} y está pendiente de clasificación.",
+            Titulo = $"{prioridad} · Paquete pendiente de gestión",
+            Mensaje = $"El paquete {numeroExpedicion} con destino a {provincia} ha llegado al {ctaCodigo} y requiere gestión operativa.",
             CtaId = ctaId,
             CtaCodigo = ctaCodigo,
             NumeroExpedicion = numeroExpedicion,
@@ -86,12 +151,12 @@ public class NotificacionService : INotificacionService
             {
                 provincia,
                 observaciones,
-                accionRequerida = "Asignar a un operario para clasificación"
+                accionRequerida = "Revisar y gestionar el paquete en el CTA"
             }
         };
 
-        // Notificar a los OperarioLogisticos del CTA → ellos deben asignar la tarea
-        await _hubContext.Clients.Group($"cta-{ctaId}-logistico")
+        // Notificar al rol OperarioCTA del CTA
+        await _hubContext.Clients.Group($"cta-{ctaId}-cta")
             .SendAsync("PaqueteRecibidoEnCta", notificacion);
 
         _logger.LogInformation(
@@ -145,8 +210,8 @@ public class NotificacionService : INotificacionService
             Datos = new { tipoTarea, operarioNombre }
         };
 
-        // Notificar a logísticos del CTA para seguimiento
-        await _hubContext.Clients.Group($"cta-{ctaId}-logistico")
+        // Notificar al rol OperarioCTA del CTA para seguimiento
+        await _hubContext.Clients.Group($"cta-{ctaId}-cta")
             .SendAsync("TareaIniciada", notificacion);
 
         _logger.LogInformation(
@@ -169,8 +234,8 @@ public class NotificacionService : INotificacionService
             Datos = new { tipoTarea, operarioNombre }
         };
 
-        // Notificar a logísticos del CTA
-        await _hubContext.Clients.Group($"cta-{ctaId}-logistico")
+        // Notificar al rol OperarioCTA del CTA
+        await _hubContext.Clients.Group($"cta-{ctaId}-cta")
             .SendAsync("TareaCompletada", notificacion);
 
         _logger.LogInformation(
@@ -219,8 +284,8 @@ public class NotificacionService : INotificacionService
             Datos = new { ctaOrigenCodigo, tipoTransporte }
         };
 
-        // Notificar a logísticos del CTA destino
-        await _hubContext.Clients.Group($"cta-{ctaDestinoId}-logistico")
+        // Notificar al rol OperarioCTA del CTA destino
+        await _hubContext.Clients.Group($"cta-{ctaDestinoId}-cta")
             .SendAsync("MovimientoDespachado", notificacion);
 
         _logger.LogInformation(
@@ -249,8 +314,8 @@ public class NotificacionService : INotificacionService
             }
         };
 
-        // Notificar a logísticos del CTA destino → deben organizar la descarga
-        await _hubContext.Clients.Group($"cta-{ctaDestinoId}-logistico")
+        // Notificar al rol OperarioCTA del CTA destino → deben organizar la descarga
+        await _hubContext.Clients.Group($"cta-{ctaDestinoId}-cta")
             .SendAsync("MovimientoRecibido", notificacion);
 
         _logger.LogInformation(

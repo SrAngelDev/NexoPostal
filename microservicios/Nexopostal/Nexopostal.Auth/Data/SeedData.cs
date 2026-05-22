@@ -36,22 +36,55 @@ public static class SeedData
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
         {
             Id = "operario-logistico-pedro-martinez-seed-id",
-            UserName = "operario.logistico@nexopostal.es",
-            Email = "operario.logistico@nexopostal.es",
+            UserName = "operario.cta@nexopostal.es",
+            Email = "operario.cta@nexopostal.es",
             NombreCompleto = "Pedro Martínez Ruiz",
             CodigoEmpleado = "OPL001",
-            Rol = Rol.OperarioLogistico,
+            Rol = Rol.OperarioCTA,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "operario-logistico-sergio-romero-seed-id",
+            UserName = "operario.cta2@nexopostal.es",
+            Email = "operario.cta2@nexopostal.es",
+            NombreCompleto = "Sergio Romero Vega",
+            CodigoEmpleado = "OPL002",
+            Rol = Rol.OperarioCTA,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "operario-oficina-diego-herrera-seed-id",
+            UserName = "operario2@nexopostal.es",
+            Email = "operario2@nexopostal.es",
+            NombreCompleto = "Diego Herrera Ortiz",
+            CodigoEmpleado = "OPE002",
+            Rol = Rol.OperarioOficina,
             EmailConfirmed = true
         }, "Operario123!");
 
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
         {
             Id = "operario-jefe-laura-fernandez-seed-id",
-            UserName = "operario.jefe@nexopostal.es",
-            Email = "operario.jefe@nexopostal.es",
+            UserName = "supervisor@nexopostal.es",
+            Email = "supervisor@nexopostal.es",
             NombreCompleto = "Laura Fernández Díaz",
             CodigoEmpleado = "OPJ001",
-            Rol = Rol.OperarioJefe,
+            Rol = Rol.Supervisor,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "operario-jefe-marta-jimenez-seed-id",
+            UserName = "supervisor2@nexopostal.es",
+            Email = "supervisor2@nexopostal.es",
+            NombreCompleto = "Marta Jiménez Castro",
+            CodigoEmpleado = "OPJ002",
+            Rol = Rol.Supervisor,
             EmailConfirmed = true
         }, "Operario123!");
 
@@ -69,23 +102,34 @@ public static class SeedData
 
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
         {
-            Id = "repartidor-logistico-sofia-navarro-seed-id",
-            UserName = "repartidor.logistico@nexopostal.es",
-            Email = "repartidor.logistico@nexopostal.es",
+            Id = "repartidor-sofia-navarro-seed-id",
+            UserName = "repartidor2@nexopostal.es",
+            Email = "repartidor2@nexopostal.es",
             NombreCompleto = "Sofía Navarro Gil",
             CodigoEmpleado = "RPL001",
-            Rol = Rol.RepartidorLogistico,
+            Rol = Rol.Repartidor,
             EmailConfirmed = true
         }, "Repartidor123!");
 
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
         {
             Id = "repartidor-jefe-javier-torres-seed-id",
-            UserName = "repartidor.jefe@nexopostal.es",
-            Email = "repartidor.jefe@nexopostal.es",
+            UserName = "jefe.reparto@nexopostal.es",
+            Email = "jefe.reparto@nexopostal.es",
             NombreCompleto = "Javier Torres Moreno",
             CodigoEmpleado = "RPJ001",
-            Rol = Rol.RepartidorJefe,
+            Rol = Rol.JefeReparto,
+            EmailConfirmed = true
+        }, "Repartidor123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "repartidor-jefe-cristina-vidal-seed-id",
+            UserName = "jefe.reparto2@nexopostal.es",
+            Email = "jefe.reparto2@nexopostal.es",
+            NombreCompleto = "Cristina Vidal Roca",
+            CodigoEmpleado = "RPJ002",
+            Rol = Rol.JefeReparto,
             EmailConfirmed = true
         }, "Repartidor123!");
 
@@ -107,9 +151,20 @@ public static class SeedData
         ApplicationUser user,
         string password)
     {
-        if (await userManager.FindByEmailAsync(user.Email!) == null)
+        var existente = await userManager.FindByIdAsync(user.Id);
+        if (existente == null)
         {
             await userManager.CreateAsync(user, password);
+        }
+        else if (existente.Email != user.Email || existente.Rol != user.Rol)
+        {
+            // Actualizar email/rol si cambiaron entre despliegues
+            existente.Email              = user.Email;
+            existente.UserName           = user.UserName;
+            existente.NormalizedEmail    = user.Email!.ToUpperInvariant();
+            existente.NormalizedUserName = user.UserName!.ToUpperInvariant();
+            existente.Rol                = user.Rol;
+            await userManager.UpdateAsync(existente);
         }
     }
 }

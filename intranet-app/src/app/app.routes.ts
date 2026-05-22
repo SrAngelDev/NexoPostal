@@ -28,9 +28,70 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    // Ruta deprecada: el escaneo ahora vive integrado dentro de Asignaciones.
     path: 'escaneo',
-    loadComponent: () => import('./pages/escaneo/escaneo.component').then(m => m.EscaneoComponent),
-    canActivate: [authGuard]
+    redirectTo: 'asignaciones',
+    pathMatch: 'full'
+  },
+  {
+    path: 'gestion-usuarios/:id',
+    loadComponent: () => import('./pages/usuario-detalle/usuario-detalle.component').then(m => m.UsuarioDetalleComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-usuarios',
+    loadComponent: () => import('./pages/gestion-usuarios/gestion-usuarios.component').then(m => m.GestionUsuariosComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-repartidores',
+    loadComponent: () => import('./pages/gestion-repartidores/gestion-repartidores.component').then(m => m.GestionRepartidoresComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-ctas-admin',
+    loadComponent: () => import('./pages/gestion-ctas-admin/gestion-ctas-admin.component').then(m => m.GestionCtasAdminComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'incidencias-globales',
+    loadComponent: () => import('./pages/incidencias-globales/incidencias-globales.component').then(m => m.IncidenciasGlobalesComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'movimientos-globales',
+    loadComponent: () => import('./pages/movimientos-globales/movimientos-globales.component').then(m => m.MovimientosGlobalesComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-tarifas',
+    loadComponent: () => import('./pages/gestion-tarifas/gestion-tarifas.component').then(m => m.GestionTarifasComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-oficinas',
+    loadComponent: () => import('./pages/gestion-oficinas/gestion-oficinas.component').then(m => m.GestionOficinasComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-vehiculos',
+    loadComponent: () => import('./pages/gestion-vehiculos/gestion-vehiculos.component').then(m => m.GestionVehiculosComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-envios',
+    loadComponent: () => import('./pages/gestion-envios/gestion-envios.component').then(m => m.GestionEnviosComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-clientes',
+    loadComponent: () => import('./pages/gestion-clientes/gestion-clientes.component').then(m => m.GestionClientesComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'broadcast-notificaciones',
+    loadComponent: () => import('./pages/broadcast-notificaciones/broadcast-notificaciones.component').then(m => m.BroadcastNotificacionesComponent),
+    canActivate: [adminGuard]
   },
   {
     path: 'alta-en-oficina',

@@ -50,9 +50,26 @@ public class StripeService : IStripeService
             Environment.GetEnvironmentVariable(match.Groups[1].Value) ?? match.Value);
     }
 
+    private static string FormatearDimensiones(string? dimensiones)
+    {
+        if (string.IsNullOrWhiteSpace(dimensiones))
+        {
+            return "Dimensiones no informadas";
+        }
+
+        // Eliminar todos los sufijos "cm" consecutivos (con espacios opcionales) que pueda tener la cadena
+        var s = dimensiones.Trim();
+        while (s.EndsWith("cm", StringComparison.OrdinalIgnoreCase))
+            s = s[..^2].TrimEnd();
+
+        return $"{s} cm";
+    }
+
     public async Task<(string SessionUrl, string SessionId)> CrearSesionCheckout(
         Envio envio, string successUrl, string cancelUrl)
     {
+        var dimensionesFormateadas = FormatearDimensiones(envio.Dimensiones);
+
         var options = new SessionCreateOptions
         {
             PaymentMethodTypes = ["card"],
@@ -68,7 +85,7 @@ public class StripeService : IStripeService
                         {
                             Name = $"Envío {envio.TipoTarifa} NexoPostal",
                             Description = $"Envío {envio.TipoTarifa} ({envio.TiempoEntregaEstimado}) — " +
-                                          $"{envio.PesoKg}kg — {envio.Dimensiones}cm — " +
+                                          $"{envio.PesoKg} kg — {dimensionesFormateadas} — " +
                                           $"Ref: {envio.NumeroSeguimiento}"
                         }
                     },

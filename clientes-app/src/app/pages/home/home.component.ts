@@ -1,9 +1,11 @@
-import { Component, signal, HostListener, ElementRef } from '@angular/core';
+import { Component, signal, HostListener, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LoginComponent } from '../login/login.component';
 import { RegisterComponent } from '../register/register.component';
+import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
+import { FooterPublicoComponent } from '../../components/footer-publico/footer-publico.component';
 import { AuthService } from '../../services/auth.service';
 import { PerfilService } from '../../services/perfil.service';
 import { UsuarioService } from '../../services/usuario.service';
@@ -15,12 +17,14 @@ import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, FormsModule, LoginComponent, RegisterComponent],
+  imports: [CommonModule, FormsModule, LoginComponent, RegisterComponent, NavbarPublicoComponent, FooterPublicoComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
 })
-export class HomeComponent {
+export class HomeComponent implements AfterViewInit, OnDestroy {
   trackingCode = signal('');
+  scrolled = signal(false);
+  private revealObserver?: IntersectionObserver;
   isSearching = signal(false);
   trackingResult = signal<any>(null);
   trackingError = signal<string>('');
@@ -68,6 +72,34 @@ export class HomeComponent {
     if (this.showMobileMenu() && mobileMenu && !mobileMenu.contains(target)) {
       this.closeMobileMenu();
     }
+  }
+
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    this.scrolled.set(window.scrollY > 8);
+  }
+
+  scrollToSection(id: string): void {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  ngAfterViewInit(): void {
+    if (typeof IntersectionObserver === 'undefined') { return; }
+    this.revealObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          this.revealObserver?.unobserve(entry.target);
+        }
+      }
+    }, { rootMargin: '0px 0px -80px 0px', threshold: 0.05 });
+
+    const targets = this.elementRef.nativeElement.querySelectorAll('.reveal');
+    targets.forEach((el: Element) => this.revealObserver!.observe(el));
+  }
+
+  ngOnDestroy(): void {
+    this.revealObserver?.disconnect();
   }
 
   onTrackingSubmit(): void {

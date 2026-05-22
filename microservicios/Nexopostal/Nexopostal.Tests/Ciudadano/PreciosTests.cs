@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Nexopostal.Ciudadano.Services;
 using Xunit;
 
@@ -12,7 +13,7 @@ public class PreciosTests
     [Fact]
     public void Calcular_DeberiaUsarPesoVolumetricoSiEsMayor()
     {
-        var service = new TarifasService();
+        var service = new TarifasService(null!, NullLogger<TarifasService>.Instance);
 
         var resultado = service.Calcular(new TarifaCalculoInput(
             5m,
@@ -30,7 +31,7 @@ public class PreciosTests
     [Fact]
     public void Calcular_DeberiaAplicarRecargoCuandoSumaSupera210()
     {
-        var service = new TarifasService();
+        var service = new TarifasService(null!, NullLogger<TarifasService>.Instance);
 
         var resultado = service.Calcular(new TarifaCalculoInput(
             1m,
@@ -49,7 +50,7 @@ public class PreciosTests
     [Fact]
     public void Consultar_DeberiaAplicarMultiplicadorZona()
     {
-        var service = new TarifasService();
+        var service = new TarifasService(null!, NullLogger<TarifasService>.Instance);
 
         var resultado = service.Consultar(new TarifaConsultaInput(
             1m,
@@ -66,7 +67,7 @@ public class PreciosTests
     [Fact]
     public void Consultar_DeberiaIncluirPremium()
     {
-        var service = new TarifasService();
+        var service = new TarifasService(null!, NullLogger<TarifasService>.Instance);
 
         var resultado = service.Consultar(new TarifaConsultaInput(
             1m,

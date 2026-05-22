@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexoPostal.Auth.DTOs;
@@ -26,9 +27,21 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto model)
     {
-        var result = await _authService.LoginAsync(model);
+        var (result, bloqueado) = await _authService.LoginWithStatusAsync(model);
         if (result == null)
-            return Unauthorized(new { error = "Credenciales incorrectas" });
+        {
+            if (bloqueado)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    error = "Usuario bloqueado",
+                    message = "Tu cuenta esta bloqueada. Contacta con soporte para mas informacion.",
+                    code = "USER_BLOCKED"
+                });
+            }
+
+            return Unauthorized(new { error = "Credenciales incorrectas", code = "INVALID_CREDENTIALS" });
+        }
 
         return Ok(result);
     }
@@ -120,7 +133,23 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var frontendUrl = _config["AppSettings:FrontendUrl"] ?? "http://localhost:4200";
+        // Prioridad 1: URL que envía el propio frontend (siempre correcta sea local o producción)
+        var frontendUrl = dto.FrontendUrl?.Trim().TrimEnd('/');
+
+        // Prioridad 2: variable de entorno / appsettings (resolviendo placeholder ${VAR})
+        if (string.IsNullOrWhiteSpace(frontendUrl))
+        {
+            var rawUrl = _config["AppSettings:FrontendUrl"] ?? string.Empty;
+            frontendUrl = Regex.Replace(
+                rawUrl,
+                @"\$\{([^}]+)\}",
+                m => Environment.GetEnvironmentVariable(m.Groups[1].Value) ?? m.Value);
+        }
+
+        // Fallback final
+        if (string.IsNullOrWhiteSpace(frontendUrl) || frontendUrl.Contains("${"))
+            frontendUrl = "http://localhost:4200";
+
         await _authService.SolicitarResetPasswordAsync(dto.Email, frontendUrl);
 
         return Ok(new { mensaje = "Si el email está registrado, recibirás un enlace de recuperación en breve." });

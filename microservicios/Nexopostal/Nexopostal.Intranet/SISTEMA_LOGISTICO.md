@@ -39,6 +39,28 @@ El módulo **Nexopostal.Intranet** es el microservicio de back-office que gestio
 
 ---
 
+## Cambios recientes (mayo 2026)
+
+Esta sección recoge los cambios estructurales aplicados en la sesión de mayo 2026. Las secciones posteriores (mapas, listas de endpoints) deben leerse a la luz de estos puntos:
+
+- **Admisión desacoplada de Reparto**: `AdmisionService` ya no orquesta el microservicio Reparto ni auto-asigna CTA. Sólo registra el paquete y emite SignalR. La última milla se materializa cuando un escaneo llega al estado `DisponibleParaReparto` y notifica al `JefeReparto`.
+- **Flujo encadenado por escaneo**: cada handler de `ScanProcessor` cierra la tarea actual del operario y crea automáticamente la siguiente:
+  - `RecepcionOficina` → `SalidaOficinaACta`
+  - `SalidaOficinaACta` → `Recepcion` (CTA)
+  - `Recepcion` → `Clasificacion`
+  - `Clasificacion` → `DespachoTroncal` o `DisponibleParaReparto`
+  - `DespachoTroncal` → `RecepcionTroncal`
+  - `RecepcionTroncal` → `Clasificacion` o `DisponibleParaReparto`
+  - `DisponibleParaReparto` → no crea tarea nueva; emite SignalR `PaqueteDisponibleParaReparto`.
+- **TipoIncidencia.PaqueteFueraDeTareas (= 6)**: nuevo tipo para paquetes manipulados fuera de las tareas asignadas al operario.
+- **Endpoint nuevo `GET /api/asignaciones/buscar?codigo=`**: el operario localiza una tarea propia y recibe `AsignacionResumenDto` con `modoSugerido` (mapeo de `TipoTarea` → modo de escaneo). Si no aparece, devuelve `404 { message: "Paquete fuera de tus tareas" }`.
+- **Endpoint nuevo `POST /api/incidencias/reportar-fuera-tareas`**: accesible a `Admin,Supervisor,OperarioCTA,OperarioOficina`. Body `{ numeroExpedicion, motivo }`. Crea incidencia tipo `PaqueteFueraDeTareas` para el Supervisor.
+- **Endpoints `PUT /api/asignaciones/{id}/iniciar|completar|cancelar`** restringidos a `Admin,Supervisor`. La operativa normal cambia estado únicamente por escaneo; estos endpoints quedan reservados para corrección administrativa.
+- **`AsignacionService.CrearAsignacion`** ya no exige rol `OperarioOficina`: permite asignar a `OperarioCTA` u `OperarioOficina`.
+- **UI `intranet-app`**: la página de asignaciones integra un panel "Confirmar paso" (input + buscar + procesar escaneo automático con `modoSugerido`) y un modal bloqueante "Paquete fuera de tus tareas".
+
+---
+
 ## Arquitectura de la Red Logística
 
 ```

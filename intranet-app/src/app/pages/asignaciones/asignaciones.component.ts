@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,12 +11,14 @@ import {
   OperarioResumen,
   CrearAsignacionRequest
 } from '../../services/intranet-api.service';
+import { ScanService, ScanResult } from '../../services/scan.service';
 import { SignalrService } from '../../services/signalr.service';
+import { BarcodeScannerComponent } from '../../components/barcode-scanner/barcode-scanner.component';
 
 @Component({
   selector: 'app-asignaciones',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BarcodeScannerComponent],
   templateUrl: './asignaciones.component.html',
   styleUrl: './asignaciones.component.css'
 })
@@ -46,26 +48,71 @@ export class AsignacionesComponent implements OnInit {
   creando = signal(false);
   crearError = signal('');
 
+  // Buscador / escáner integrado
+  codigoBusqueda = '';
+  buscando = signal(false);
+  scanError = signal('');
+  scanOk = signal('');
+  mostrarScanner = signal(false);
+
+  // Modal "paquete fuera de tus tareas"
+  fueraTareasVisible = signal(false);
+  fueraTareasCodigo = signal('');
+  fueraTareasMotivo = '';
+  fueraTareasError = signal('');
+  fueraTareasEnviando = signal(false);
+
   // Acciones
-  accionLoading = signal<number | null>(null);
+  private ultimoEventoProcesado = '';
+
+  private readonly eventosConRefresco = new Set([
+    'PaqueteRecibidoEnCta',
+    'NuevoPaqueteEnOficina',
+    'PaqueteDisponibleParaReparto',
+    'TareaAsignada',
+    'TareaCompletada',
+    'TareaCancelada',
+    'MovimientoRecibido'
+  ]);
 
   tiposTarea = [
-    { valor: 'Recepcion', etiqueta: 'Recepción' },
+    { valor: 'Recepcion', etiqueta: 'Recepción en CTA' },
     { valor: 'Clasificacion', etiqueta: 'Clasificación' },
     { valor: 'CargaTransporte', etiqueta: 'Carga en transporte' },
     { valor: 'DescargaTransporte', etiqueta: 'Descarga de transporte' },
-    { valor: 'Expedicion', etiqueta: 'Expedición' }
+    { valor: 'Expedicion', etiqueta: 'Expedición' },
+    { valor: 'RecepcionOficina', etiqueta: 'Recepción en oficina' },
+    { valor: 'SalidaOficinaACta', etiqueta: 'Salida oficina → CTA' },
+    { valor: 'DespachoTroncal', etiqueta: 'Despacho troncal' },
+    { valor: 'RecepcionTroncal', etiqueta: 'Recepción troncal' },
+    { valor: 'DisponibleParaReparto', etiqueta: 'Disponible para reparto' }
   ];
 
   constructor(
     private authService: AuthService,
     private intranetApi: IntranetApiService,
+    private scanService: ScanService,
     public signalr: SignalrService,
     private router: Router
   ) {
     const user = this.authService.getCurrentUser();
     this.userName = user?.user ?? '';
     this.userRole = user?.rol ?? '';
+
+    effect(() => {
+      const ultima = this.signalr.ultimaNotificacion();
+      const cta = this.ctaSeleccionado();
+
+      if (!ultima || !cta) return;
+      if (ultima.ctaId !== cta.ctaId) return;
+      if (!this.eventosConRefresco.has(ultima.tipo)) return;
+
+      const claveEvento = `${ultima.tipo}|${ultima.numeroExpedicion ?? ''}|${ultima.fechaHora}`;
+      if (claveEvento === this.ultimoEventoProcesado) return;
+
+      this.ultimoEventoProcesado = claveEvento;
+      this.cargarAsignaciones(cta.ctaId);
+    });
   }
 
   ngOnInit(): void {
@@ -103,11 +150,15 @@ export class AsignacionesComponent implements OnInit {
     this.cargarOperarios(cta.ctaId);
   }
 
-  onCtaChange(ctaId: number): void {
+  onCtaChange(ctaId: number | string): void {
     const info = this.misCtasInfo();
     if (!info) return;
-    const cta = info.ctas.find(c => c.ctaId === ctaId);
-    if (cta) this.seleccionarCta(cta);
+    const id = typeof ctaId === 'string' ? Number(ctaId) : ctaId;
+    if (Number.isNaN(id)) return;
+    const cta = info.ctas.find(c => c.ctaId === id);
+    if (cta && cta.ctaId !== this.ctaSeleccionado()?.ctaId) {
+      this.seleccionarCta(cta);
+    }
   }
 
   cargarAsignaciones(ctaId: number): void {
@@ -185,43 +236,6 @@ export class AsignacionesComponent implements OnInit {
     });
   }
 
-  // ─── Acciones sobre tareas ───
-  iniciarTarea(id: number): void {
-    this.accionLoading.set(id);
-    this.intranetApi.iniciarTarea(id).subscribe({
-      next: () => {
-        this.accionLoading.set(null);
-        const cta = this.ctaSeleccionado();
-        if (cta) this.cargarAsignaciones(cta.ctaId);
-      },
-      error: () => this.accionLoading.set(null)
-    });
-  }
-
-  completarTarea(id: number): void {
-    this.accionLoading.set(id);
-    this.intranetApi.completarTarea(id).subscribe({
-      next: () => {
-        this.accionLoading.set(null);
-        const cta = this.ctaSeleccionado();
-        if (cta) this.cargarAsignaciones(cta.ctaId);
-      },
-      error: () => this.accionLoading.set(null)
-    });
-  }
-
-  cancelarTarea(id: number): void {
-    this.accionLoading.set(id);
-    this.intranetApi.cancelarTarea(id).subscribe({
-      next: () => {
-        this.accionLoading.set(null);
-        const cta = this.ctaSeleccionado();
-        if (cta) this.cargarAsignaciones(cta.ctaId);
-      },
-      error: () => this.accionLoading.set(null)
-    });
-  }
-
   // ─── Navegación ───
   volverDashboard(): void {
     this.router.navigate(['/']);
@@ -229,6 +243,127 @@ export class AsignacionesComponent implements OnInit {
 
   irGestionCta(): void {
     this.router.navigate(['/gestion-cta']);
+  }
+
+  // ─── Buscador / escáner integrado ───
+
+  abrirScanner(): void {
+    this.scanError.set('');
+    this.scanOk.set('');
+    this.mostrarScanner.set(true);
+  }
+
+  cerrarScanner(): void {
+    this.mostrarScanner.set(false);
+  }
+
+  onCodigoEscaneado(codigo: string): void {
+    this.codigoBusqueda = codigo;
+    this.mostrarScanner.set(false);
+    this.buscarYConfirmar();
+  }
+
+  /**
+   * Busca el código escaneado/tecleado en las tareas del operario.
+   * Si existe → confirma directamente el paso (escaneo con modoSugerido).
+   * Si no → abre modal bloqueante para reportar incidencia "PaqueteFueraDeTareas".
+   */
+  buscarYConfirmar(): void {
+    const codigo = this.codigoBusqueda.trim();
+    if (!codigo) {
+      this.scanError.set('Introduce un código');
+      return;
+    }
+    this.scanError.set('');
+    this.scanOk.set('');
+    this.buscando.set(true);
+
+    this.intranetApi.buscarTareaPorCodigo(codigo).subscribe({
+      next: (tarea) => {
+        this.confirmarTarea(tarea);
+      },
+      error: (err) => {
+        this.buscando.set(false);
+        if (err.status === 404) {
+          this.abrirFueraTareas(codigo);
+        } else {
+          this.scanError.set(err.error?.message || 'Error al buscar el código');
+        }
+      }
+    });
+  }
+
+  /** Lanza el escaneo en backend con el modoSugerido de la tarea. */
+  private confirmarTarea(tarea: AsignacionResumen): void {
+    const cta = this.ctaSeleccionado();
+    if (!tarea.modoSugerido) {
+      this.buscando.set(false);
+      this.scanError.set(`La tarea "${tarea.tipoTarea}" no tiene un modo de escaneo asociado`);
+      return;
+    }
+
+    this.scanService.procesar({
+      codigoEscaneado: tarea.numeroExpedicion,
+      modoOperacion: tarea.modoSugerido,
+      ctaId: cta?.ctaId,
+      ctaCodigo: cta?.ctaCodigo,
+      operarioNombre: this.userName,
+      esUrgente: tarea.esUrgente
+    }).subscribe({
+      next: (res: ScanResult) => {
+        this.buscando.set(false);
+        if (res.exito) {
+          this.scanOk.set(`✔ ${res.mensaje || tarea.numeroExpedicion + ' procesado'}`);
+          this.codigoBusqueda = '';
+          if (cta) this.cargarAsignaciones(cta.ctaId);
+        } else {
+          this.scanError.set(res.mensaje || 'El escaneo no se pudo completar');
+        }
+      },
+      error: (err) => {
+        this.buscando.set(false);
+        this.scanError.set(err.error?.message || 'Error al procesar el escaneo');
+      }
+    });
+  }
+
+  // ─── Modal "fuera de tus tareas" ───
+
+  private abrirFueraTareas(codigo: string): void {
+    this.fueraTareasCodigo.set(codigo);
+    this.fueraTareasMotivo = '';
+    this.fueraTareasError.set('');
+    this.fueraTareasVisible.set(true);
+  }
+
+  cerrarFueraTareas(): void {
+    this.fueraTareasVisible.set(false);
+  }
+
+  reportarFueraTareas(): void {
+    const motivo = (this.fueraTareasMotivo || '').trim();
+    if (!motivo) {
+      this.fueraTareasError.set('Indica el motivo');
+      return;
+    }
+    this.fueraTareasEnviando.set(true);
+    this.fueraTareasError.set('');
+
+    this.intranetApi.reportarPaqueteFueraDeTareas({
+      numeroExpedicion: this.fueraTareasCodigo(),
+      motivo
+    }).subscribe({
+      next: () => {
+        this.fueraTareasEnviando.set(false);
+        this.fueraTareasVisible.set(false);
+        this.scanOk.set('Incidencia reportada al supervisor');
+        this.codigoBusqueda = '';
+      },
+      error: (err) => {
+        this.fueraTareasEnviando.set(false);
+        this.fueraTareasError.set(err.error?.message || 'No se pudo reportar la incidencia');
+      }
+    });
   }
 
   logout(): void {

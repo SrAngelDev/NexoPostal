@@ -29,7 +29,7 @@ public class AdmisionService : IAdmisionService
 {
     private readonly IMovimientoPaqueteRepository _movimientoRepo;
     private readonly IClasificacionService _clasificacionService;
-    private readonly IRepartoOrquestacionService _repartoOrquestacionService;
+    private readonly IOficinaPostalService _oficinaService;
     private readonly INotificacionService _notificacionService;
     private readonly IAsignacionService _asignacionService;
     private readonly ILogger<AdmisionService> _logger;
@@ -37,14 +37,14 @@ public class AdmisionService : IAdmisionService
     public AdmisionService(
         IMovimientoPaqueteRepository movimientoRepo,
         IClasificacionService clasificacionService,
-        IRepartoOrquestacionService repartoOrquestacionService,
+        IOficinaPostalService oficinaService,
         INotificacionService notificacionService,
         IAsignacionService asignacionService,
         ILogger<AdmisionService> logger)
     {
         _movimientoRepo = movimientoRepo;
         _clasificacionService = clasificacionService;
-        _repartoOrquestacionService = repartoOrquestacionService;
+        _oficinaService = oficinaService;
         _notificacionService = notificacionService;
         _asignacionService = asignacionService;
         _logger = logger;
@@ -93,45 +93,40 @@ public class AdmisionService : IAdmisionService
                 dto.NumeroExpedicion, ctaOrigen.CtaCodigo, ctaDestino.CtaCodigo, tipoTransporte);
         }
 
-        // 4. 📡 Notificar a los OperarioLogisticos del CTA destino
-        await _notificacionService.NotificarPaqueteRecibidoEnCta(
-            ctaDestino.CtaId,
-            ctaDestino.CtaCodigo,
-            dto.NumeroExpedicion,
-            dto.EsUrgente,
-            ctaDestino.Provincia,
-            dto.Observaciones);
+        // 4. NO se autoasigna tarea en CTA al admitir. El flujo entra primero por la oficina origen.
+
+        // 5. 📡 Notificar SOLO a la OFICINA ORIGEN. CTA y Reparto se enteran por escaneo.
+        int? oficinaOrigenJsonId = null;
+        string? oficinaOrigenNombre = null;
+        if (!string.IsNullOrWhiteSpace(dto.CodigoPostalOrigen))
+        {
+            var oficinaOrigen = await _oficinaService.ResolverOficinaPorCp(dto.CodigoPostalOrigen);
+            if (oficinaOrigen != null)
+            {
+                oficinaOrigenJsonId = oficinaOrigen.OficinaId;
+                oficinaOrigenNombre = oficinaOrigen.OficinaNombre;
+
+                await _notificacionService.NotificarNuevoPaqueteEnOficina(
+                    oficinaOrigen.OficinaId,
+                    oficinaOrigen.OficinaNombre,
+                    dto.NumeroExpedicion,
+                    dto.EsUrgente,
+                    dto.CodigoPostalOrigen,
+                    dto.CodigoPostalDestino,
+                    dto.Observaciones);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Admisión {Expedicion}: no se pudo resolver oficina origen para CP {Cp}",
+                    dto.NumeroExpedicion, dto.CodigoPostalOrigen);
+            }
+        }
 
         _logger.LogInformation(
-            "Paquete {Expedicion} admitido · CP destino: {Cp} → CTA: {Cta} ({Area}) · Urgente: {Urgente} · Troncal: {Troncal}",
+            "Paquete {Expedicion} admitido · CP destino: {Cp} → CTA: {Cta} ({Area}) · Urgente: {Urgente} · Troncal: {Troncal} · OficinaOrigen: {Oficina}",
             dto.NumeroExpedicion, dto.CodigoPostalDestino, ctaDestino.CtaCodigo,
-            ctaDestino.Area, dto.EsUrgente, requiereTroncal);
-
-        // 5. Orquestar última milla con Reparto SOLO si es entrega a domicilio.
-        //    Las entregas en oficina las recoge el destinatario, no hay reparto.
-        var esEntregaOficina = string.Equals(dto.TipoEntrega, "Oficina", StringComparison.OrdinalIgnoreCase);
-        var orquestacionIntentada = !esEntregaOficina && TieneDatosMinimosReparto(dto);
-        OrquestacionRepartoResultadoDto? orquestacionReparto = null;
-
-        if (orquestacionIntentada)
-        {
-            orquestacionReparto = await _repartoOrquestacionService
-                .AutoAsignarEntregaDesdeAdmisionAsync(dto, ctaDestino);
-
-            _logger.LogInformation(
-                "Orquestación Reparto para {Expedicion}: Success={Success}, Ruta={Ruta}, Entrega={Entrega}, Idempotente={Idempotente}",
-                dto.NumeroExpedicion,
-                orquestacionReparto.Success,
-                orquestacionReparto.RutaCodigo,
-                orquestacionReparto.EntregaId,
-                orquestacionReparto.Idempotente);
-        }
-        else
-        {
-            _logger.LogInformation(
-                "Admisión {Expedicion} sin datos suficientes para auto-asignación en Reparto",
-                dto.NumeroExpedicion);
-        }
+            ctaDestino.Area, dto.EsUrgente, requiereTroncal, oficinaOrigenJsonId);
 
         // 5.bis Si el envío fue dado de alta presencialmente en oficina (YaRecogidoEnOrigen=true),
         //       crear automáticamente una tarea SalidaOficinaACta para el OperarioOficina que lo registró.
@@ -162,7 +157,7 @@ public class AdmisionService : IAdmisionService
             }
         }
 
-        // 6. Construir respuesta
+        // 6. Construir respuesta. Reparto se orquesta cuando el CTA destino marque "DisponibleParaReparto".
         return new AdmisionPaqueteResponseDto
         {
             NumeroExpedicion = dto.NumeroExpedicion,
@@ -176,25 +171,9 @@ public class AdmisionService : IAdmisionService
             Provincia = ctaDestino.Provincia,
             RequiereMovimientoTroncal = requiereTroncal,
             TipoTransporte = tipoTransporteStr,
-            OrquestacionRepartoIntentada = orquestacionIntentada,
-            OrquestacionRepartoExitosa = orquestacionReparto?.Success == true,
-            RepartoIdempotente = orquestacionReparto?.Idempotente == true,
-            RutaRepartoId = orquestacionReparto?.RutaId,
-            RutaRepartoCodigo = orquestacionReparto?.RutaCodigo,
-            RepartidorAsignadoId = orquestacionReparto?.RepartidorId,
-            RepartidorAsignadoNombre = orquestacionReparto?.RepartidorNombre,
-            EntregaRepartoId = orquestacionReparto?.EntregaId,
-            MensajeOrquestacionReparto = orquestacionReparto?.Message,
-            Mensaje = requiereTroncal
-                ? $"Paquete admitido. Se enviará de {ctaOrigen!.CtaCodigo} a {ctaDestino.CtaCodigo} vía {tipoTransporteStr}. Operarios del CTA notificados."
-                : $"Paquete admitido directamente en {ctaDestino.CtaCodigo} ({ctaDestino.Provincia}). Operarios del CTA notificados."
+            Mensaje = oficinaOrigenJsonId.HasValue
+                ? $"Paquete admitido. Pendiente de recepción en oficina {oficinaOrigenNombre ?? oficinaOrigenJsonId.ToString()}."
+                : "Paquete admitido. No se pudo resolver oficina origen por CP."
         };
-    }
-
-    private static bool TieneDatosMinimosReparto(AdmisionPaqueteDto dto)
-    {
-        return !string.IsNullOrWhiteSpace(dto.NumeroSeguimiento)
-            && !string.IsNullOrWhiteSpace(dto.DireccionEntrega)
-            && !string.IsNullOrWhiteSpace(dto.CodigoPostalDestino);
     }
 }
