@@ -104,8 +104,10 @@ public class AdmisionService : IAdmisionService
             dto.NumeroExpedicion, dto.CodigoPostalDestino, ctaDestino.CtaCodigo,
             ctaDestino.Area, dto.EsUrgente, requiereTroncal);
 
-        // 5. Orquestar última milla con Reparto (si vienen datos mínimos de entrega)
-        var orquestacionIntentada = TieneDatosMinimosReparto(dto);
+        // 5. Orquestar última milla con Reparto SOLO si es entrega a domicilio.
+        //    Las entregas en oficina las recoge el destinatario, no hay reparto.
+        var esEntregaOficina = string.Equals(dto.TipoEntrega, "Oficina", StringComparison.OrdinalIgnoreCase);
+        var orquestacionIntentada = !esEntregaOficina && TieneDatosMinimosReparto(dto);
         OrquestacionRepartoResultadoDto? orquestacionReparto = null;
 
         if (orquestacionIntentada)
