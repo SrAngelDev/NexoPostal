@@ -27,6 +27,7 @@ public class ScanProcessorService : IScanProcessorService
     private readonly IClasificacionService _clasificacionService;
     private readonly IMovimientoService _movimientoService;
     private readonly INotificacionService _notificacionService;
+    private readonly ICiudadanoEnvioLookupService _ciudadanoLookup;
     private readonly ILogger<ScanProcessorService> _logger;
 
     // Mapeo modo → descripción legible
@@ -59,6 +60,7 @@ public class ScanProcessorService : IScanProcessorService
         IClasificacionService clasificacionService,
         IMovimientoService movimientoService,
         INotificacionService notificacionService,
+        ICiudadanoEnvioLookupService ciudadanoLookup,
         ILogger<ScanProcessorService> logger)
     {
         _movimientoRepo = movimientoRepo;
@@ -66,7 +68,18 @@ public class ScanProcessorService : IScanProcessorService
         _clasificacionService = clasificacionService;
         _movimientoService = movimientoService;
         _notificacionService = notificacionService;
+        _ciudadanoLookup = ciudadanoLookup;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Indica si el envío se entrega en oficina (true) o a domicilio (false/desconocido).
+    /// </summary>
+    private async Task<(bool esOficina, EnvioInternoServiceLookupDto? envio)> ResolverTipoEntregaAsync(string expedicion)
+    {
+        var envio = await _ciudadanoLookup.ObtenerAsync(expedicion);
+        var esOficina = envio is not null && string.Equals(envio.TipoEntrega, "Oficina", StringComparison.OrdinalIgnoreCase);
+        return (esOficina, envio);
     }
 
     public async Task<ScanResultDto> ProcesarEscaneo(ScanRequestDto request)
@@ -373,12 +386,28 @@ public class ScanProcessorService : IScanProcessorService
 
     /// <summary>
     /// Paquete entregado a la oficina de destino para recogida o reparto.
-    /// → Estado: DepositivoEnOficina
+    /// Bifurca por TipoEntrega:
+    ///   - "Oficina"   → DepositivoEnOficina (esperando recogida del destinatario, FIN del recorrido logístico)
+    ///   - "Domicilio" → DepositivoEnOficina (paso intermedio antes de SalidaAReparto)
     /// </summary>
     private async Task<ScanResultDto> ProcesarEntregaOficinaDestino(ScanRequestDto req, string expedicion)
     {
         if (!req.OficinaJsonId.HasValue)
             return Error(req, "Se requiere la oficina para entrega");
+
+        var (esOficina, envio) = await ResolverTipoEntregaAsync(expedicion);
+
+        // Validación cruzada: si el envío indica oficina destino concreta, debe coincidir
+        string? avisoOficina = null;
+        if (esOficina && envio?.OficinaDestinoId is int oficDest && oficDest != req.OficinaJsonId.Value)
+        {
+            avisoOficina = $"Aviso: oficina destino esperada {oficDest} pero escaneo en {req.OficinaJsonId}";
+            _logger.LogWarning("{Expedicion}: {Aviso}", expedicion, avisoOficina);
+        }
+
+        var descripcion = esOficina
+            ? $"Paquete disponible para recogida en oficina {req.OficinaNombre}"
+            : $"Paquete depositado en oficina de destino {req.OficinaNombre}";
 
         await RegistrarHistorial(expedicion, new CrearHistorialEventoDto
         {
@@ -388,24 +417,37 @@ public class ScanProcessorService : IScanProcessorService
             UbicacionId = req.OficinaJsonId,
             UbicacionNombre = req.OficinaNombre,
             OperarioNombre = req.OperarioNombre,
-            Descripcion = $"Paquete depositado en oficina de destino {req.OficinaNombre}",
+            Descripcion = descripcion,
             Observaciones = req.Observaciones,
             VisibleParaCliente = true
         });
 
-        return Exito(req, expedicion, "DepositivoEnOficina",
-            $"Depositado en oficina {req.OficinaNombre}",
-            req.OficinaNombre);
+        var mensaje = esOficina
+            ? $"Disponible para recogida en {req.OficinaNombre}"
+            : $"Depositado en oficina {req.OficinaNombre}";
+
+        var result = Exito(req, expedicion, "DepositivoEnOficina", mensaje, req.OficinaNombre);
+        result.Detalles = avisoOficina ?? (esOficina
+            ? "Modalidad: entrega en oficina. Esperando recogida del destinatario."
+            : "Modalidad: entrega a domicilio. Pendiente de salida a reparto.");
+        return result;
     }
 
     /// <summary>
     /// Paquete sale de la oficina para reparto a domicilio.
     /// → Estado: EnReparto
+    /// Rechaza el escaneo si el envío es de modalidad "Oficina" (no debe salir a reparto).
     /// </summary>
     private async Task<ScanResultDto> ProcesarSalidaAReparto(ScanRequestDto req, string expedicion)
     {
         if (!req.OficinaJsonId.HasValue)
             return Error(req, "Se requiere la oficina para salida a reparto");
+
+        var (esOficina, _) = await ResolverTipoEntregaAsync(expedicion);
+        if (esOficina)
+        {
+            return Error(req, "Este envío es de entrega en oficina; no debe salir a reparto. El destinatario lo recogerá en la oficina.");
+        }
 
         await RegistrarHistorial(expedicion, new CrearHistorialEventoDto
         {
