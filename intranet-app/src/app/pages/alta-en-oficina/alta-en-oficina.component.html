@@ -1,0 +1,138 @@
+<div class="alta-container">
+  <header class="alta-header">
+    <button class="btn-volver" (click)="volver()">← Volver</button>
+    <h1>📦 Alta presencial en oficina</h1>
+    <span class="user-info">{{ userName }}</span>
+  </header>
+
+  @if (resultado()) {
+    <div class="resultado-card">
+      <h2>✅ Envío creado correctamente</h2>
+      <dl class="resultado-dl">
+        <dt>Nº seguimiento</dt><dd>{{ resultado()!.numeroSeguimiento }}</dd>
+        <dt>Nº expedición</dt><dd>{{ resultado()!.numeroExpedicion }}</dd>
+        <dt>Coste calculado</dt><dd>{{ resultado()!.costeCalculado | number:'1.2-2' }} €</dd>
+        <dt>Tipo entrega</dt><dd>{{ resultado()!.tipoEntrega }}</dd>
+        @if (resultado()!.ctaDestinoCodigo) {
+          <dt>CTA destino</dt><dd>{{ resultado()!.ctaDestinoCodigo }}</dd>
+        }
+      </dl>
+      <p class="resultado-msg">{{ resultado()!.mensaje }}</p>
+      <div class="resultado-actions">
+        <button class="btn-primary" (click)="nuevoEnvio()">+ Otro envío</button>
+        <button class="btn-secondary" (click)="volver()">Ir al dashboard</button>
+      </div>
+    </div>
+  } @else {
+    <form class="alta-form" (ngSubmit)="enviar()">
+      @if (error()) {
+        <div class="error-banner">{{ error() }}</div>
+      }
+
+      <fieldset>
+        <legend>📦 Paquete</legend>
+        <div class="grid-2">
+          <label>Peso (kg) <input type="number" step="0.1" min="0.1" max="30" [(ngModel)]="peso" name="peso" required></label>
+          <label>Largo (cm) <input type="number" min="10" [(ngModel)]="largo" name="largo" required></label>
+          <label>Ancho (cm) <input type="number" min="10" [(ngModel)]="ancho" name="ancho" required></label>
+          <label>Alto (cm) <input type="number" min="1" [(ngModel)]="alto" name="alto" required></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>📤 Remitente</legend>
+        <div class="grid-2">
+          <label>Nombre * <input [(ngModel)]="nombreRem" name="nombreRem" required></label>
+          <label>Apellidos <input [(ngModel)]="apellidosRem" name="apellidosRem"></label>
+          <label>Dirección * <input [(ngModel)]="origen" name="origen" required></label>
+          <label>CP origen * <input [(ngModel)]="cpOrigen" name="cpOrigen" required maxlength="10"></label>
+          <label>Teléfono * <input [(ngModel)]="telRem" name="telRem" required></label>
+          <label>Email <input type="email" [(ngModel)]="emailRem" name="emailRem"></label>
+          <label>DNI/NIF <input [(ngModel)]="dniRem" name="dniRem"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>📥 Destinatario</legend>
+        <div class="grid-2">
+          <label>Nombre * <input [(ngModel)]="nombreDest" name="nombreDest" required></label>
+          <label>Apellidos <input [(ngModel)]="apellidosDest" name="apellidosDest"></label>
+          <label>Dirección * <input [(ngModel)]="destino" name="destino" required></label>
+          <label>CP destino *
+            <input
+              [(ngModel)]="cpDestino"
+              name="cpDestino"
+              required
+              maxlength="10"
+              (blur)="tipoEntrega === 'Oficina' ? buscarOficinasDestino() : null">
+          </label>
+          <label>Teléfono * <input [(ngModel)]="telDest" name="telDest" required></label>
+          <label>Email <input type="email" [(ngModel)]="emailDest" name="emailDest"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>🚚 Entrega</legend>
+        <div class="radios">
+          <label>
+            <input type="radio" name="tipoEntrega" value="Domicilio"
+                   [(ngModel)]="tipoEntrega" (change)="onTipoEntregaChange()">
+            A domicilio
+          </label>
+          <label>
+            <input type="radio" name="tipoEntrega" value="Oficina"
+                   [(ngModel)]="tipoEntrega" (change)="onTipoEntregaChange()">
+            En oficina destino
+          </label>
+        </div>
+
+        @if (tipoEntrega === 'Oficina') {
+          <div class="oficinas-selector">
+            <button type="button" class="btn-secondary"
+                    (click)="buscarOficinasDestino()"
+                    [disabled]="!cpDestino || buscandoOficinas()">
+              {{ buscandoOficinas() ? 'Buscando…' : 'Buscar oficinas por CP destino' }}
+            </button>
+
+            @if (oficinasDestino().length > 0) {
+              <ul class="oficinas-list">
+                @for (of of oficinasDestino(); track of.id) {
+                  <li
+                    [class.selected]="oficinaDestinoSeleccionada()?.id === of.id"
+                    (click)="seleccionarOficina(of)">
+                    <strong>{{ of.nombre }}</strong>
+                    <span>{{ of.direccion }} — {{ of.codigoPostal }} {{ of.ciudad }}</span>
+                  </li>
+                }
+              </ul>
+            } @else if (cpDestino && !buscandoOficinas()) {
+              <p class="aviso">Pulsa "Buscar" para listar oficinas del CP {{ cpDestino }}.</p>
+            }
+          </div>
+        }
+      </fieldset>
+
+      <fieldset>
+        <legend>💶 Cobro</legend>
+        <div class="grid-2">
+          <label>Método
+            <select [(ngModel)]="metodoCobro" name="metodoCobro">
+              <option value="Efectivo">Efectivo</option>
+              <option value="Tarjeta">Tarjeta</option>
+            </select>
+          </label>
+          <label>Observaciones
+            <input [(ngModel)]="observaciones" name="observaciones">
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <button type="button" class="btn-secondary" (click)="volver()">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="enviando()">
+          {{ enviando() ? 'Procesando…' : 'Crear y admitir envío' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>

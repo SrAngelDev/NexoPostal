@@ -93,6 +93,20 @@
         </button>
       }
 
+      <!-- Alta presencial en oficina — solo OperarioOficina y Admin -->
+      @if (isOperarioOficina || isAdmin) {
+        <button class="dashboard-card" (click)="navigateTo('/alta-en-oficina')">
+          <div class="card-icon-wrapper card-icon-scan">
+            <span class="material-symbols-outlined">add_box</span>
+          </div>
+          <div class="card-body">
+            <h3 class="card-title">Alta presencial</h3>
+            <p class="card-desc">Da de alta un envío que el cliente ha traído a tu oficina (cobro en efectivo o tarjeta).</p>
+          </div>
+          <span class="material-symbols-outlined card-arrow">arrow_forward</span>
+        </button>
+      }
+
       <!-- Escaneo de paquetes — OperarioOficina, OperarioLogistico y OperarioJefe -->
       <button class="dashboard-card" (click)="navigateTo('/escaneo')">
         <div class="card-icon-wrapper card-icon-scan">
