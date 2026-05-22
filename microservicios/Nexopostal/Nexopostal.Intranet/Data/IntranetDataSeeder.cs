@@ -473,16 +473,21 @@ public static class IntranetDataSeeder
     /// </summary>
     private static List<OperarioOficina> CrearOperariosOficina(List<DTOs.OficinaJsonDto> oficinas)
     {
-        var oficinasMadrid = oficinas
+        // Cada operario opera desde UNA sola oficina (la principal de su ciudad).
+        // Asignar varias filas activas a la vez choca con el índice único
+        // (IdentityUserId, OficinaJsonId) cuando un Admin intenta reasignar.
+        var oficinaMadrid = oficinas
             .Where(o => o.Ciudad.Equals("MADRID", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        var oficinasBarcelona = oficinas
+            .OrderBy(o => o.Id)
+            .FirstOrDefault();
+        var oficinaBarcelona = oficinas
             .Where(o => o.Ciudad.Equals("BARCELONA", StringComparison.OrdinalIgnoreCase))
-            .ToList();
+            .OrderBy(o => o.Id)
+            .FirstOrDefault();
 
         var operariosOficina = new List<OperarioOficina>();
 
-        foreach (var oficina in oficinasMadrid)
+        if (oficinaMadrid != null)
         {
             operariosOficina.Add(new OperarioOficina
             {
@@ -490,12 +495,12 @@ public static class IntranetDataSeeder
                 NombreCompleto = "María García López",
                 CodigoEmpleado = "OPE001",
                 Rol = RolOperario.OperarioOficina,
-                OficinaJsonId = oficina.Id,
-                OficinaNombre = oficina.Nombre
+                OficinaJsonId = oficinaMadrid.Id,
+                OficinaNombre = oficinaMadrid.Nombre
             });
         }
 
-        foreach (var oficina in oficinasBarcelona)
+        if (oficinaBarcelona != null)
         {
             operariosOficina.Add(new OperarioOficina
             {
@@ -503,8 +508,8 @@ public static class IntranetDataSeeder
                 NombreCompleto = "Diego Herrera Ortiz",
                 CodigoEmpleado = "OPE002",
                 Rol = RolOperario.OperarioOficina,
-                OficinaJsonId = oficina.Id,
-                OficinaNombre = oficina.Nombre
+                OficinaJsonId = oficinaBarcelona.Id,
+                OficinaNombre = oficinaBarcelona.Nombre
             });
         }
 

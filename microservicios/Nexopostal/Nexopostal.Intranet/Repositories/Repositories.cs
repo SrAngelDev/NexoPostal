@@ -130,6 +130,11 @@ public class OperarioOficinaRepository : IOperarioOficinaRepository
     public async Task<OperarioOficina?> GetByIdentityUserIdAnyAsync(string identityUserId)
         => await _context.OperariosOficina.FirstOrDefaultAsync(o => o.IdentityUserId == identityUserId);
 
+    public async Task<List<OperarioOficina>> GetAllByIdentityUserIdAsync(string identityUserId)
+        => await _context.OperariosOficina
+            .Where(o => o.IdentityUserId == identityUserId)
+            .ToListAsync();
+
     public async Task<List<OperarioOficina>> GetByOficinaAsync(int oficinaJsonId, bool soloActivos = true)
         => await _context.OperariosOficina
             .Where(o => o.OficinaJsonId == oficinaJsonId && (!soloActivos || o.Activo))

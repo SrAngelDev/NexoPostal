@@ -199,9 +199,12 @@ public class OficinaPostalService : IOficinaPostalService
         if (oficina == null)
             return (false, $"Oficina con ID {dto.NuevoOficinaJsonId} no encontrada en el catálogo.", null);
 
-        var existente = await _operarioOficinaRepo.GetByIdentityUserIdAnyAsync(identityUserId);
+        // Un operario de oficina opera siempre desde UNA única oficina postal,
+        // pero por compatibilidad histórica (y por seeds antiguos) pueden existir
+        // varias filas. Consolidamos: activamos la de destino y desactivamos el resto.
+        var todas = await _operarioOficinaRepo.GetAllByIdentityUserIdAsync(identityUserId);
 
-        if (existente == null)
+        if (todas.Count == 0)
         {
             if (string.IsNullOrWhiteSpace(dto.NombreCompleto)
                 || string.IsNullOrWhiteSpace(dto.CodigoEmpleado))
@@ -238,17 +241,49 @@ public class OficinaPostalService : IOficinaPostalService
             return (true, null, MapearMiOficina(nueva));
         }
 
-        existente.OficinaJsonId = oficina.Id;
-        existente.OficinaNombre = oficina.Nombre;
-        existente.Activo = true;
-        existente.FechaAsignacion = DateTime.UtcNow;
-        await _operarioOficinaRepo.UpdateAsync(existente);
+        // Caso 1: ya existe una fila para (usuario, oficina destino) → reactivar.
+        var destino = todas.FirstOrDefault(o => o.OficinaJsonId == oficina.Id);
+        if (destino != null)
+        {
+            destino.OficinaNombre = oficina.Nombre;
+            destino.Activo = true;
+            destino.FechaAsignacion = DateTime.UtcNow;
+            await _operarioOficinaRepo.UpdateAsync(destino);
+
+            foreach (var otra in todas.Where(o => o.Id != destino.Id && o.Activo))
+            {
+                otra.Activo = false;
+                await _operarioOficinaRepo.UpdateAsync(otra);
+            }
+
+            _logger.LogInformation(
+                "Admin reactivó la oficina {Oficina} ({OficinaId}) del usuario {IdentityUserId} y desactivó las demás",
+                oficina.Nombre, oficina.Id, identityUserId);
+
+            return (true, null, MapearMiOficina(destino));
+        }
+
+        // Caso 2: no existe fila para esa oficina destino. Repurposamos la fila
+        // activa (o la primera) y desactivamos el resto para evitar el índice único.
+        var principal = todas.FirstOrDefault(o => o.Activo) ?? todas[0];
+
+        foreach (var otra in todas.Where(o => o.Id != principal.Id && o.Activo))
+        {
+            otra.Activo = false;
+            await _operarioOficinaRepo.UpdateAsync(otra);
+        }
+
+        principal.OficinaJsonId = oficina.Id;
+        principal.OficinaNombre = oficina.Nombre;
+        principal.Activo = true;
+        principal.FechaAsignacion = DateTime.UtcNow;
+        await _operarioOficinaRepo.UpdateAsync(principal);
 
         _logger.LogInformation(
             "Admin cambió la oficina del usuario {IdentityUserId} a {Oficina} ({OficinaId})",
             identityUserId, oficina.Nombre, oficina.Id);
 
-        return (true, null, MapearMiOficina(existente));
+        return (true, null, MapearMiOficina(principal));
     }
 
     private MiOficinaInfoDto MapearMiOficina(OperarioOficina operario)
