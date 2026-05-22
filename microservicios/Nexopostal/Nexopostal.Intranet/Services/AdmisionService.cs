@@ -31,6 +31,7 @@ public class AdmisionService : IAdmisionService
     private readonly IClasificacionService _clasificacionService;
     private readonly IRepartoOrquestacionService _repartoOrquestacionService;
     private readonly INotificacionService _notificacionService;
+    private readonly IAsignacionService _asignacionService;
     private readonly ILogger<AdmisionService> _logger;
 
     public AdmisionService(
@@ -38,12 +39,14 @@ public class AdmisionService : IAdmisionService
         IClasificacionService clasificacionService,
         IRepartoOrquestacionService repartoOrquestacionService,
         INotificacionService notificacionService,
+        IAsignacionService asignacionService,
         ILogger<AdmisionService> logger)
     {
         _movimientoRepo = movimientoRepo;
         _clasificacionService = clasificacionService;
         _repartoOrquestacionService = repartoOrquestacionService;
         _notificacionService = notificacionService;
+        _asignacionService = asignacionService;
         _logger = logger;
     }
 
@@ -128,6 +131,35 @@ public class AdmisionService : IAdmisionService
             _logger.LogInformation(
                 "Admisión {Expedicion} sin datos suficientes para auto-asignación en Reparto",
                 dto.NumeroExpedicion);
+        }
+
+        // 5.bis Si el envío fue dado de alta presencialmente en oficina (YaRecogidoEnOrigen=true),
+        //       crear automáticamente una tarea SalidaOficinaACta para el OperarioOficina que lo registró.
+        if (dto.YaRecogidoEnOrigen && dto.OperarioOficinaId is int operarioOficinaId && operarioOficinaId > 0)
+        {
+            try
+            {
+                await _asignacionService.CrearAsignacionOficina(
+                    numeroExpedicion: dto.NumeroExpedicion,
+                    operarioOficinaId: operarioOficinaId,
+                    tipoTarea: TipoTarea.SalidaOficinaACta,
+                    oficinaJsonId: dto.OficinaOrigenId,
+                    oficinaNombre: null,
+                    esUrgente: dto.EsUrgente,
+                    creadorOperarioCtaId: null,
+                    observaciones: $"Alta presencial: paquete físicamente en oficina origen, debe salir hacia CTA {ctaDestino.CtaCodigo}.");
+
+                _logger.LogInformation(
+                    "Tarea SalidaOficinaACta creada para operario {Op} (expedición {Exp}, oficina {Ofi})",
+                    operarioOficinaId, dto.NumeroExpedicion, dto.OficinaOrigenId);
+            }
+            catch (Exception ex)
+            {
+                // No bloqueamos la admisión: la tarea puede recrearse manualmente.
+                _logger.LogError(ex,
+                    "No se pudo crear tarea SalidaOficinaACta para expedición {Exp} (operario {Op})",
+                    dto.NumeroExpedicion, operarioOficinaId);
+            }
         }
 
         // 6. Construir respuesta

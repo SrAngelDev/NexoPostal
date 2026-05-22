@@ -316,6 +316,104 @@ public class EnviosController : ControllerBase
     // ===== ENDPOINTS INTERNOS (Intranet / Driver-App) =====
 
     /// <summary>
+    /// Endpoint inter-servicio: alta presencial de envío en oficina.
+    /// La oficina actúa como origen y como remitente operativo: el envío arranca en
+    /// EstadoInterno=RecogidoEnOrigen y Pagado=true (el operario cobra al cliente in situ).
+    /// Auth por X-Service-Key.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("interno/service/alta-oficina")]
+    [ProducesResponseType(typeof(EnvioCreadoDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AltaEnvioOficinaInterno(
+        [FromBody] AltaEnvioOficinaDto dto,
+        [FromHeader(Name = "X-Oficina-Origen-Id")] int? oficinaOrigenIdHeader)
+    {
+        if (!IsInternalServiceAuthorized())
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensaje = "Service key inválida" });
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        if (oficinaOrigenIdHeader is null or <= 0)
+            return BadRequest(new { mensaje = "Header X-Oficina-Origen-Id obligatorio." });
+
+        if (!Enum.TryParse<TipoEntrega>(dto.TipoEntrega, ignoreCase: true, out var tipoEntrega))
+            return BadRequest(new { mensaje = $"TipoEntrega no válido: {dto.TipoEntrega}. Valores: Domicilio, Oficina." });
+
+        if (tipoEntrega == TipoEntrega.Oficina && (dto.OficinaDestinoId is null or <= 0))
+            return BadRequest(new { mensaje = "OficinaDestinoId es obligatorio cuando TipoEntrega == Oficina." });
+
+        if (tipoEntrega == TipoEntrega.Domicilio && dto.OficinaDestinoId is not null)
+            return BadRequest(new { mensaje = "OficinaDestinoId debe ser null cuando TipoEntrega == Domicilio." });
+
+        var dimensiones = _tarifasService.ParseDimensiones(dto.Dimensiones);
+        var tarifa = _tarifasService.Calcular(new TarifaCalculoInput(
+            dto.Peso,
+            dimensiones.Largo,
+            dimensiones.Ancho,
+            dimensiones.Alto,
+            dto.CodigoPostalOrigen,
+            dto.CodigoPostalDestino,
+            "Estandar"));
+
+        var envio = new Envio
+        {
+            NumeroSeguimiento = _trackingGenerator.Generate(),
+            NumeroExpedicion = _trackingGenerator.GenerateExpedicion(),
+            IdentityUserId = string.Empty, // alta presencial: el remitente no es un usuario digital
+            PesoKg = dto.Peso,
+            Dimensiones = dto.Dimensiones,
+            Origen = dto.Origen,
+            Destino = dto.Destino,
+            CodigoPostalOrigen = dto.CodigoPostalOrigen,
+            CodigoPostalDestino = dto.CodigoPostalDestino,
+            OficinaOrigenId = oficinaOrigenIdHeader.Value,
+            OficinaDestinoId = dto.OficinaDestinoId,
+            TipoEntrega = tipoEntrega,
+            EstadoActual = EstadoEnvio.Admitido,
+            EstadoInternoActual = EstadoInterno.RecogidoEnOrigen,
+            FechaCreacion = DateTime.UtcNow,
+            CosteCalculado = tarifa.PrecioTotal,
+            TipoTarifa = tarifa.TipoTarifa,
+            TiempoEntregaEstimado = tarifa.TiempoEntregaEstimado,
+            Pagado = true,
+            Observaciones = dto.Observaciones,
+            NombreRemitente = dto.NombreRemitente,
+            ApellidosRemitente = dto.ApellidosRemitente ?? string.Empty,
+            TelefonoRemitente = dto.TelefonoRemitente,
+            EmailRemitente = dto.EmailRemitente ?? string.Empty,
+            DniRemitente = dto.DniRemitente,
+            NombreDestinatario = dto.NombreDestinatario,
+            ApellidosDestinatario = dto.ApellidosDestinatario ?? string.Empty,
+            TelefonoDestinatario = dto.TelefonoDestinatario,
+            EmailDestinatario = dto.EmailDestinatario
+        };
+
+        await _envioRepo.CreateAsync(envio);
+
+        _logger.LogInformation(
+            "Alta presencial: expedición {Exp} en oficina origen {OO} (TipoEntrega={TE}, OficinaDestino={OD}, MetodoCobro={MC})",
+            envio.NumeroExpedicion, oficinaOrigenIdHeader, tipoEntrega, dto.OficinaDestinoId, dto.MetodoCobro);
+
+        var respuesta = new EnvioCreadoDto
+        {
+            NumeroSeguimiento = envio.NumeroSeguimiento,
+            NumeroExpedicion = envio.NumeroExpedicion,
+            CosteCalculado = envio.CosteCalculado,
+            EstadoActual = envio.EstadoActual.ToString(),
+            TipoEntrega = envio.TipoEntrega.ToString(),
+            OficinaOrigenId = envio.OficinaOrigenId,
+            OficinaDestinoId = envio.OficinaDestinoId,
+            FechaCreacion = envio.FechaCreacion,
+            UrlEtiqueta = $"/api/etiquetas/{envio.NumeroSeguimiento}"
+        };
+
+        return StatusCode(StatusCodes.Status201Created, respuesta);
+    }
+
+    /// <summary>
     /// Endpoint inter-servicio: devuelve los datos operativos esenciales de un envío
     /// para que otros microservicios (Intranet, Reparto) encadenen flujos sin duplicar datos.
     /// Auth por X-Service-Key.

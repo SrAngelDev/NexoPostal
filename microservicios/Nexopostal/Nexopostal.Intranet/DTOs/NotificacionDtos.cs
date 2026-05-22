@@ -167,3 +167,50 @@ public class AdmisionPaqueteResponseDto
     /// <summary>Fecha y hora de la admisión</summary>
     public DateTime FechaAdmision { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>
+/// DTO de alta presencial de envio en oficina (consumido por endpoint Intranet).
+/// El operario de oficina rellena este formulario; Intranet llama a Ciudadano
+/// para crear el envio y luego ejecuta AdmitirPaquete con YaRecogidoEnOrigen=true.
+/// </summary>
+public class AltaEnvioOficinaIntranetDto
+{
+    public decimal Peso { get; set; }
+    public string Dimensiones { get; set; } = string.Empty;
+
+    public string NombreRemitente { get; set; } = string.Empty;
+    public string? ApellidosRemitente { get; set; }
+    public string Origen { get; set; } = string.Empty;
+    public string CodigoPostalOrigen { get; set; } = string.Empty;
+    public string TelefonoRemitente { get; set; } = string.Empty;
+    public string? EmailRemitente { get; set; }
+    public string? DniRemitente { get; set; }
+
+    public string NombreDestinatario { get; set; } = string.Empty;
+    public string? ApellidosDestinatario { get; set; }
+    public string Destino { get; set; } = string.Empty;
+    public string CodigoPostalDestino { get; set; } = string.Empty;
+    public string TelefonoDestinatario { get; set; } = string.Empty;
+    public string? EmailDestinatario { get; set; }
+
+    public string TipoEntrega { get; set; } = "Domicilio";
+    public int? OficinaDestinoId { get; set; }
+
+    public string MetodoCobro { get; set; } = "Efectivo";
+    public string? Observaciones { get; set; }
+}
+
+/// <summary>
+/// Respuesta del endpoint POST /api/admision/oficina/alta.
+/// </summary>
+public class AltaEnvioOficinaResponseDto
+{
+    public string NumeroExpedicion { get; set; } = string.Empty;
+    public string NumeroSeguimiento { get; set; } = string.Empty;
+    public decimal CosteCalculado { get; set; }
+    public string TipoEntrega { get; set; } = "Domicilio";
+    public int? OficinaOrigenId { get; set; }
+    public int? OficinaDestinoId { get; set; }
+    public string? CtaDestinoCodigo { get; set; }
+    public string Mensaje { get; set; } = string.Empty;
+}

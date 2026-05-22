@@ -142,6 +142,13 @@ builder.Services.AddHttpClient<ICiudadanoEnvioLookupService, CiudadanoEnvioLooku
     client.DefaultRequestHeaders.Add("X-Service-Key", interServiceKey);
 });
 
+builder.Services.AddHttpClient<ICiudadanoEnvioAltaService, CiudadanoEnvioAltaService>(client =>
+{
+    client.BaseAddress = new Uri(ciudadanoBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.Add("X-Service-Key", interServiceKey);
+});
+
 // 4.1 Servicios de automatización
 builder.Services.AddScoped<IClasificacionAutomaticaService, ClasificacionAutomaticaService>();
 builder.Services.AddScoped<INotificacionAutomaticaService, NotificacionAutomaticaService>();

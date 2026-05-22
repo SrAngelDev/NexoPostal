@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Intranet.DTOs;
+using Nexopostal.Intranet.Models;
+using Nexopostal.Intranet.Repositories;
 using Nexopostal.Intranet.Services;
+using System.Security.Claims;
 
 namespace Nexopostal.Intranet.Controllers;
 
@@ -27,12 +30,19 @@ namespace Nexopostal.Intranet.Controllers;
 public class AdmisionController : ControllerBase
 {
     private readonly IAdmisionService _admisionService;
-
+    private readonly ICiudadanoEnvioAltaService _envioAltaService;
+    private readonly IOperarioOficinaRepository _operarioOficinaRepo;
     private readonly IConfiguration _configuration;
 
-    public AdmisionController(IAdmisionService admisionService, IConfiguration configuration)
+    public AdmisionController(
+        IAdmisionService admisionService,
+        ICiudadanoEnvioAltaService envioAltaService,
+        IOperarioOficinaRepository operarioOficinaRepo,
+        IConfiguration configuration)
     {
         _admisionService = admisionService;
+        _envioAltaService = envioAltaService;
+        _operarioOficinaRepo = operarioOficinaRepo;
         _configuration = configuration;
     }
 
@@ -97,5 +107,116 @@ public class AdmisionController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Alta presencial de envío en oficina por parte de un <c>OperarioOficina</c>.
+    /// 
+    /// Flujo:
+    ///   1. Se resuelve el <c>OperarioOficina</c> autenticado y su oficina.
+    ///   2. Se invoca a Ciudadano (inter-servicio) para crear el envío con
+    ///      <c>Pagado=true</c> y <c>EstadoInterno=RecogidoEnOrigen</c>.
+    ///   3. Con la expedición devuelta se llama al pipeline normal de admisión
+    ///      con <c>YaRecogidoEnOrigen=true</c>, generando la tarea
+    ///      <c>SalidaOficinaACta</c> para el propio operario.
+    /// </summary>
+    [HttpPost("oficina/alta")]
+    [Authorize(Roles = "Admin,OperarioOficina")]
+    [ProducesResponseType(typeof(AltaEnvioOficinaResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AltaEnvioOficinaResponseDto>> AltaPresencialOficina(
+        [FromBody] AltaEnvioOficinaIntranetDto dto,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        // 1. Resolver OperarioOficina autenticado
+        var identityUserId =
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
+
+        if (string.IsNullOrEmpty(identityUserId))
+            return Unauthorized(new { message = "Token inválido (sin sub)." });
+
+        OperarioOficina? operario = null;
+
+        // Admin puede operar como cualquier oficina si manda header
+        var esAdmin = User.IsInRole("Admin");
+        if (!esAdmin)
+        {
+            operario = await _operarioOficinaRepo.GetByIdentityUserIdAsync(identityUserId);
+            if (operario is null)
+                return StatusCode(StatusCodes.Status409Conflict,
+                    new { message = "Tu usuario no está vinculado a ningún operario de oficina." });
+            if (!operario.Activo)
+                return StatusCode(StatusCodes.Status409Conflict,
+                    new { message = "El operario está dado de baja." });
+        }
+
+        var oficinaOrigenId = operario?.OficinaJsonId
+            ?? (int.TryParse(Request.Headers["X-Oficina-Origen-Id"].FirstOrDefault(), out var ofiHdr) ? ofiHdr : 0);
+
+        if (oficinaOrigenId <= 0)
+            return BadRequest(new { message = "No se pudo determinar OficinaOrigenId." });
+
+        // 2. Crear envío en Ciudadano
+        var creado = await _envioAltaService.CrearAsync(dto, oficinaOrigenId, ct);
+        if (creado is null)
+            return StatusCode(StatusCodes.Status502BadGateway,
+                new { message = "No se pudo crear el envío en Ciudadano." });
+
+        // 3. Admitir paquete con YaRecogidoEnOrigen=true → genera tarea SalidaOficinaACta
+        var admisionDto = new AdmisionPaqueteDto
+        {
+            NumeroExpedicion = creado.NumeroExpedicion,
+            NumeroSeguimiento = creado.NumeroSeguimiento,
+            CodigoPostalOrigen = dto.CodigoPostalOrigen,
+            CodigoPostalDestino = dto.CodigoPostalDestino,
+            DireccionEntrega = dto.Destino,
+            NombreDestinatario = dto.NombreDestinatario,
+            TelefonoDestinatario = dto.TelefonoDestinatario,
+            EsUrgente = false,
+            Observaciones = dto.Observaciones,
+            OficinaOrigenId = oficinaOrigenId,
+            OficinaDestinoId = dto.OficinaDestinoId,
+            TipoEntrega = dto.TipoEntrega,
+            YaRecogidoEnOrigen = true,
+            OperarioOficinaId = operario?.Id
+        };
+
+        AdmisionPaqueteResponseDto? admision;
+        try
+        {
+            admision = await _admisionService.AdmitirPaquete(admisionDto);
+        }
+        catch (ArgumentException ex)
+        {
+            // El envío sí está creado en Ciudadano pero no se pudo enrutar.
+            return Ok(new AltaEnvioOficinaResponseDto
+            {
+                NumeroExpedicion = creado.NumeroExpedicion,
+                NumeroSeguimiento = creado.NumeroSeguimiento,
+                CosteCalculado = creado.CosteCalculado,
+                TipoEntrega = creado.TipoEntrega,
+                OficinaOrigenId = creado.OficinaOrigenId,
+                OficinaDestinoId = creado.OficinaDestinoId,
+                Mensaje = "Envío creado, pero la admisión logística falló: " + ex.Message
+            });
+        }
+
+        return Ok(new AltaEnvioOficinaResponseDto
+        {
+            NumeroExpedicion = creado.NumeroExpedicion,
+            NumeroSeguimiento = creado.NumeroSeguimiento,
+            CosteCalculado = creado.CosteCalculado,
+            TipoEntrega = creado.TipoEntrega,
+            OficinaOrigenId = creado.OficinaOrigenId,
+            OficinaDestinoId = creado.OficinaDestinoId,
+            CtaDestinoCodigo = admision.CtaDestinoCodigo,
+            Mensaje = "Envío dado de alta y tarea SalidaOficinaACta asignada al operario."
+        });
     }
 }
