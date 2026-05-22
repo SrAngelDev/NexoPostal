@@ -57,6 +57,8 @@ public interface IAsignacionPaqueteRepository
     Task<AsignacionPaquete?> GetByIdAsync(int id);
     Task<AsignacionPaquete?> GetDetailAsync(int id);
     Task<List<AsignacionPaquete>> GetByOperarioAsync(int operarioId, EstadoTarea estado);
+    Task<List<AsignacionPaquete>> GetByOperarioOficinaAsync(int operarioOficinaId, EstadoTarea? estado = null);
+    Task<List<AsignacionPaquete>> GetByOficinaAsync(int oficinaJsonId, EstadoTarea? estado = null);
     Task<List<AsignacionPaquete>> GetByCtaAsync(int ctaId, EstadoTarea? filtroEstado = null);
     Task<AsignacionPaquete> CreateAsync(AsignacionPaquete asignacion);
     Task UpdateAsync(AsignacionPaquete asignacion);

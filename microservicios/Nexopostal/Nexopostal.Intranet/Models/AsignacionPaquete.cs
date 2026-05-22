@@ -29,21 +29,47 @@ public class AsignacionPaquete
 
     /// <summary>
     /// Operario que debe ejecutar la tarea física.
+    /// Nullable: si la tarea va a un OperarioOficina, este campo será null
+    /// y se usará <see cref="OperarioOficinaAsignadoId"/>.
     /// </summary>
-    public int OperarioAsignadoId { get; set; }
-    public OperarioCta OperarioAsignado { get; set; } = null!;
+    public int? OperarioAsignadoId { get; set; }
+    public OperarioCta? OperarioAsignado { get; set; }
 
     /// <summary>
     /// OperarioLogistico que creó esta asignación.
+    /// Nullable: cuando la asignación es generada automáticamente (alta presencial,
+    /// orquestación), no hay logístico de origen.
     /// </summary>
-    public int AsignadoPorId { get; set; }
-    public OperarioCta AsignadoPor { get; set; } = null!;
+    public int? AsignadoPorId { get; set; }
+    public OperarioCta? AsignadoPor { get; set; }
 
     /// <summary>
     /// CTA donde se realiza la tarea.
+    /// Nullable: tareas de oficina (SalidaOficinaACta, EntregaAlClienteEnOficina)
+    /// no se ejecutan dentro de un CTA.
     /// </summary>
-    public int CtaId { get; set; }
-    public CentroTratamiento Cta { get; set; } = null!;
+    public int? CtaId { get; set; }
+    public CentroTratamiento? Cta { get; set; }
+
+    // ===== Asignación a OperarioOficina (tareas de oficina postal) =====
+
+    /// <summary>
+    /// Operario de oficina que debe ejecutar la tarea (si aplica).
+    /// Exclusivo con <see cref="OperarioAsignadoId"/>.
+    /// </summary>
+    public int? OperarioOficinaAsignadoId { get; set; }
+    public OperarioOficina? OperarioOficinaAsignado { get; set; }
+
+    /// <summary>
+    /// Id de la oficina postal (OficinaJsonId) donde se realiza la tarea.
+    /// </summary>
+    public int? OficinaJsonId { get; set; }
+
+    /// <summary>
+    /// Nombre desnormalizado de la oficina (para listados sin lookup).
+    /// </summary>
+    [MaxLength(200)]
+    public string? OficinaNombre { get; set; }
 
     /// <summary>
     /// Tipo de tarea a realizar (Recepcion, Clasificacion, Carga, Descarga, Expedicion).
