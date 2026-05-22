@@ -68,6 +68,16 @@ public class PagosController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized("Token inválido");
 
+        // Validación TipoEntrega + OficinaDestinoId coherente
+        if (!Enum.TryParse<TipoEntrega>(dto.TipoEntrega, ignoreCase: true, out var tipoEntrega))
+            return BadRequest(new { mensaje = $"TipoEntrega no válido: {dto.TipoEntrega}." });
+
+        if (tipoEntrega == TipoEntrega.Oficina && (dto.OficinaDestinoId is null or <= 0))
+            return BadRequest(new { mensaje = "OficinaDestinoId es obligatorio cuando TipoEntrega == Oficina." });
+
+        if (tipoEntrega == TipoEntrega.Domicilio && dto.OficinaDestinoId is not null)
+            return BadRequest(new { mensaje = "OficinaDestinoId debe ser null cuando TipoEntrega == Domicilio." });
+
         var dimensiones = _tarifasService.ParseDimensiones(dto.Dimensiones);
         var tarifa = _tarifasService.Calcular(new TarifaCalculoInput(
             dto.Peso,
@@ -103,6 +113,9 @@ public class PagosController : ControllerBase
             TipoTarifa = tarifa.TipoTarifa,
             TiempoEntregaEstimado = tarifa.TiempoEntregaEstimado,
             CosteCalculado = tarifa.PrecioTotal,
+            OficinaOrigenId = dto.OficinaOrigenId,
+            OficinaDestinoId = dto.OficinaDestinoId,
+            TipoEntrega = tipoEntrega,
             EstadoActual = EstadoEnvio.PendientePago,
             EstadoInternoActual = EstadoInterno.PendientePago,
             Pagado = false,
@@ -343,7 +356,10 @@ public class PagosController : ControllerBase
             envio.NumeroSeguimiento,
             envio.Destino,
             null,
-            envio.TelefonoDestinatario);
+            envio.TelefonoDestinatario,
+            envio.OficinaOrigenId,
+            envio.OficinaDestinoId,
+            envio.TipoEntrega.ToString());
     }
 
     private VerificarPagoResultadoDto MapToVerificarDto(Envio envio)

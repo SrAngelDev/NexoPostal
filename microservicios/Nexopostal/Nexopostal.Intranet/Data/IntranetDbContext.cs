@@ -129,6 +129,18 @@ public class IntranetDbContext : DbContext
                 .WithMany(c => c.Asignaciones)
                 .HasForeignKey(e => e.CtaId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // FK opcional al operario de oficina (tareas de oficina postal)
+            entity.HasOne(e => e.OperarioOficinaAsignado)
+                .WithMany()
+                .HasForeignKey(e => e.OperarioOficinaAsignadoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.OperarioOficinaAsignadoId, e.EstadoTarea })
+                .HasDatabaseName("IX_AsignacionesPaquetes_OperarioOficina_Estado");
+
+            entity.HasIndex(e => new { e.OficinaJsonId, e.EstadoTarea })
+                .HasDatabaseName("IX_AsignacionesPaquetes_Oficina_Estado");
         });
 
         // ===== MovimientoPaquete =====

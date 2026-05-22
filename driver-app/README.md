@@ -2,6 +2,21 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.0.2.
 
+## Flujo de envíos `TipoEntrega = Oficina`
+
+A partir del flujo revisado (F1–F8), los envíos cuyo `TipoEntrega` es `Oficina`
+**nunca llegan al microservicio Reparto** ni, por tanto, a esta aplicación de
+repartidor. La bifurcación se realiza en backend:
+
+- `Nexopostal.Intranet/Services/AdmisionService`: si `TipoEntrega == Oficina`,
+  no se invoca a Reparto para crear ruta/parada (F5).
+- `Nexopostal.Intranet/Services/ScanProcessor`: en el último escaneo, si el
+  envío es de oficina lo deja en estado `ListoParaRecogidaEnOficina` y crea una
+  tarea para `OperarioOficina` en lugar de generar parada de reparto (F3).
+
+Por eso esta app no requiere cambios para la fase F9: el repartidor solo verá
+los envíos a domicilio que ya recibía. Esta sección documenta el contrato.
+
 ## Development server
 
 To start a local development server, run:

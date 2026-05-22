@@ -71,6 +71,23 @@ public class Envio
     [MaxLength(10)]
     public string CodigoPostalDestino { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Oficina postal donde el remitente entrega el paquete (OficinaJsonId en oficinas.json).
+    /// Obligatoria desde el flujo de admisión online; en alta presencial se rellena con la oficina del operario.
+    /// </summary>
+    public int? OficinaOrigenId { get; set; }
+
+    /// <summary>
+    /// Oficina postal donde el destinatario recogerá el paquete (cuando TipoEntrega == Oficina).
+    /// Debe ser null cuando TipoEntrega == Domicilio.
+    /// </summary>
+    public int? OficinaDestinoId { get; set; }
+
+    /// <summary>
+    /// Modalidad de entrega seleccionada por el cliente: a domicilio o en oficina destino.
+    /// </summary>
+    public TipoEntrega TipoEntrega { get; set; } = TipoEntrega.Domicilio;
+
     // ===== ESTADOS DEL ENVÍO =====
 
     /// <summary>

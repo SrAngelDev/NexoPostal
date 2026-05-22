@@ -62,18 +62,23 @@ public class AsignacionDetalleDto
     public bool EsUrgente { get; set; }
     public string? Observaciones { get; set; }
 
-    // Operario asignado
-    public int OperarioAsignadoId { get; set; }
+    // Operario asignado (CTA)
+    public int? OperarioAsignadoId { get; set; }
     public string OperarioAsignadoNombre { get; set; } = string.Empty;
     public string OperarioAsignadoCodigo { get; set; } = string.Empty;
 
     // Asignado por
-    public int AsignadoPorId { get; set; }
+    public int? AsignadoPorId { get; set; }
     public string AsignadoPorNombre { get; set; } = string.Empty;
 
     // CTA
-    public int CtaId { get; set; }
+    public int? CtaId { get; set; }
     public string CtaCodigo { get; set; } = string.Empty;
+
+    // Oficina (tareas de OperarioOficina)
+    public int? OperarioOficinaAsignadoId { get; set; }
+    public int? OficinaJsonId { get; set; }
+    public string? OficinaNombre { get; set; }
 
     // Fechas
     public DateTime FechaAsignacion { get; set; }

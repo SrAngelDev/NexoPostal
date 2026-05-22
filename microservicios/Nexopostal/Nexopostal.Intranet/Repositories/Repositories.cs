@@ -162,6 +162,7 @@ public class AsignacionPaqueteRepository : IAsignacionPaqueteRepository
             .Include(a => a.OperarioAsignado)
             .Include(a => a.AsignadoPor)
             .Include(a => a.Cta)
+            .Include(a => a.OperarioOficinaAsignado)
             .FirstOrDefaultAsync(a => a.Id == id);
 
     public async Task<List<AsignacionPaquete>> GetByOperarioAsync(int operarioId, EstadoTarea estado)
@@ -172,6 +173,38 @@ public class AsignacionPaqueteRepository : IAsignacionPaqueteRepository
             .OrderByDescending(a => a.EsUrgente)
             .ThenBy(a => estado == EstadoTarea.Pendiente ? a.FechaAsignacion : a.FechaInicio)
             .ToListAsync();
+
+    public async Task<List<AsignacionPaquete>> GetByOperarioOficinaAsync(int operarioOficinaId, EstadoTarea? estado = null)
+    {
+        var query = _context.AsignacionesPaquetes
+            .Include(a => a.OperarioOficinaAsignado)
+            .Include(a => a.AsignadoPor)
+            .Where(a => a.OperarioOficinaAsignadoId == operarioOficinaId);
+
+        if (estado.HasValue)
+            query = query.Where(a => a.EstadoTarea == estado.Value);
+
+        return await query
+            .OrderByDescending(a => a.EsUrgente)
+            .ThenByDescending(a => a.FechaAsignacion)
+            .ToListAsync();
+    }
+
+    public async Task<List<AsignacionPaquete>> GetByOficinaAsync(int oficinaJsonId, EstadoTarea? estado = null)
+    {
+        var query = _context.AsignacionesPaquetes
+            .Include(a => a.OperarioOficinaAsignado)
+            .Include(a => a.AsignadoPor)
+            .Where(a => a.OficinaJsonId == oficinaJsonId);
+
+        if (estado.HasValue)
+            query = query.Where(a => a.EstadoTarea == estado.Value);
+
+        return await query
+            .OrderByDescending(a => a.EsUrgente)
+            .ThenByDescending(a => a.FechaAsignacion)
+            .ToListAsync();
+    }
 
     public async Task<List<AsignacionPaquete>> GetByCtaAsync(int ctaId, EstadoTarea? filtroEstado = null)
     {

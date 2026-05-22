@@ -125,16 +125,38 @@ builder.Services.AddHttpClient<IRepartoOrquestacionService, RepartoOrquestacionS
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+// 4.0.b Cliente inter-servicio hacia Ciudadano (lookup/alta de envíos + notificaciones de estado)
 var ciudadanoBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoSettings:BaseUrl"]);
 if (string.IsNullOrWhiteSpace(ciudadanoBaseUrl) || ciudadanoBaseUrl.Contains("${"))
 {
     ciudadanoBaseUrl = "http://localhost:5100";
 }
+var interServiceKey = ResolveConfigValue(builder.Configuration["InterServiceSettings:ServiceKey"]);
+if (string.IsNullOrWhiteSpace(interServiceKey) || interServiceKey.Contains("${"))
+{
+    interServiceKey = "nexopostal-internal-service-key-2025";
+}
+
+builder.Services.AddMemoryCache();
 
 builder.Services.AddHttpClient<ICiudadanoEstadoNotifierService, CiudadanoEstadoNotifierService>(client =>
 {
     client.BaseAddress = new Uri(ciudadanoBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(10);
+});
+
+builder.Services.AddHttpClient<ICiudadanoEnvioLookupService, CiudadanoEnvioLookupService>(client =>
+{
+    client.BaseAddress = new Uri(ciudadanoBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(8);
+    client.DefaultRequestHeaders.Add("X-Service-Key", interServiceKey);
+});
+
+builder.Services.AddHttpClient<ICiudadanoEnvioAltaService, CiudadanoEnvioAltaService>(client =>
+{
+    client.BaseAddress = new Uri(ciudadanoBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.Add("X-Service-Key", interServiceKey);
 });
 
 // 4.1 Servicios de automatización

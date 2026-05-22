@@ -65,6 +65,8 @@ public enum TipoTarea
     /// <summary>Registrar la expedición/salida del paquete del CTA</summary>
     Expedicion = 4,
 
+    // ===== Tareas para OperarioOficina (oficinas postales) =====
+
     /// <summary>Recibir paquete en oficina origen (operario oficina)</summary>
     RecepcionOficina = 5,
 
@@ -78,7 +80,13 @@ public enum TipoTarea
     RecepcionTroncal = 8,
 
     /// <summary>Liberar paquete al equipo de reparto (lo verá JefeReparto)</summary>
-    DisponibleParaReparto = 9
+    DisponibleParaReparto = 9,
+
+    /// <summary>Transporte desde el CTA destino hasta la oficina destino (entregas en oficina)</summary>
+    EntregaCtaAOficinaDestino = 10,
+
+    /// <summary>Entrega física del paquete al destinatario que acude a recogerlo a la oficina</summary>
+    EntregaAlClienteEnOficina = 11
 }
 
 /// <summary>

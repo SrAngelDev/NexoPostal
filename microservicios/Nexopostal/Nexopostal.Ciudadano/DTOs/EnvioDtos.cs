@@ -80,6 +80,25 @@ public class CrearEnvioDto
     [MaxLength(20)]
     public string? TelefonoDestinatario { get; set; }
 
+    // Modalidad de entrega y oficinas (origen siempre obligatoria; destino solo si TipoEntrega == Oficina)
+    /// <summary>
+    /// Oficina postal donde el remitente entregará el paquete (OficinaJsonId de oficinas.json).
+    /// </summary>
+    [Required]
+    public int OficinaOrigenId { get; set; }
+
+    /// <summary>
+    /// Modalidad de entrega final: "Domicilio" o "Oficina".
+    /// </summary>
+    [Required]
+    [MaxLength(20)]
+    public string TipoEntrega { get; set; } = "Domicilio";
+
+    /// <summary>
+    /// Oficina postal donde el destinatario recogerá el envío. Obligatorio si TipoEntrega == "Oficina".
+    /// </summary>
+    public int? OficinaDestinoId { get; set; }
+
     // Observaciones
     [MaxLength(1000)]
     public string? Observaciones { get; set; }
@@ -91,10 +110,15 @@ public class CrearEnvioDto
 public class EnvioCreadoDto
 {
     public string NumeroSeguimiento { get; set; } = string.Empty;
+    public string NumeroExpedicion { get; set; } = string.Empty;
     public decimal CosteCalculado { get; set; }
     public string EstadoActual { get; set; } = string.Empty;
+    public string TipoEntrega { get; set; } = string.Empty;
+    public int? OficinaOrigenId { get; set; }
+    public int? OficinaDestinoId { get; set; }
     public DateTime FechaCreacion { get; set; }
     public string UrlEtiqueta { get; set; } = string.Empty;
+    public string? UrlFactura { get; set; }
 }
 
 /// <summary>
@@ -211,6 +235,11 @@ public class EnvioInternoDetalladoDto
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaPago { get; set; }
     public string? Observaciones { get; set; }
+
+    // Modalidad de entrega y oficinas
+    public string TipoEntrega { get; set; } = "Domicilio";
+    public int? OficinaOrigenId { get; set; }
+    public int? OficinaDestinoId { get; set; }
 }
 
 /// <summary>
@@ -261,6 +290,9 @@ public class EnvioResumenInternoDto
     public decimal PesoKg { get; set; }
     public string TipoTarifa { get; set; } = string.Empty;
     public bool Pagado { get; set; }
+    public string TipoEntrega { get; set; } = "Domicilio";
+    public int? OficinaOrigenId { get; set; }
+    public int? OficinaDestinoId { get; set; }
 }
 
 /// <summary>
@@ -328,4 +360,117 @@ public class TrackingEventoEntregaDto
     public string? FotoEntrega { get; set; }
 
     public string? FirmaDigital { get; set; }
+}
+
+/// <summary>
+/// DTO interno consumido por otros microservicios (Intranet, Reparto) mediante X-Service-Key.
+/// Devuelve los datos operativos esenciales de un env\u00edo para encadenar flujos.
+/// </summary>
+public class EnvioInternoServiceDto
+{
+    public string NumeroSeguimiento { get; set; } = string.Empty;
+    public string NumeroExpedicion { get; set; } = string.Empty;
+    public string EstadoPublico { get; set; } = string.Empty;
+    public string EstadoInterno { get; set; } = string.Empty;
+
+    public string TipoEntrega { get; set; } = "Domicilio";
+    public int? OficinaOrigenId { get; set; }
+    public int? OficinaDestinoId { get; set; }
+
+    public string CodigoPostalOrigen { get; set; } = string.Empty;
+    public string CodigoPostalDestino { get; set; } = string.Empty;
+    public string Origen { get; set; } = string.Empty;
+    public string Destino { get; set; } = string.Empty;
+
+    public string NombreDestinatario { get; set; } = string.Empty;
+    public string ApellidosDestinatario { get; set; } = string.Empty;
+    public string TelefonoDestinatario { get; set; } = string.Empty;
+    public string? EmailDestinatario { get; set; }
+
+    public decimal PesoKg { get; set; }
+    public string Dimensiones { get; set; } = string.Empty;
+    public string TipoTarifa { get; set; } = string.Empty;
+    public bool Pagado { get; set; }
+    public DateTime FechaCreacion { get; set; }
+}
+
+/// <summary>
+/// DTO para alta presencial en oficina por parte de un OperarioOficina.
+/// El operario act\u00faa como remitente operativo: la oficina origen se toma del claim del operario.
+/// El env\u00edo arranca en estado RecogidoEnOrigen (ya est\u00e1 f\u00edsicamente en la oficina) y Pagado=true.
+/// </summary>
+public class AltaEnvioOficinaDto
+{
+    // Datos del paquete
+    [Required]
+    [Range(0.1, 30)]
+    public decimal Peso { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string Dimensiones { get; set; } = string.Empty;
+
+    // Remitente (cliente que se persona en la oficina)
+    [Required]
+    [MaxLength(100)]
+    public string NombreRemitente { get; set; } = string.Empty;
+
+    [MaxLength(150)]
+    public string? ApellidosRemitente { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string Origen { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(10)]
+    public string CodigoPostalOrigen { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(20)]
+    public string TelefonoRemitente { get; set; } = string.Empty;
+
+    [MaxLength(200)]
+    public string? EmailRemitente { get; set; }
+
+    [MaxLength(20)]
+    public string? DniRemitente { get; set; }
+
+    // Destinatario
+    [Required]
+    [MaxLength(100)]
+    public string NombreDestinatario { get; set; } = string.Empty;
+
+    [MaxLength(150)]
+    public string? ApellidosDestinatario { get; set; }
+
+    [Required]
+    [MaxLength(500)]
+    public string Destino { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(10)]
+    public string CodigoPostalDestino { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(20)]
+    public string TelefonoDestinatario { get; set; } = string.Empty;
+
+    [MaxLength(200)]
+    public string? EmailDestinatario { get; set; }
+
+    // Modalidad de entrega
+    [Required]
+    [MaxLength(20)]
+    public string TipoEntrega { get; set; } = "Domicilio";
+
+    public int? OficinaDestinoId { get; set; }
+
+    // Cobro
+    /// <summary>"Efectivo" o "TPV"</summary>
+    [MaxLength(20)]
+    public string MetodoCobro { get; set; } = "Efectivo";
+
+    [MaxLength(1000)]
+    public string? Observaciones { get; set; }
 }

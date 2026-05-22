@@ -94,6 +94,11 @@ export const routes: Routes = [
     canActivate: [adminGuard]
   },
   {
+    path: 'alta-en-oficina',
+    loadComponent: () => import('./pages/alta-en-oficina/alta-en-oficina.component').then(m => m.AltaEnOficinaComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard]

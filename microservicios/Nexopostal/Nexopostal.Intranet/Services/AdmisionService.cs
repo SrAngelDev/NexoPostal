@@ -31,6 +31,7 @@ public class AdmisionService : IAdmisionService
     private readonly IClasificacionService _clasificacionService;
     private readonly IOficinaPostalService _oficinaService;
     private readonly INotificacionService _notificacionService;
+    private readonly IAsignacionService _asignacionService;
     private readonly ILogger<AdmisionService> _logger;
 
     public AdmisionService(
@@ -38,12 +39,14 @@ public class AdmisionService : IAdmisionService
         IClasificacionService clasificacionService,
         IOficinaPostalService oficinaService,
         INotificacionService notificacionService,
+        IAsignacionService asignacionService,
         ILogger<AdmisionService> logger)
     {
         _movimientoRepo = movimientoRepo;
         _clasificacionService = clasificacionService;
         _oficinaService = oficinaService;
         _notificacionService = notificacionService;
+        _asignacionService = asignacionService;
         _logger = logger;
     }
 
@@ -124,6 +127,35 @@ public class AdmisionService : IAdmisionService
             "Paquete {Expedicion} admitido · CP destino: {Cp} → CTA: {Cta} ({Area}) · Urgente: {Urgente} · Troncal: {Troncal} · OficinaOrigen: {Oficina}",
             dto.NumeroExpedicion, dto.CodigoPostalDestino, ctaDestino.CtaCodigo,
             ctaDestino.Area, dto.EsUrgente, requiereTroncal, oficinaOrigenJsonId);
+
+        // 5.bis Si el envío fue dado de alta presencialmente en oficina (YaRecogidoEnOrigen=true),
+        //       crear automáticamente una tarea SalidaOficinaACta para el OperarioOficina que lo registró.
+        if (dto.YaRecogidoEnOrigen && dto.OperarioOficinaId is int operarioOficinaId && operarioOficinaId > 0)
+        {
+            try
+            {
+                await _asignacionService.CrearAsignacionOficina(
+                    numeroExpedicion: dto.NumeroExpedicion,
+                    operarioOficinaId: operarioOficinaId,
+                    tipoTarea: TipoTarea.SalidaOficinaACta,
+                    oficinaJsonId: dto.OficinaOrigenId,
+                    oficinaNombre: null,
+                    esUrgente: dto.EsUrgente,
+                    creadorOperarioCtaId: null,
+                    observaciones: $"Alta presencial: paquete físicamente en oficina origen, debe salir hacia CTA {ctaDestino.CtaCodigo}.");
+
+                _logger.LogInformation(
+                    "Tarea SalidaOficinaACta creada para operario {Op} (expedición {Exp}, oficina {Ofi})",
+                    operarioOficinaId, dto.NumeroExpedicion, dto.OficinaOrigenId);
+            }
+            catch (Exception ex)
+            {
+                // No bloqueamos la admisión: la tarea puede recrearse manualmente.
+                _logger.LogError(ex,
+                    "No se pudo crear tarea SalidaOficinaACta para expedición {Exp} (operario {Op})",
+                    dto.NumeroExpedicion, operarioOficinaId);
+            }
+        }
 
         // 6. Construir respuesta. Reparto se orquesta cuando el CTA destino marque "DisponibleParaReparto".
         return new AdmisionPaqueteResponseDto

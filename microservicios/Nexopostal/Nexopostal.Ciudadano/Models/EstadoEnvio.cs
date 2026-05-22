@@ -36,6 +36,7 @@ public enum EstadoInterno
     // --- Fase de tránsito ---
     EnTransitoHaciaCentroDestino = 20, // En ruta hacia centro de destino
     EnTransitoIntermedio = 21,         // En tránsito por centro intermedio
+    EnTransitoAOficinaDestino = 22,    // Tras clasificación destino, en camino a oficina destino (entregas en oficina)
 
     // --- Fase de clasificación destino ---
     RecibidoEnCentroDestino = 30, // Llegó al centro de clasificación de destino
@@ -62,4 +63,16 @@ public enum EstadoInterno
     // --- Devolución ---
     EnDevolucionAlRemitente = 70, // En proceso de devolución al remitente
     DevueltoAlRemitente = 71      // Devuelto y entregado al remitente
+}
+
+/// <summary>
+/// Tipo de entrega elegida por el cliente al crear el envío.
+/// </summary>
+public enum TipoEntrega
+{
+    /// <summary>Entrega a domicilio del destinatario por repartidor.</summary>
+    Domicilio = 0,
+
+    /// <summary>Entrega en una oficina postal de NexoPostal: el destinatario la recoge.</summary>
+    Oficina = 1
 }

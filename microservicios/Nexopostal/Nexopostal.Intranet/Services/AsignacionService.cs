@@ -14,6 +14,21 @@ public interface IAsignacionService
     /// <summary>Crea una asignación de tarea (solo OperarioLogistico)</summary>
     Task<AsignacionDetalleDto> CrearAsignacion(CrearAsignacionDto dto, int operarioLogisticoId, int ctaId);
 
+    /// <summary>
+    /// Crea una asignación de tarea para un OperarioOficina (sin requerir CTA).
+    /// Usada en alta presencial, salida de oficina origen, entrega CTA→oficina destino y entrega al cliente.
+    /// <paramref name="creadorOperarioCtaId"/> es opcional (null si la crea el sistema).
+    /// </summary>
+    Task<AsignacionDetalleDto> CrearAsignacionOficina(
+        string numeroExpedicion,
+        int operarioOficinaId,
+        TipoTarea tipoTarea,
+        int? oficinaJsonId,
+        string? oficinaNombre,
+        bool esUrgente = false,
+        int? creadorOperarioCtaId = null,
+        string? observaciones = null);
+
     /// <summary>Obtiene las tareas pendientes de un operario (urgentes primero)</summary>
     Task<List<AsignacionResumenDto>> ObtenerTareasPendientes(int operarioId);
 
@@ -43,17 +58,20 @@ public class AsignacionService : IAsignacionService
 {
     private readonly IAsignacionPaqueteRepository _asignacionRepo;
     private readonly IOperarioCtaRepository _operarioRepo;
+    private readonly IOperarioOficinaRepository _operarioOficinaRepo;
     private readonly INotificacionService _notificacionService;
     private readonly ILogger<AsignacionService> _logger;
 
     public AsignacionService(
         IAsignacionPaqueteRepository asignacionRepo,
         IOperarioCtaRepository operarioRepo,
+        IOperarioOficinaRepository operarioOficinaRepo,
         INotificacionService notificacionService,
         ILogger<AsignacionService> logger)
     {
         _asignacionRepo = asignacionRepo;
         _operarioRepo = operarioRepo;
+        _operarioOficinaRepo = operarioOficinaRepo;
         _notificacionService = notificacionService;
         _logger = logger;
     }
@@ -229,16 +247,58 @@ public class AsignacionService : IAsignacionService
             EsUrgente = a.EsUrgente,
             Observaciones = a.Observaciones,
             OperarioAsignadoId = a.OperarioAsignadoId,
-            OperarioAsignadoNombre = a.OperarioAsignado.NombreCompleto,
-            OperarioAsignadoCodigo = a.OperarioAsignado.CodigoEmpleado,
+            OperarioAsignadoNombre = a.OperarioAsignado?.NombreCompleto ?? a.OperarioOficinaAsignado?.NombreCompleto ?? string.Empty,
+            OperarioAsignadoCodigo = a.OperarioAsignado?.CodigoEmpleado ?? a.OperarioOficinaAsignado?.CodigoEmpleado ?? string.Empty,
             AsignadoPorId = a.AsignadoPorId,
-            AsignadoPorNombre = a.AsignadoPor.NombreCompleto,
+            AsignadoPorNombre = a.AsignadoPor?.NombreCompleto ?? "Sistema",
             CtaId = a.CtaId,
-            CtaCodigo = a.Cta.Codigo,
+            CtaCodigo = a.Cta?.Codigo ?? string.Empty,
+            OperarioOficinaAsignadoId = a.OperarioOficinaAsignadoId,
+            OficinaJsonId = a.OficinaJsonId,
+            OficinaNombre = a.OficinaNombre,
             FechaAsignacion = a.FechaAsignacion,
             FechaInicio = a.FechaInicio,
             FechaCompletada = a.FechaCompletada
         };
+    }
+
+    /// <inheritdoc />
+    public async Task<AsignacionDetalleDto> CrearAsignacionOficina(
+        string numeroExpedicion,
+        int operarioOficinaId,
+        TipoTarea tipoTarea,
+        int? oficinaJsonId,
+        string? oficinaNombre,
+        bool esUrgente = false,
+        int? creadorOperarioCtaId = null,
+        string? observaciones = null)
+    {
+        var operario = await _operarioOficinaRepo.GetByIdAsync(operarioOficinaId)
+            ?? throw new ArgumentException($"OperarioOficina {operarioOficinaId} no encontrado");
+
+        if (!operario.Activo)
+            throw new InvalidOperationException("El operario de oficina no está activo");
+
+        var asignacion = new AsignacionPaquete
+        {
+            NumeroExpedicion = numeroExpedicion,
+            OperarioOficinaAsignadoId = operario.Id,
+            OficinaJsonId = oficinaJsonId ?? operario.OficinaJsonId,
+            OficinaNombre = oficinaNombre ?? operario.OficinaNombre,
+            AsignadoPorId = creadorOperarioCtaId,
+            TipoTarea = tipoTarea,
+            EsUrgente = esUrgente,
+            Observaciones = observaciones
+        };
+
+        await _asignacionRepo.CreateAsync(asignacion);
+
+        _logger.LogInformation(
+            "Tarea OFICINA {Tipo} asignada a {Operario} (oficina {Oficina}) para paquete {Expedicion} · Urgente={Urgente}",
+            tipoTarea, operario.CodigoEmpleado, asignacion.OficinaJsonId, numeroExpedicion, esUrgente);
+
+        return await ObtenerDetalle(asignacion.Id)
+            ?? throw new Exception("Error al obtener detalle de asignación de oficina");
     }
 
     private static AsignacionResumenDto MapToResumen(AsignacionPaquete a) => new()
@@ -248,8 +308,8 @@ public class AsignacionService : IAsignacionService
         TipoTarea = a.TipoTarea.ToString(),
         EstadoTarea = a.EstadoTarea.ToString(),
         EsUrgente = a.EsUrgente,
-        OperarioAsignado = a.OperarioAsignado.NombreCompleto,
-        AsignadoPor = a.AsignadoPor.NombreCompleto,
+        OperarioAsignado = a.OperarioAsignado?.NombreCompleto ?? a.OperarioOficinaAsignado?.NombreCompleto ?? string.Empty,
+        AsignadoPor = a.AsignadoPor?.NombreCompleto ?? "Sistema",
         FechaAsignacion = a.FechaAsignacion,
         FechaCompletada = a.FechaCompletada,
         ModoSugerido = MapTipoTareaAModoEscaneo(a.TipoTarea)

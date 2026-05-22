@@ -2,7 +2,7 @@ name: CI/CD NexoPostal - Deploy to VPS
 
 on:
   push:
-    branches: [master, dev]
+    branches: [master]
     paths-ignore:
       - '**/*.md'
       - 'LICENSE'

@@ -423,6 +423,24 @@ export class EnvioPaqueteComponent {
     const rem = this.remitente();
     const dest = this.destinatario();
 
+    // El alta online requiere que el remitente entregue el paquete en una oficina (origen).
+    if (rem.tipoEntrega !== 'oficina' || !rem.oficina) {
+      this.notificacion.aviso(
+        'Oficina origen requerida',
+        'Selecciona la oficina postal donde entregarás el paquete antes de continuar.'
+      );
+      return;
+    }
+
+    // Si la entrega es en oficina destino, debe estar seleccionada.
+    if (dest.tipoEntrega === 'oficina' && !dest.oficina) {
+      this.notificacion.aviso(
+        'Oficina destino requerida',
+        'Selecciona la oficina postal donde el destinatario recogerá el paquete.'
+      );
+      return;
+    }
+
     // Construir dirección de origen
     let direccionOrigen = '';
     if (rem.tipoEntrega === 'oficina' && rem.oficina) {
@@ -457,6 +475,9 @@ export class EnvioPaqueteComponent {
       emailDestinatario: dest.email || undefined,
       dniDestinatario: dest.dni || undefined,
       direccionDestino,
+      oficinaOrigenId: rem.oficina?.id ?? null,
+      tipoEntrega: dest.tipoEntrega === 'oficina' ? 'Oficina' : 'Domicilio',
+      oficinaDestinoId: dest.tipoEntrega === 'oficina' ? (dest.oficina?.id ?? null) : null,
       urlBase: window.location.origin
     };
 
