@@ -106,6 +106,19 @@ public class EnviosController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
+        // Validación de modalidad de entrega + coherencia oficina destino
+        if (!Enum.TryParse<TipoEntrega>(dto.TipoEntrega, ignoreCase: true, out var tipoEntrega))
+            return BadRequest(new { mensaje = $"TipoEntrega no válido: {dto.TipoEntrega}. Valores: Domicilio, Oficina." });
+
+        if (tipoEntrega == TipoEntrega.Oficina && (dto.OficinaDestinoId is null or <= 0))
+            return BadRequest(new { mensaje = "OficinaDestinoId es obligatorio cuando TipoEntrega == Oficina." });
+
+        if (tipoEntrega == TipoEntrega.Domicilio && dto.OficinaDestinoId is not null)
+            return BadRequest(new { mensaje = "OficinaDestinoId debe ser null cuando TipoEntrega == Domicilio." });
+
+        if (dto.OficinaOrigenId <= 0)
+            return BadRequest(new { mensaje = "OficinaOrigenId es obligatorio." });
+
         // Obtenemos el ID del usuario desde el token JWT
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
                      ?? User.FindFirst("sub")?.Value
@@ -139,6 +152,9 @@ public class EnviosController : ControllerBase
             Destino = dto.Destino,
             CodigoPostalOrigen = dto.CodigoPostalOrigen,
             CodigoPostalDestino = dto.CodigoPostalDestino,
+            OficinaOrigenId = dto.OficinaOrigenId,
+            OficinaDestinoId = dto.OficinaDestinoId,
+            TipoEntrega = tipoEntrega,
             EstadoActual = EstadoEnvio.Admitido,
             EstadoInternoActual = EstadoInterno.PendienteRecogida,
             FechaCreacion = DateTime.UtcNow,
@@ -146,22 +162,29 @@ public class EnviosController : ControllerBase
             TipoTarifa = tarifa.TipoTarifa,
             TiempoEntregaEstimado = tarifa.TiempoEntregaEstimado,
             Pagado = false,
-            Observaciones = dto.Observaciones
+            Observaciones = dto.Observaciones,
+            NombreRemitente = dto.NombreRemitente,
+            TelefonoRemitente = dto.TelefonoRemitente ?? string.Empty,
+            NombreDestinatario = dto.NombreDestinatario,
+            TelefonoDestinatario = dto.TelefonoDestinatario ?? string.Empty
         };
 
         await _envioRepo.CreateAsync(envio);
 
         _logger.LogInformation(
-            "Envío creado: {NumeroSeguimiento} por usuario {UserId}",
-            envio.NumeroSeguimiento,
-            userId);
+            "Envío creado: {NumeroSeguimiento} por usuario {UserId} (TipoEntrega={TipoEntrega}, OficinaOrigen={OO}, OficinaDestino={OD})",
+            envio.NumeroSeguimiento, userId, tipoEntrega, dto.OficinaOrigenId, dto.OficinaDestinoId);
 
         // Construimos la respuesta
         var respuesta = new EnvioCreadoDto
         {
             NumeroSeguimiento = envio.NumeroSeguimiento,
+            NumeroExpedicion = envio.NumeroExpedicion,
             CosteCalculado = envio.CosteCalculado,
             EstadoActual = envio.EstadoActual.ToString(),
+            TipoEntrega = envio.TipoEntrega.ToString(),
+            OficinaOrigenId = envio.OficinaOrigenId,
+            OficinaDestinoId = envio.OficinaDestinoId,
             FechaCreacion = envio.FechaCreacion,
             UrlEtiqueta = $"/api/etiquetas/{envio.NumeroSeguimiento}"
         };
@@ -293,6 +316,50 @@ public class EnviosController : ControllerBase
     // ===== ENDPOINTS INTERNOS (Intranet / Driver-App) =====
 
     /// <summary>
+    /// Endpoint inter-servicio: devuelve los datos operativos esenciales de un envío
+    /// para que otros microservicios (Intranet, Reparto) encadenen flujos sin duplicar datos.
+    /// Auth por X-Service-Key.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("interno/service/{expedicion}")]
+    [ProducesResponseType(typeof(EnvioInternoServiceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetEnvioInternoService(string expedicion)
+    {
+        if (!IsInternalServiceAuthorized())
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensaje = "Service key inválida" });
+
+        var envio = await _envioRepo.GetByExpedicionAsync(expedicion);
+        if (envio == null)
+            return NotFound(new { mensaje = "Expedición no encontrada" });
+
+        return Ok(new EnvioInternoServiceDto
+        {
+            NumeroSeguimiento = envio.NumeroSeguimiento,
+            NumeroExpedicion = envio.NumeroExpedicion,
+            EstadoPublico = envio.EstadoActual.ToString(),
+            EstadoInterno = envio.EstadoInternoActual.ToString(),
+            TipoEntrega = envio.TipoEntrega.ToString(),
+            OficinaOrigenId = envio.OficinaOrigenId,
+            OficinaDestinoId = envio.OficinaDestinoId,
+            CodigoPostalOrigen = envio.CodigoPostalOrigen,
+            CodigoPostalDestino = envio.CodigoPostalDestino,
+            Origen = envio.Origen,
+            Destino = envio.Destino,
+            NombreDestinatario = envio.NombreDestinatario,
+            ApellidosDestinatario = envio.ApellidosDestinatario,
+            TelefonoDestinatario = envio.TelefonoDestinatario,
+            EmailDestinatario = envio.EmailDestinatario,
+            PesoKg = envio.PesoKg,
+            Dimensiones = envio.Dimensiones,
+            TipoTarifa = envio.TipoTarifa,
+            Pagado = envio.Pagado,
+            FechaCreacion = envio.FechaCreacion
+        });
+    }
+
+    /// <summary>
     /// Obtiene el detalle interno completo de un envío por su NumeroExpedicion.
     /// Solo accesible con autenticación (operarios/repartidores).
     /// </summary>
@@ -362,7 +429,10 @@ public class EnviosController : ControllerBase
             CodigoPostalDestino = e.CodigoPostalDestino,
             PesoKg = e.PesoKg,
             TipoTarifa = e.TipoTarifa,
-            Pagado = e.Pagado
+            Pagado = e.Pagado,
+            TipoEntrega = e.TipoEntrega.ToString(),
+            OficinaOrigenId = e.OficinaOrigenId,
+            OficinaDestinoId = e.OficinaDestinoId
         }).ToList();
 
         return Ok(envios);
@@ -760,7 +830,10 @@ public class EnviosController : ControllerBase
         Pagado = envio.Pagado,
         FechaCreacion = envio.FechaCreacion,
         FechaPago = envio.FechaPago,
-        Observaciones = envio.Observaciones
+        Observaciones = envio.Observaciones,
+        TipoEntrega = envio.TipoEntrega.ToString(),
+        OficinaOrigenId = envio.OficinaOrigenId,
+        OficinaDestinoId = envio.OficinaDestinoId
     };
 
     /// <summary>
