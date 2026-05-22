@@ -1,0 +1,127 @@
+<div class="page-container">
+  <div class="page-header">
+    <button class="btn-back" (click)="volver()" type="button">
+      <span class="material-symbols-outlined">arrow_back</span>
+      Volver
+    </button>
+    <h1>
+      <span class="material-symbols-outlined">campaign</span>
+      Notificaciones broadcast
+    </h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" (click)="limpiarHistorial()" [disabled]="historial().length === 0">
+        <span class="material-symbols-outlined">delete</span>
+        Vaciar historial
+      </button>
+    </div>
+  </div>
+
+  <p class="page-description">
+    Envía mensajes en tiempo real (SignalR) a todos los usuarios conectados, al grupo de
+    administradores, a un CTA completo o a un rol dentro de un CTA.
+  </p>
+
+  <div class="kpi-row">
+    <div class="kpi"><span class="kpi-label">Enviados (sesión)</span><span class="kpi-value">{{ totalEnviados() }}</span></div>
+    <div class="kpi"><span class="kpi-label">CTAs disponibles</span><span class="kpi-value">{{ ctas().length }}</span></div>
+  </div>
+
+  <div class="layout">
+    <section class="card form-card">
+      <h2>Nuevo mensaje</h2>
+
+      <div class="form-field">
+        <label>Título</label>
+        <input type="text" [ngModel]="titulo()" (ngModelChange)="titulo.set($event)" maxlength="120" />
+      </div>
+
+      <div class="form-field">
+        <label>Mensaje</label>
+        <textarea rows="4" [ngModel]="mensaje()" (ngModelChange)="mensaje.set($event)" maxlength="1000"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Tipo</label>
+          <select [ngModel]="tipo()" (ngModelChange)="tipo.set($event)">
+            <option value="info">Informativo</option>
+            <option value="success">Éxito</option>
+            <option value="warning">Aviso</option>
+            <option value="error">Error / crítico</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Alcance</label>
+          <select [ngModel]="alcance()" (ngModelChange)="alcanceChange($event)">
+            <option value="all">Todos los conectados</option>
+            <option value="admin">Solo administradores</option>
+            <option value="cta">Un CTA completo</option>
+            <option value="cta-rol">Rol dentro de un CTA</option>
+          </select>
+        </div>
+      </div>
+
+      @if (alcance() === 'cta' || alcance() === 'cta-rol') {
+        <div class="form-row">
+          <div class="form-field">
+            <label>CTA</label>
+            <select [ngModel]="ctaId()" (ngModelChange)="ctaId.set($event === '' || $event == null ? null : +$event)">
+              <option [ngValue]="null">— Selecciona —</option>
+              @for (c of ctas(); track c.id) {
+                <option [ngValue]="c.id">{{ c.codigo }} — {{ c.nombre }}</option>
+              }
+            </select>
+          </div>
+          @if (alcance() === 'cta-rol') {
+            <div class="form-field">
+              <label>Rol</label>
+              <select [ngModel]="rol()" (ngModelChange)="rol.set($event)">
+                <option value="cta">OperarioCTA</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="operarios">Todos los operarios</option>
+              </select>
+            </div>
+          }
+        </div>
+      }
+
+      @if (error()) {
+        <div class="alert alert-error">
+          <span class="material-symbols-outlined">error</span> {{ error() }}
+        </div>
+      }
+      @if (success()) {
+        <div class="alert alert-success">
+          <span class="material-symbols-outlined">check_circle</span> {{ success() }}
+        </div>
+      }
+
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="enviar()" [disabled]="saving()">
+          <span class="material-symbols-outlined">send</span>
+          @if (saving()) { Enviando… } @else { Enviar broadcast }
+        </button>
+      </div>
+    </section>
+
+    <section class="card historial-card">
+      <h2>Historial reciente</h2>
+      @if (historial().length === 0) {
+        <p class="muted">Aún no has enviado ninguna notificación en esta sesión.</p>
+      } @else {
+        <ul class="historial">
+          @for (h of historial(); track h.fechaIso) {
+            <li class="historial-item" [class]="'tipo-' + h.tipo">
+              <div class="historial-head">
+                <strong>{{ h.titulo }}</strong>
+                <span class="badge badge-neutral">{{ badgeAlcance(h) }}</span>
+              </div>
+              <p class="historial-msg">{{ h.mensaje }}</p>
+              <small class="muted">{{ h.fechaIso | date:'dd/MM/yy HH:mm' }} · {{ h.tipo }}</small>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+</div>

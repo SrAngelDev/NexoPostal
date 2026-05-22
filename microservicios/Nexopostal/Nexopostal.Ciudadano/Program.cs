@@ -104,10 +104,10 @@ builder.Services.AddHttpClient<ILogisticaNotifierService, LogisticaNotifierServi
 
 // 3.2. Registrar servicio de notificaciones de tracking en tiempo real
 builder.Services.AddScoped<ITrackingNotificacionService, TrackingNotificacionService>();
-
 // 3.3. Registrar servicios de automatización
 builder.Services.AddScoped<IProcesoDevolucionService, ProcesoDevolucionService>();
 builder.Services.AddScoped<INotificacionClienteService, NotificacionClienteService>();
+builder.Services.AddScoped<IAdminEnviosService, AdminEnviosService>();
 
 // Background Services
 builder.Services.AddHostedService<LimpiezaAutomaticaService>();

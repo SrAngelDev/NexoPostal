@@ -79,6 +79,21 @@ export const routes: Routes = [
     canActivate: [adminGuard]
   },
   {
+    path: 'gestion-envios',
+    loadComponent: () => import('./pages/gestion-envios/gestion-envios.component').then(m => m.GestionEnviosComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'gestion-clientes',
+    loadComponent: () => import('./pages/gestion-clientes/gestion-clientes.component').then(m => m.GestionClientesComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'broadcast-notificaciones',
+    loadComponent: () => import('./pages/broadcast-notificaciones/broadcast-notificaciones.component').then(m => m.BroadcastNotificacionesComponent),
+    canActivate: [adminGuard]
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard]

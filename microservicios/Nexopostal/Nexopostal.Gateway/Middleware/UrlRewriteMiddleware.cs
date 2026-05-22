@@ -35,6 +35,9 @@ public class UrlRewriteMiddleware
         "/api/nexopostal/admin-tarifas",   // CRUD admin de tarifas (bandas de precio)
         "/api/nexopostal/admin-oficinas",  // CRUD admin de oficinas postales
         "/api/nexopostal/admin-vehiculos", // CRUD admin de vehículos (flota)
+        "/api/nexopostal/admin-envios",    // Panel global de envíos (admin)
+        "/api/nexopostal/admin-clientes",  // Vista 360 de clientes (admin)
+        "/api/nexopostal/notificaciones",  // Broadcast notifications (admin)
         "/api/nexopostal/tarifas"          // El gateway pierde los query params en GET
     ];
 

@@ -107,6 +107,7 @@ builder.Services.AddScoped<IMovimientoService, MovimientoService>();
 builder.Services.AddScoped<IIncidenciaService, IncidenciaService>();
 builder.Services.AddScoped<IAdmisionService, AdmisionService>();
 builder.Services.AddScoped<INotificacionService, NotificacionService>();
+builder.Services.AddScoped<IBroadcastService, BroadcastService>();
 builder.Services.AddScoped<IHistorialService, HistorialService>();
 builder.Services.AddSingleton<OficinasJsonService>();
 builder.Services.AddScoped<IOficinaPostalService, OficinaPostalService>();

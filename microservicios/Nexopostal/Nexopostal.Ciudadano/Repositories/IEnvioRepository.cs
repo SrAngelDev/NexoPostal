@@ -17,4 +17,19 @@ public interface IEnvioRepository
     Task<Envio> CreateAsync(Envio envio);
     Task UpdateAsync(Envio envio);
     Task<bool> ExistsAsync(string numeroSeguimiento);
+
+    /// <summary>
+    /// Listado administrativo con filtros opcionales para el panel de admin.
+    /// </summary>
+    Task<List<Envio>> GetAdminListAsync(
+        EstadoEnvio? estado,
+        EstadoInterno? estadoInterno,
+        DateTime? fechaDesde,
+        DateTime? fechaHasta,
+        string? q,
+        string? codigoPostal,
+        bool? pagado,
+        int limit = 500);
+
+    Task<int> CountByEstadoAsync(EstadoEnvio estado);
 }
