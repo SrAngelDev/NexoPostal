@@ -72,6 +72,12 @@ public class PagosController : ControllerBase
         if (!Enum.TryParse<TipoEntrega>(dto.TipoEntrega, ignoreCase: true, out var tipoEntrega))
             return BadRequest(new { mensaje = $"TipoEntrega no válido: {dto.TipoEntrega}." });
 
+        // El remitente SIEMPRE entrega el paquete en una oficina postal (no realizamos
+        // recogidas a domicilio). La OficinaOrigenId es por tanto obligatoria para todo
+        // alta online.
+        if (dto.OficinaOrigenId is null or <= 0)
+            return BadRequest(new { mensaje = "OficinaOrigenId es obligatorio: el remitente debe entregar el paquete en una oficina postal." });
+
         if (tipoEntrega == TipoEntrega.Oficina && (dto.OficinaDestinoId is null or <= 0))
             return BadRequest(new { mensaje = "OficinaDestinoId es obligatorio cuando TipoEntrega == Oficina." });
 

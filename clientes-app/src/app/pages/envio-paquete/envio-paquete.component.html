@@ -89,33 +89,17 @@
       @if (currentStep() === 1) {
         <div class="animate-fadeIn">
           <h2 class="text-3xl font-bold text-[#1A237E] mb-2">¿Quién envía el paquete?</h2>
-          <p class="text-gray-600 mb-8">Introduce los datos del remitente y la dirección de recogida.</p>
+          <p class="text-gray-600 mb-8">Introduce tus datos y selecciona la oficina postal donde entregarás el paquete.</p>
 
-          @if (direccionesGuardadas().length > 0) {
-            <div class="mb-5">
-              <button type="button" (click)="showSelectorRemitente.set(!showSelectorRemitente())"
-                class="flex items-center gap-2 text-sm font-semibold text-[#1A237E] hover:text-[#283593] transition-colors cursor-pointer">
-                <span class="material-symbols-outlined text-lg">contact_page</span>
-                Usar dirección de mi agenda
-                <span class="material-symbols-outlined text-base transition-transform" [class.rotate-180]="showSelectorRemitente()">expand_more</span>
-              </button>
-              @if (showSelectorRemitente()) {
-                <div class="mt-2 grid gap-2 animate-fadeIn">
-                  @for (dir of direccionesGuardadas(); track dir.id) {
-                    <button type="button" (click)="aplicarDireccion('remitente', dir)"
-                      class="text-left p-3 bg-white border border-gray-200 rounded-lg hover:border-[#1A237E] hover:bg-blue-50 transition-all cursor-pointer">
-                      <div class="flex items-center justify-between">
-                        <p class="text-sm font-semibold text-gray-800">{{ dir.alias }}</p>
-                        <span class="material-symbols-outlined text-gray-400 text-base">arrow_forward</span>
-                      </div>
-                      <p class="text-xs text-gray-600">{{ dir.nombreDestinatario }}</p>
-                      <p class="text-xs text-gray-500">{{ dir.direccion }}, {{ dir.codigoPostal }} {{ dir.ciudad }} ({{ dir.provincia }})</p>
-                    </button>
-                  }
-                </div>
-              }
+          <div class="mb-5 p-4 bg-blue-50 rounded-lg border-l-4 border-[#1A237E]">
+            <div class="flex gap-3 items-start">
+              <span class="material-symbols-outlined text-[#1A237E] text-2xl shrink-0">info</span>
+              <div>
+                <p class="text-sm font-bold text-[#1A237E] mb-1">Entrega en oficina obligatoria</p>
+                <p class="text-xs text-gray-700">Por motivos operativos, los envíos contratados online deben entregarse personalmente en una de nuestras oficinas postales. No realizamos recogidas a domicilio.</p>
+              </div>
             </div>
-          }
+          </div>
 
           <div class="bg-gray-50 p-5 rounded-lg mb-5">
             <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Datos personales</h3>
@@ -152,87 +136,40 @@
           </div>
 
           <div class="bg-gray-50 p-5 rounded-lg mb-5">
-            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">¿Dónde se recoge el paquete?</h3>
-            <div class="flex gap-3 mb-4">
-              <button (click)="setTipoEntrega('remitente', 'direccion')" type="button"
-                class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                [ngClass]="remitente().tipoEntrega === 'direccion' ? 'border-[#1A237E] bg-[#1A237E] text-white' : 'border-gray-300 text-gray-600'">
-                <span class="material-symbols-outlined text-lg">home</span>
-                Dirección
-              </button>
-              <button (click)="setTipoEntrega('remitente', 'oficina')" type="button"
-                class="flex-1 py-2.5 px-4 rounded-lg border-2 font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                [ngClass]="remitente().tipoEntrega === 'oficina' ? 'border-[#1A237E] bg-[#1A237E] text-white' : 'border-gray-300 text-gray-600'">
-                <span class="material-symbols-outlined text-lg">location_on</span>
-                Oficina
-              </button>
-            </div>
+            <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Oficina de entrega del paquete *</h3>
 
-            @if (remitente().tipoEntrega === 'direccion') {
-              <div class="space-y-3 animate-fadeIn">
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs font-semibold text-gray-600">Dirección completa *</label>
-                  <input type="text" [ngModel]="remitente().direccion" (ngModelChange)="updateRemitente('direccion', $event)"
-                    placeholder="Calle, numero, piso, puerta..." class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div class="flex flex-col gap-1">
-                    <label class="text-xs font-semibold text-gray-600">Código Postal *</label>
-                    <input type="text" [ngModel]="remitente().codigoPostal" (ngModelChange)="updateRemitente('codigoPostal', $event)"
-                      placeholder="28001" maxlength="5"
-                      (keypress)="$event.charCode >= 48 && $event.charCode <= 57 || $event.preventDefault()"
-                      class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label class="text-xs font-semibold text-gray-600">Ciudad *</label>
-                    <input type="text" [ngModel]="remitente().ciudad" (ngModelChange)="updateRemitente('ciudad', $event)"
-                      placeholder="Madrid" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
-                  </div>
-                  <div class="flex flex-col gap-1 col-span-2">
-                    <label class="text-xs font-semibold text-gray-600">Provincia *</label>
-                    <input type="text" [ngModel]="remitente().provincia" (ngModelChange)="updateRemitente('provincia', $event)"
-                      placeholder="Madrid" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
-                  </div>
-                </div>
+            <div class="flex flex-col gap-1 relative">
+              <label class="text-xs font-semibold text-gray-600">Busca por ciudad o código postal</label>
+              <div class="relative">
+                <input type="text" [ngModel]="senderOficinaBusqueda()" (ngModelChange)="senderOficinaBusqueda.set($event); buscarOficinas('remitente')"
+                  (focus)="senderShowOficinas.set(true)"
+                  placeholder="Ej: Madrid, 28001..."
+                  class="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
               </div>
-            }
-
-            @if (remitente().tipoEntrega === 'oficina') {
-              <div class="animate-fadeIn">
-                <div class="flex flex-col gap-1 relative">
-                  <label class="text-xs font-semibold text-gray-600">Buscar oficina por ciudad o código postal *</label>
-                  <div class="relative">
-                    <input type="text" [ngModel]="senderOficinaBusqueda()" (ngModelChange)="senderOficinaBusqueda.set($event); buscarOficinas('remitente')"
-                      (focus)="senderShowOficinas.set(true)"
-                      placeholder="Ej: Madrid, 28001..."
-                      class="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
-                    <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                  </div>
-                  @if (senderShowOficinas() && senderOficinas().length > 0) {
-                    <div class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto mt-1">
-                      @for (ofi of senderOficinas(); track ofi.id) {
-                        <button type="button" (click)="seleccionarOficina('remitente', ofi)"
-                          class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0">
-                          <p class="text-sm font-semibold text-gray-800">{{ ofi.nombre }}</p>
-                          <p class="text-xs text-gray-500">{{ ofi.direccion }} — {{ ofi.codigoPostal }} {{ ofi.ciudad }}</p>
-                          <p class="text-xs text-gray-400">{{ ofi.horario }}</p>
-                        </button>
-                      }
-                    </div>
+              @if (senderShowOficinas() && senderOficinas().length > 0) {
+                <div class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto mt-1">
+                  @for (ofi of senderOficinas(); track ofi.id) {
+                    <button type="button" (click)="seleccionarOficina('remitente', ofi)"
+                      class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0">
+                      <p class="text-sm font-semibold text-gray-800">{{ ofi.nombre }}</p>
+                      <p class="text-xs text-gray-500">{{ ofi.direccion }} — {{ ofi.codigoPostal }} {{ ofi.ciudad }}</p>
+                      <p class="text-xs text-gray-400">{{ ofi.horario }}</p>
+                    </button>
                   }
                 </div>
-                @if (remitente().oficina) {
-                  <div class="mt-3 p-3 bg-green-50 border border-green-300 rounded-lg">
-                    <div class="flex items-start gap-2">
-                      <span class="material-symbols-outlined text-green-600 text-lg">check_circle</span>
-                      <div>
-                        <p class="text-sm font-semibold text-green-800">{{ remitente().oficina!.nombre }}</p>
-                        <p class="text-xs text-gray-600">{{ remitente().oficina!.direccion }} — {{ remitente().oficina!.codigoPostal }} {{ remitente().oficina!.ciudad }}</p>
-                        <p class="text-xs text-gray-500 mt-1">{{ remitente().oficina!.horario }}</p>
-                      </div>
-                    </div>
+              }
+            </div>
+            @if (remitente().oficina) {
+              <div class="mt-3 p-3 bg-green-50 border border-green-300 rounded-lg">
+                <div class="flex items-start gap-2">
+                  <span class="material-symbols-outlined text-green-600 text-lg">check_circle</span>
+                  <div>
+                    <p class="text-sm font-semibold text-green-800">{{ remitente().oficina!.nombre }}</p>
+                    <p class="text-xs text-gray-600">{{ remitente().oficina!.direccion }} — {{ remitente().oficina!.codigoPostal }} {{ remitente().oficina!.ciudad }}</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ remitente().oficina!.horario }}</p>
                   </div>
-                }
+                </div>
               </div>
             }
           </div>

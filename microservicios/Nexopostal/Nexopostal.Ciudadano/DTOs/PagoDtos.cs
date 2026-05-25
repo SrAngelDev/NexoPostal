@@ -85,8 +85,10 @@ public class CrearSesionPagoDto
 
     /// <summary>
     /// Oficina origen donde el remitente entrega el paquete.
-    /// Obligatoria para alta online (el cliente lleva el paquete a la oficina).
+    /// Obligatoria para alta online (el cliente siempre lleva el paquete a una oficina;
+    /// no realizamos recogidas a domicilio).
     /// </summary>
+    [Required]
     public int? OficinaOrigenId { get; set; }
 
     /// <summary>"Domicilio" o "Oficina".</summary>

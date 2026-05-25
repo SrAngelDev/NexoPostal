@@ -66,10 +66,10 @@ export class EnvioPaqueteComponent {
   /** Sesión de Stripe pendiente de confirmación explícita por el usuario */
   sesionPendiente = signal<SesionPagoCreadaResponse | null>(null);
   
-  // Datos de remitente
+  // Datos de remitente — siempre entrega en oficina (no hay recogida a domicilio).
   remitente = signal<DatosPersona>({
     nombre: '', apellidos: '', telefono: '', email: '', dni: '',
-    tipoEntrega: 'direccion',
+    tipoEntrega: 'oficina',
     direccion: '', codigoPostal: '', ciudad: '', provincia: '',
     oficina: null
   });
@@ -130,6 +130,21 @@ export class EnvioPaqueteComponent {
   }
 
   aplicarDireccion(quien: 'remitente' | 'destinatario', dir: DireccionFavoritaDto): void {
+    // Para el remitente solo copiamos los datos personales (nombre/teléfono/dni):
+    // el remitente SIEMPRE entrega el paquete en una oficina postal, no hay recogida
+    // a domicilio.
+    if (quien === 'remitente') {
+      const personal: Partial<DatosPersona> = {
+        nombre: dir.nombreDestinatario.split(' ')[0] || dir.nombreDestinatario,
+        apellidos: dir.nombreDestinatario.split(' ').slice(1).join(' '),
+        telefono: dir.telefono || ''
+      };
+      this.remitente.update(r => ({ ...r, ...personal }));
+      this.showSelectorRemitente.set(false);
+      this.notificacion.exito('Datos aplicados', `Se han rellenado los datos personales desde "${dir.alias}".`);
+      return;
+    }
+
     const datos: Partial<DatosPersona> = {
       nombre: dir.nombreDestinatario.split(' ')[0] || dir.nombreDestinatario,
       apellidos: dir.nombreDestinatario.split(' ').slice(1).join(' '),
@@ -141,13 +156,8 @@ export class EnvioPaqueteComponent {
       provincia: dir.provincia,
       oficina: null
     };
-    if (quien === 'remitente') {
-      this.remitente.update(r => ({ ...r, ...datos }));
-      this.showSelectorRemitente.set(false);
-    } else {
-      this.destinatario.update(d => ({ ...d, ...datos }));
-      this.showSelectorDestinatario.set(false);
-    }
+    this.destinatario.update(d => ({ ...d, ...datos }));
+    this.showSelectorDestinatario.set(false);
     this.notificacion.exito('Dirección aplicada', `Se han rellenado los datos desde "${dir.alias}".`);
   }
 
@@ -296,15 +306,16 @@ export class EnvioPaqueteComponent {
   }
 
   setTipoEntrega(quien: 'remitente' | 'destinatario', tipo: TipoEntrega): void {
+    // El remitente SIEMPRE entrega en oficina; no se permite cambiar a 'direccion'.
     if (quien === 'remitente') {
-      this.remitente.update(r => ({ ...r, tipoEntrega: tipo, oficina: null, direccion: '', codigoPostal: '', ciudad: '', provincia: '' }));
+      this.remitente.update(r => ({ ...r, tipoEntrega: 'oficina', oficina: null, direccion: '', codigoPostal: '', ciudad: '', provincia: '' }));
       this.senderOficinaBusqueda.set('');
       this.senderOficinas.set([]);
-    } else {
-      this.destinatario.update(d => ({ ...d, tipoEntrega: tipo, oficina: null, direccion: '', codigoPostal: '', ciudad: '', provincia: '' }));
-      this.recipientOficinaBusqueda.set('');
-      this.recipientOficinas.set([]);
+      return;
     }
+    this.destinatario.update(d => ({ ...d, tipoEntrega: tipo, oficina: null, direccion: '', codigoPostal: '', ciudad: '', provincia: '' }));
+    this.recipientOficinaBusqueda.set('');
+    this.recipientOficinas.set([]);
   }
 
   buscarOficinas(quien: 'remitente' | 'destinatario'): void {
