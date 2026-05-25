@@ -30,7 +30,15 @@ public static class IntranetDataSeeder
     private const string SupervisorSeedId = "operario-jefe-laura-fernandez-seed-id";
     private const string Supervisor2SeedId = "operario-jefe-marta-jimenez-seed-id";
 
-    public static async Task SeedAsync(IntranetDbContext context, ILogger logger, OficinasJsonService oficinasService)
+    // IDs de usuarios SOLO de desarrollo (definidos en Auth.SeedData dentro del bloque dev).
+    private const string DevOperarioOficinaBilbaoId = "dev-operario-oficina-bilbao-id";
+    private const string DevOperarioOficinaSevillaId = "dev-operario-oficina-sevilla-id";
+    private const string DevOperarioCtaBilbaoId = "dev-operario-cta-bilbao-id";
+    private const string DevOperarioCtaSevillaId = "dev-operario-cta-sevilla-id";
+    private const string DevSupervisorBilbaoId = "dev-supervisor-bilbao-id";
+    private const string DevSupervisorSevillaId = "dev-supervisor-sevilla-id";
+
+    public static async Task SeedAsync(IntranetDbContext context, ILogger logger, OficinasJsonService oficinasService, IHostEnvironment env)
     {
         // ── 0. Sembrar oficinas postales desde JSON (idempotente) ──
         if (!await context.OficinasPostales.AnyAsync())
@@ -82,6 +90,11 @@ public static class IntranetDataSeeder
         if (await context.CentrosTratamiento.AnyAsync())
         {
             logger.LogInformation("La base de datos ya contiene datos logísticos. Seeding de CTAs/operarios omitido.");
+            // Aun así, en desarrollo, intentamos completar los operarios extra (idempotente).
+            if (env.IsDevelopment())
+            {
+                await SeedDevelopmentExtrasAsync(context, logger, oficinasService);
+            }
             return;
         }
 
@@ -114,7 +127,97 @@ public static class IntranetDataSeeder
         logger.LogInformation("✓ {Count} asignaciones operario-oficina creadas (María en Madrid, Diego en Barcelona)",
             operariosOficina.Count);
 
+        // ===== EXTRAS SOLO PARA DESARROLLO LOCAL =====
+        if (env.IsDevelopment())
+        {
+            await SeedDevelopmentExtrasAsync(context, logger, oficinasService);
+        }
+
         logger.LogInformation("Seeding completado exitosamente.");
+    }
+
+    /// <summary>
+    /// Operarios adicionales SOLO para el entorno de desarrollo.
+    /// Cubre CTA-BIL, CTA-SEV y oficinas principales de Bilbao y Sevilla
+    /// para poder ejecutar todos los escenarios del Plan E2E.
+    /// Idempotente: comprueba existencia antes de insertar cada fila.
+    /// </summary>
+    private static async Task SeedDevelopmentExtrasAsync(
+        IntranetDbContext context,
+        ILogger logger,
+        OficinasJsonService oficinasService)
+    {
+        logger.LogInformation("[DEV] Sembrando operarios extra para desarrollo...");
+
+        var ctaBilbao = await context.CentrosTratamiento.FirstOrDefaultAsync(c => c.Codigo == "CTA-BIL");
+        var ctaSevilla = await context.CentrosTratamiento.FirstOrDefaultAsync(c => c.Codigo == "CTA-SEV");
+
+        // -------- Operarios CTA --------
+        var operariosCtaDev = new List<(string IdentityUserId, string Nombre, string Codigo, RolOperario Rol, int? CtaId)>
+        {
+            (DevOperarioCtaBilbaoId,  "Iker Mendizábal Aranzadi", "OPL003", RolOperario.OperarioCTA, ctaBilbao?.Id),
+            (DevOperarioCtaSevillaId, "Manuel Guerrero Ortiz",    "OPL004", RolOperario.OperarioCTA, ctaSevilla?.Id),
+            (DevSupervisorBilbaoId,   "Aitor Ibarra Goikoetxea",  "OPJ003", RolOperario.Supervisor,  ctaBilbao?.Id),
+            (DevSupervisorSevillaId,  "Elena Cortés Vargas",      "OPJ004", RolOperario.Supervisor,  ctaSevilla?.Id),
+        };
+
+        var nuevosCta = 0;
+        foreach (var op in operariosCtaDev)
+        {
+            if (op.CtaId is null) continue;
+            var existe = await context.OperariosCta.AnyAsync(o => o.IdentityUserId == op.IdentityUserId);
+            if (existe) continue;
+
+            context.OperariosCta.Add(new OperarioCta
+            {
+                IdentityUserId = op.IdentityUserId,
+                NombreCompleto = op.Nombre,
+                CodigoEmpleado = op.Codigo,
+                Rol = op.Rol,
+                CentroTratamientoId = op.CtaId.Value
+            });
+            nuevosCta++;
+        }
+        if (nuevosCta > 0) await context.SaveChangesAsync();
+        logger.LogInformation("[DEV] ✓ {Count} operarios de CTA añadidos", nuevosCta);
+
+        // -------- Operarios Oficina --------
+        var todasLasOficinas = oficinasService.ObtenerTodas();
+        var oficinaBilbao = todasLasOficinas
+            .Where(o => o.Ciudad.Equals("BILBAO", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(o => o.Id)
+            .FirstOrDefault();
+        var oficinaSevilla = todasLasOficinas
+            .Where(o => o.Ciudad.Equals("SEVILLA", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(o => o.Id)
+            .FirstOrDefault();
+
+        var operariosOficinaDev = new List<(string IdentityUserId, string Nombre, string Codigo, DTOs.OficinaJsonDto? Oficina)>
+        {
+            (DevOperarioOficinaBilbaoId,  "Roberto Sáenz Etxebarria", "OPE003", oficinaBilbao),
+            (DevOperarioOficinaSevillaId, "Lucía Romero Cabrera",     "OPE004", oficinaSevilla),
+        };
+
+        var nuevasOficinas = 0;
+        foreach (var op in operariosOficinaDev)
+        {
+            if (op.Oficina is null) continue;
+            var existe = await context.OperariosOficina.AnyAsync(o => o.IdentityUserId == op.IdentityUserId);
+            if (existe) continue;
+
+            context.OperariosOficina.Add(new OperarioOficina
+            {
+                IdentityUserId = op.IdentityUserId,
+                NombreCompleto = op.Nombre,
+                CodigoEmpleado = op.Codigo,
+                Rol = RolOperario.OperarioOficina,
+                OficinaJsonId = op.Oficina.Id,
+                OficinaNombre = op.Oficina.Nombre
+            });
+            nuevasOficinas++;
+        }
+        if (nuevasOficinas > 0) await context.SaveChangesAsync();
+        logger.LogInformation("[DEV] ✓ {Count} operarios de oficina añadidos (Bilbao/Sevilla)", nuevasOficinas);
     }
 
     /// <summary>

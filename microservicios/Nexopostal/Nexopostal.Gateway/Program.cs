@@ -1,6 +1,7 @@
 using AspNetCore.ApiGateway;
 using Nexopostal.Gateway.Extensions;
 using Nexopostal.Gateway.Middleware;
+using Nexopostal.Shared.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,7 @@ builder.Services
 var app = builder.Build();
 
 // PIPELINE
+app.UseGlobalExceptionHandler();
 app.UseGatewayErrorHandling();
 app.UseCors("NexoPostalPolicy");
 app.UseUrlRewrite();

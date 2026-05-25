@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using Nexopostal.Shared.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -203,6 +204,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
+app.UseGlobalExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
@@ -222,7 +224,7 @@ using (var scope = app.Services.CreateScope())
         logger.LogInformation("Migraciones de Reparto aplicadas correctamente");
 
         // El seeder es idempotente (chequea AnyAsync antes de insertar), se ejecuta en cualquier entorno.
-        await RepartoDataSeeder.SeedAsync(dbContext, logger);
+        await RepartoDataSeeder.SeedAsync(dbContext, logger, app.Environment);
     }
     catch (Exception ex)
     {

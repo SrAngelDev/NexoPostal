@@ -8,6 +8,7 @@ public static class SeedData
     public static async Task Initialize(IServiceProvider serviceProvider)
     {
         var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var env = serviceProvider.GetRequiredService<IWebHostEnvironment>();
 
         // ===== ADMIN =====
         await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
@@ -141,6 +142,144 @@ public static class SeedData
             Email = "cliente@example.com",
             NombreCompleto = "Ana López",
             PhoneNumber = "612345678",
+            Rol = Rol.Cliente,
+            EmailConfirmed = true
+        }, "Cliente123!");
+
+        // ===== USUARIOS EXTRA SOLO PARA DESARROLLO LOCAL =====
+        // Cobertura completa del Plan E2E (Bilbao ↔ Sevilla, alta presencial,
+        // destinatarios extra). En producción NO se siembran.
+        if (env.IsDevelopment())
+        {
+            await SeedDevelopmentUsersAsync(userManager);
+        }
+    }
+
+    private static async Task SeedDevelopmentUsersAsync(UserManager<ApplicationUser> userManager)
+    {
+        // ---- OPERARIOS DE OFICINA EXTRA ----
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-operario-oficina-bilbao-id",
+            UserName = "operario.bilbao@nexopostal.es",
+            Email = "operario.bilbao@nexopostal.es",
+            NombreCompleto = "Roberto Sáenz Etxebarria",
+            CodigoEmpleado = "OPE003",
+            Rol = Rol.OperarioOficina,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-operario-oficina-sevilla-id",
+            UserName = "operario.sevilla@nexopostal.es",
+            Email = "operario.sevilla@nexopostal.es",
+            NombreCompleto = "Lucía Romero Cabrera",
+            CodigoEmpleado = "OPE004",
+            Rol = Rol.OperarioOficina,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        // ---- OPERARIOS DE CTA EXTRA ----
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-operario-cta-bilbao-id",
+            UserName = "operario.cta.bilbao@nexopostal.es",
+            Email = "operario.cta.bilbao@nexopostal.es",
+            NombreCompleto = "Iker Mendizábal Aranzadi",
+            CodigoEmpleado = "OPL003",
+            Rol = Rol.OperarioCTA,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-operario-cta-sevilla-id",
+            UserName = "operario.cta.sevilla@nexopostal.es",
+            Email = "operario.cta.sevilla@nexopostal.es",
+            NombreCompleto = "Manuel Guerrero Ortiz",
+            CodigoEmpleado = "OPL004",
+            Rol = Rol.OperarioCTA,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        // ---- SUPERVISORES EXTRA ----
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-supervisor-bilbao-id",
+            UserName = "supervisor.bilbao@nexopostal.es",
+            Email = "supervisor.bilbao@nexopostal.es",
+            NombreCompleto = "Aitor Ibarra Goikoetxea",
+            CodigoEmpleado = "OPJ003",
+            Rol = Rol.Supervisor,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-supervisor-sevilla-id",
+            UserName = "supervisor.sevilla@nexopostal.es",
+            Email = "supervisor.sevilla@nexopostal.es",
+            NombreCompleto = "Elena Cortés Vargas",
+            CodigoEmpleado = "OPJ004",
+            Rol = Rol.Supervisor,
+            EmailConfirmed = true
+        }, "Operario123!");
+
+        // ---- REPARTIDORES EXTRA ----
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-repartidor-bilbao-id",
+            UserName = "repartidor.bilbao@nexopostal.es",
+            Email = "repartidor.bilbao@nexopostal.es",
+            NombreCompleto = "Naia Aguirre Larrañaga",
+            CodigoEmpleado = "REP003",
+            Rol = Rol.Repartidor,
+            EmailConfirmed = true
+        }, "Repartidor123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-repartidor-sevilla-id",
+            UserName = "repartidor.sevilla@nexopostal.es",
+            Email = "repartidor.sevilla@nexopostal.es",
+            NombreCompleto = "Andrés Molina Reyes",
+            CodigoEmpleado = "REP004",
+            Rol = Rol.Repartidor,
+            EmailConfirmed = true
+        }, "Repartidor123!");
+
+        // ---- JEFE DE REPARTO EXTRA (Sevilla) ----
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-jefe-reparto-sevilla-id",
+            UserName = "jefe.reparto.sevilla@nexopostal.es",
+            Email = "jefe.reparto.sevilla@nexopostal.es",
+            NombreCompleto = "Isabel Domínguez Pérez",
+            CodigoEmpleado = "RPJ003",
+            Rol = Rol.JefeReparto,
+            EmailConfirmed = true
+        }, "Repartidor123!");
+
+        // ---- CLIENTES EXTRA (destinatarios) ----
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-cliente-destinatario-id",
+            UserName = "destinatario@example.com",
+            Email = "destinatario@example.com",
+            NombreCompleto = "Luis Pérez Navarro",
+            PhoneNumber = "611222333",
+            Rol = Rol.Cliente,
+            EmailConfirmed = true
+        }, "Cliente123!");
+
+        await CrearUsuarioSiNoExiste(userManager, new ApplicationUser
+        {
+            Id = "dev-cliente2-id",
+            UserName = "cliente2@example.com",
+            Email = "cliente2@example.com",
+            NombreCompleto = "Marta Sánchez Iglesias",
+            PhoneNumber = "611444555",
             Rol = Rol.Cliente,
             EmailConfirmed = true
         }, "Cliente123!");

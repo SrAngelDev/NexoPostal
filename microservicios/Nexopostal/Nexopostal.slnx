@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="Nexopostal.Shared/Nexopostal.Shared.csproj" />
   <Project Path="Nexopostal.Auth/Nexopostal.Auth.csproj" />
   <Project Path="Nexopostal.Ciudadano/Nexopostal.Ciudadano.csproj" />
   <Project Path="Nexopostal.Gateway/Nexopostal.Gateway.csproj" />

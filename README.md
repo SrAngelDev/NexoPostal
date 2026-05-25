@@ -45,10 +45,35 @@ Todo esta orquestado por un API Gateway y microservicios .NET con bases de datos
 	- **Ciudadano**: envios, tarifas, pagos, oficinas, tracking.
 	- **Intranet (Logistica)**: CTAs, operativa, incidencias, oficinas.
 	- **Reparto**: rutas, entregas y ubicacion.
+- **Nexopostal.Shared**: libreria transversal con `DomainError`, `Result/UnitResult` (ROP),
+	middleware `UseGlobalExceptionHandler`, extensiones de Serilog, FluentValidation y JWT.
 - **Nginx**: reverse proxy y SSL.
 - **Postgres**: una base por microservicio.
 - **Stripe**: pagos con Checkout y webhook.
 - **SignalR**: tracking y notificaciones en tiempo real.
+
+### Patron de errores y resultados (ROP)
+
+Todos los servicios devuelven `Result<TDto, DomainError>` o `UnitResult<DomainError>`
+(via `CSharpFunctionalExtensions`). Los controllers usan `.ToActionResult()` para
+mapear a HTTP de forma uniforme. El payload de error es consistente:
+
+```json
+{
+	"errorId": "8 chars",
+	"code": "ENVIO_NOT_FOUND",
+	"message": "Envío '42' no encontrado",
+	"errorType": "NotFoundError",
+	"timestamp": "ISO-8601",
+	"path": "/api/...",
+	"method": "GET",
+	"errors": { "campo": ["mensaje"] }
+}
+```
+
+Mapeo `DomainError` → HTTP: NotFoundError→404, ValidationError→400,
+ConflictError→409, UnauthorizedError→401, ForbiddenError→403,
+BusinessRuleError→400, InfrastructureError→500.
 
 ---
 

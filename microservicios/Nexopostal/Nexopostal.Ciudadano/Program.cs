@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Nexopostal.Ciudadano.Hubs;
+using Nexopostal.Shared.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -223,6 +224,9 @@ app.UseHttpsRedirection();
 
 // 3. CORS
 app.UseCors("AllowFrontend");
+
+// 3b. Middleware global de excepciones
+app.UseGlobalExceptionHandler();
 
 // 4. Authentication & Authorization (orden importante)
 app.UseAuthentication();

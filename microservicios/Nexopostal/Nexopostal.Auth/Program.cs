@@ -1,91 +1,23 @@
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
+using Nexopostal.Shared.Infrastructures;
+using Nexopostal.Shared.Middleware;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using NexoPostal.Auth.Data;
-using NexoPostal.Auth.Models;
-using NexoPostal.Auth.Repositories;
-using NexoPostal.Auth.Services;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
+using NexoPostal.Auth.Infrastructures;
 
 var builder = WebApplication.CreateBuilder(args);
 
-static string ResolveConfigValue(string? value)
-{
-    if (string.IsNullOrWhiteSpace(value))
-        return string.Empty;
+// Logging unificado con Serilog
+builder.AddNexopostalSerilog("Nexopostal.Auth");
 
-    return Regex.Replace(value, @"\$\{([^}]+)\}", match =>
-    {
-        var envVar = match.Groups[1].Value;
-        return Environment.GetEnvironmentVariable(envVar) ?? match.Value;
-    });
-}
+// Módulos de infraestructura
+builder.Services
+    .AddAuthDatabase(builder.Configuration)
+    .AddAuthIdentity()
+    .AddAuthJwt(builder.Configuration)
+    .AddAuthRepositories()
+    .AddAuthServices()
+    .AddAuthValidation();
 
-static byte[] GetJwtKeyBytes(string secret)
-{
-    var keyBytes = Encoding.UTF8.GetBytes(secret);
-    return keyBytes.Length >= 32 ? keyBytes : SHA256.HashData(keyBytes);
-}
-
-var connectionString = ResolveConfigValue(builder.Configuration.GetConnectionString("DefaultConnection"));
-
-// Entity Framework
-builder.Services.AddDbContext<AuthDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
-// Identity (sin roles de Identity, usamos enum Rol en ApplicationUser)
-builder.Services.AddIdentityCore<ApplicationUser>(options =>
-{
-    options.Password.RequireDigit = false;
-    options.Password.RequiredLength = 6;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireLowercase = false;
-})
-.AddEntityFrameworkStores<AuthDbContext>()
-.AddDefaultTokenProviders();
-
-// JWT Bearer Authentication (para endpoints [Authorize])
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = ResolveConfigValue(jwtSettings["SecretKey"]);
-if (string.IsNullOrWhiteSpace(secretKey))
-    throw new InvalidOperationException("JWT SecretKey no configurada");
-
-var key = GetJwtKeyBytes(secretKey);
-var issuer = ResolveConfigValue(jwtSettings["Issuer"]);
-var audience = ResolveConfigValue(jwtSettings["Audience"]);
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = false;
-    options.SaveToken = true;
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = true,
-        ValidIssuer = issuer,
-        ValidateAudience = true,
-        ValidAudience = audience,
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
-    };
-});
-builder.Services.AddAuthorization();
-
-builder.Services.AddScoped<TokenService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IAdminUserService, AdminUserService>();
-builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -104,8 +36,16 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// Middleware global de excepciones (debe ir antes que el resto)
+app.UseGlobalExceptionHandler();
+
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+
+/// <summary>
+/// Marca pública para que WebApplicationFactory&lt;Program&gt; pueda referenciar este host en los tests.
+/// </summary>
+public partial class Program { }

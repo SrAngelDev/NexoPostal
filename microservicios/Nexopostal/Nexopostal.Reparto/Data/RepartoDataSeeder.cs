@@ -14,6 +14,11 @@ public static class RepartoDataSeeder
     private const string RepartidorSeedId2 = "repartidor-sofia-navarro-seed-id";
     private const string JefeRepartoSeedId = "repartidor-jefe-javier-torres-seed-id";
     private const string JefeRepartoSeedId2 = "repartidor-jefe-cristina-vidal-seed-id";
+ 
+    // IDs SOLO de desarrollo
+    private const string DevRepartidorBilbaoId = "dev-repartidor-bilbao-id";
+    private const string DevRepartidorSevillaId = "dev-repartidor-sevilla-id";
+    private const string DevJefeRepartoSevillaId = "dev-jefe-reparto-sevilla-id";
 
     // Oficinas JSON de Madrid (del oficinas.json de NexoPostal)
     private const int OficinaMadridPrincipal = 1001;
@@ -23,9 +28,20 @@ public static class RepartoDataSeeder
     private const int OficinaBarcelonaPrincipal = 1026;
     private const string OficinaBarcelonaPrincipalNombre = "Oficina Principal - Barcelona";
 
-    public static async Task SeedAsync(RepartoDbContext context, ILogger logger)
+    // Oficinas JSON de Bilbao y Sevilla (solo se usan en seed de desarrollo)
+    private const int OficinaBilbaoPrincipal = 1117;
+    private const string OficinaBilbaoPrincipalNombre = "Oficina Principal - Bilbao";
+    private const int OficinaSevillaPrincipal = 1061;
+    private const string OficinaSevillaPrincipalNombre = "Oficina Principal - Sevilla";
+
+    public static async Task SeedAsync(RepartoDbContext context, ILogger logger, IHostEnvironment env)
     {
         await CrearRepartidores(context, logger);
+
+        if (env.IsDevelopment())
+        {
+            await SeedDevelopmentRepartidoresAsync(context, logger);
+        }
 
         logger.LogInformation("Seed de Reparto completado");
     }
@@ -92,5 +108,63 @@ public static class RepartoDataSeeder
         await context.SaveChangesAsync();
 
         logger.LogInformation("Creados {Count} repartidores de prueba", repartidores.Count);
+    }
+
+    /// <summary>
+    /// Repartidores extra para entorno de desarrollo (Bilbao y Sevilla).
+    /// Idempotente: comprueba existencia individual por IdentityUserId.
+    /// </summary>
+    private static async Task SeedDevelopmentRepartidoresAsync(RepartoDbContext context, ILogger logger)
+    {
+        var extras = new List<Repartidor>
+        {
+            // ===== BILBAO =====
+            new()
+            {
+                IdentityUserId = DevRepartidorBilbaoId,
+                NombreCompleto = "Naia Aguirre Larrañaga",
+                CodigoEmpleado = "REP003",
+                Telefono = "620999000",
+                OficinaJsonId = OficinaBilbaoPrincipal,
+                OficinaNombre = OficinaBilbaoPrincipalNombre,
+                TipoVehiculo = TipoVehiculo.Furgoneta,
+                MatriculaVehiculo = "7890-MNO"
+            },
+            // ===== SEVILLA =====
+            new()
+            {
+                IdentityUserId = DevRepartidorSevillaId,
+                NombreCompleto = "Andrés Molina Reyes",
+                CodigoEmpleado = "REP004",
+                Telefono = "620888777",
+                OficinaJsonId = OficinaSevillaPrincipal,
+                OficinaNombre = OficinaSevillaPrincipalNombre,
+                TipoVehiculo = TipoVehiculo.Moto,
+                MatriculaVehiculo = "4321-PQR"
+            },
+            new()
+            {
+                IdentityUserId = DevJefeRepartoSevillaId,
+                NombreCompleto = "Isabel Domínguez Pérez",
+                CodigoEmpleado = "JRP003",
+                Telefono = "620777666",
+                OficinaJsonId = OficinaSevillaPrincipal,
+                OficinaNombre = OficinaSevillaPrincipalNombre,
+                TipoVehiculo = TipoVehiculo.Furgoneta,
+                MatriculaVehiculo = "6543-STU"
+            }
+        };
+
+        var nuevos = 0;
+        foreach (var r in extras)
+        {
+            var existe = await context.Repartidores.AnyAsync(x => x.IdentityUserId == r.IdentityUserId);
+            if (existe) continue;
+
+            context.Repartidores.Add(r);
+            nuevos++;
+        }
+        if (nuevos > 0) await context.SaveChangesAsync();
+        logger.LogInformation("[DEV] Creados {Count} repartidores extra (Bilbao/Sevilla)", nuevos);
     }
 }

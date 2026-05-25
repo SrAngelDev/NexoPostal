@@ -53,10 +53,14 @@ public class GatewayErrorMiddleware
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(new
             {
-                error = "Error interno del servidor",
-                status = 500,
+                errorId = Guid.NewGuid().ToString("N")[..8],
+                code = "INTERNAL_ERROR",
                 message = "Se produjo un error inesperado. Inténtalo de nuevo más tarde.",
-                timestamp = DateTime.UtcNow
+                errorType = "InfrastructureError",
+                timestamp = DateTime.UtcNow.ToString("o"),
+                path = context.Request.Path.Value,
+                method = context.Request.Method,
+                errors = new Dictionary<string, string[]>()
             });
             return;
         }

@@ -1,175 +1,177 @@
+using CSharpFunctionalExtensions;
+using Nexopostal.Shared.Errors;
 using NexoPostal.Auth.DTOs.Admin;
+using NexoPostal.Auth.Errors;
+using NexoPostal.Auth.Mappers;
 using NexoPostal.Auth.Models;
 using NexoPostal.Auth.Repositories;
 
 namespace NexoPostal.Auth.Services;
 
+/// <summary>
+/// Gestión administrativa de usuarios. Devuelve <see cref="Result{T,DomainError}"/> /
+/// <see cref="UnitResult{DomainError}"/> para que el controller mapee a HTTP de forma uniforme.
+/// </summary>
 public interface IAdminUserService
 {
     Task<List<AdminUsuarioListItemDto>> ListarUsuariosAsync(Rol? rol, bool? bloqueado, string? q, bool incluirEliminados = false);
-    Task<AdminUsuarioListItemDto?> ObtenerDetalleAsync(string id);
-    Task<(bool Ok, string? Error)> CambiarRolAsync(string id, Rol nuevoRol, string adminId);
-    Task<(bool Ok, string? Error)> BloquearAsync(string id, string adminId);
-    Task<(bool Ok, string? Error)> DesbloquearAsync(string id);
-    Task<(bool Ok, string? Error)> ResetPasswordAsync(string id, string nuevaPassword);
-    Task<(AdminUsuarioListItemDto? User, string? Error)> CrearEmpleadoAsync(AdminCrearEmpleadoDto dto);
-    Task<(AdminUsuarioListItemDto? User, string? Error)> EditarEmpleadoAsync(string id, AdminEditarEmpleadoDto dto, string adminId);
-    Task<(bool Ok, string? Error)> EliminarAsync(string id, string adminId);
-    Task<(bool Ok, string? Error)> RestaurarAsync(string id);
+    Task<Result<AdminUsuarioListItemDto, DomainError>> ObtenerDetalleAsync(string id);
+    Task<UnitResult<DomainError>> CambiarRolAsync(string id, Rol nuevoRol, string adminId);
+    Task<UnitResult<DomainError>> BloquearAsync(string id, string adminId);
+    Task<UnitResult<DomainError>> DesbloquearAsync(string id);
+    Task<UnitResult<DomainError>> ResetPasswordAsync(string id, string nuevaPassword);
+    Task<Result<AdminUsuarioListItemDto, DomainError>> CrearEmpleadoAsync(AdminCrearEmpleadoDto dto);
+    Task<Result<AdminUsuarioListItemDto, DomainError>> EditarEmpleadoAsync(string id, AdminEditarEmpleadoDto dto, string adminId);
+    Task<UnitResult<DomainError>> EliminarAsync(string id, string adminId);
+    Task<UnitResult<DomainError>> RestaurarAsync(string id);
 }
 
-public class AdminUserService : IAdminUserService
+public class AdminUserService(IUserRepository userRepository) : IAdminUserService
 {
     private const string TokenProvider = "NexoPostal";
     private const string RefreshTokenHashName = "RefreshTokenHash";
     private const string RefreshTokenExpiryName = "RefreshTokenExpiryUtc";
 
-    private readonly IUserRepository _userRepository;
-
-    public AdminUserService(IUserRepository userRepository)
-    {
-        _userRepository = userRepository;
-    }
-
     public async Task<List<AdminUsuarioListItemDto>> ListarUsuariosAsync(Rol? rol, bool? bloqueado, string? q, bool incluirEliminados = false)
     {
-        var usuarios = await _userRepository.GetAllAsync(rol, bloqueado, incluirEliminados);
+        var usuarios = await userRepository.GetAllAsync(rol, bloqueado, incluirEliminados);
 
         if (!string.IsNullOrWhiteSpace(q))
         {
-            q = q.Trim().ToLowerInvariant();
+            var term = q.Trim().ToLowerInvariant();
             usuarios = usuarios
-                .Where(u => u.NombreCompleto.ToLowerInvariant().Contains(q)
-                         || (u.Email ?? "").ToLowerInvariant().Contains(q)
-                         || (u.CodigoEmpleado ?? "").ToLowerInvariant().Contains(q))
+                .Where(u => u.NombreCompleto.ToLowerInvariant().Contains(term)
+                         || (u.Email ?? "").ToLowerInvariant().Contains(term)
+                         || (u.CodigoEmpleado ?? "").ToLowerInvariant().Contains(term))
                 .ToList();
         }
 
-        var ahora = DateTimeOffset.UtcNow;
-        return usuarios.Select(u => MapToDto(u, ahora)).ToList();
+        return usuarios.ToListItemDtos(DateTimeOffset.UtcNow);
     }
 
-    public async Task<AdminUsuarioListItemDto?> ObtenerDetalleAsync(string id)
+    public async Task<Result<AdminUsuarioListItemDto, DomainError>> ObtenerDetalleAsync(string id)
     {
-        var user = await _userRepository.GetByIdAsync(id);
-        if (user == null) return null;
-        return MapToDto(user, DateTimeOffset.UtcNow);
+        var user = await userRepository.GetByIdAsync(id);
+        return user is null
+            ? Result.Failure<AdminUsuarioListItemDto, DomainError>(AuthError.UserNotFound(id))
+            : Result.Success<AdminUsuarioListItemDto, DomainError>(user.ToListItemDto(DateTimeOffset.UtcNow));
     }
 
-    public async Task<(bool Ok, string? Error)> CambiarRolAsync(string id, Rol nuevoRol, string adminId)
+    public async Task<UnitResult<DomainError>> CambiarRolAsync(string id, Rol nuevoRol, string adminId)
     {
         if (id == adminId)
-            return (false, "No puedes cambiar tu propio rol.");
+            return UnitResult.Failure<DomainError>(AuthError.CannotModifySelf("cambiar el rol"));
 
-        var user = await _userRepository.GetByIdAsync(id);
-        if (user == null)
-            return (false, "Usuario no encontrado.");
+        var user = await userRepository.GetByIdAsync(id);
+        if (user is null)
+            return UnitResult.Failure<DomainError>(AuthError.UserNotFound(id));
 
         if (user.Eliminado)
-            return (false, "El usuario está eliminado. Restaurálo antes de modificarlo.");
+            return UnitResult.Failure<DomainError>(AuthError.UserDeleted());
 
         user.Rol = nuevoRol;
-        var result = await _userRepository.UpdateAsync(user);
+        var result = await userRepository.UpdateAsync(user);
         return result.Succeeded
-            ? (true, null)
-            : (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+            ? UnitResult.Success<DomainError>()
+            : UnitResult.Failure<DomainError>(AuthError.IdentityErrors(result.Errors.Select(e => e.Description)));
     }
 
-    public async Task<(bool Ok, string? Error)> BloquearAsync(string id, string adminId)
+    public async Task<UnitResult<DomainError>> BloquearAsync(string id, string adminId)
     {
         if (id == adminId)
-            return (false, "No puedes bloquearte a ti mismo.");
+            return UnitResult.Failure<DomainError>(AuthError.CannotModifySelf("bloquear"));
 
-        var user = await _userRepository.GetByIdAsync(id);
-        if (user == null)
-            return (false, "Usuario no encontrado.");
+        var user = await userRepository.GetByIdAsync(id);
+        if (user is null)
+            return UnitResult.Failure<DomainError>(AuthError.UserNotFound(id));
 
-        var result = await _userRepository.SetLockoutAsync(user, bloquear: true);
+        var result = await userRepository.SetLockoutAsync(user, bloquear: true);
         if (!result.Succeeded)
-            return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+            return UnitResult.Failure<DomainError>(AuthError.IdentityErrors(result.Errors.Select(e => e.Description)));
 
-        await _userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenHashName);
-        await _userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenExpiryName);
+        await userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenHashName);
+        await userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenExpiryName);
 
-        return (true, null);
+        return UnitResult.Success<DomainError>();
     }
 
-    public async Task<(bool Ok, string? Error)> DesbloquearAsync(string id)
+    public async Task<UnitResult<DomainError>> DesbloquearAsync(string id)
     {
-        var user = await _userRepository.GetByIdAsync(id);
-        if (user == null)
-            return (false, "Usuario no encontrado.");
+        var user = await userRepository.GetByIdAsync(id);
+        if (user is null)
+            return UnitResult.Failure<DomainError>(AuthError.UserNotFound(id));
 
-        var result = await _userRepository.SetLockoutAsync(user, bloquear: false);
+        var result = await userRepository.SetLockoutAsync(user, bloquear: false);
         return result.Succeeded
-            ? (true, null)
-            : (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+            ? UnitResult.Success<DomainError>()
+            : UnitResult.Failure<DomainError>(AuthError.IdentityErrors(result.Errors.Select(e => e.Description)));
     }
 
-    public async Task<(bool Ok, string? Error)> ResetPasswordAsync(string id, string nuevaPassword)
+    public async Task<UnitResult<DomainError>> ResetPasswordAsync(string id, string nuevaPassword)
     {
-        var user = await _userRepository.GetByIdAsync(id);
-        if (user == null)
-            return (false, "Usuario no encontrado.");
+        var user = await userRepository.GetByIdAsync(id);
+        if (user is null)
+            return UnitResult.Failure<DomainError>(AuthError.UserNotFound(id));
 
-        var result = await _userRepository.AdminResetPasswordAsync(user, nuevaPassword);
+        var result = await userRepository.AdminResetPasswordAsync(user, nuevaPassword);
         return result.Succeeded
-            ? (true, null)
-            : (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+            ? UnitResult.Success<DomainError>()
+            : UnitResult.Failure<DomainError>(AuthError.IdentityErrors(result.Errors.Select(e => e.Description)));
     }
 
-    public async Task<(AdminUsuarioListItemDto? User, string? Error)> CrearEmpleadoAsync(AdminCrearEmpleadoDto dto)
+    public async Task<Result<AdminUsuarioListItemDto, DomainError>> CrearEmpleadoAsync(AdminCrearEmpleadoDto dto)
     {
         if (dto.Rol == Rol.Cliente)
-            return (null, "No se puede crear un empleado con rol Cliente.");
+            return Result.Failure<AdminUsuarioListItemDto, DomainError>(AuthError.CannotCreateClientAsEmployee());
 
-        var existente = await _userRepository.GetByEmailAsync(dto.Email);
-        if (existente != null)
-            return (null, "Ya existe un usuario con ese email.");
+        var existente = await userRepository.GetByEmailAsync(dto.Email);
+        if (existente is not null)
+            return Result.Failure<AdminUsuarioListItemDto, DomainError>(AuthError.EmailAlreadyExists(dto.Email));
 
         var user = new ApplicationUser
         {
-            UserName          = dto.Email,
-            Email             = dto.Email,
-            NombreCompleto    = dto.NombreCompleto,
-            CodigoEmpleado    = dto.CodigoEmpleado,
-            Rol               = dto.Rol,
-            EmailConfirmed    = true,
-            LockoutEnabled    = true
+            UserName       = dto.Email,
+            Email          = dto.Email,
+            NombreCompleto = dto.NombreCompleto,
+            CodigoEmpleado = dto.CodigoEmpleado,
+            Rol            = dto.Rol,
+            EmailConfirmed = true,
+            LockoutEnabled = true
         };
 
-        var result = await _userRepository.CreateAsync(user, dto.Password);
+        var result = await userRepository.CreateAsync(user, dto.Password);
         if (!result.Succeeded)
-            return (null, string.Join(", ", result.Errors.Select(e => e.Description)));
+            return Result.Failure<AdminUsuarioListItemDto, DomainError>(
+                AuthError.IdentityErrors(result.Errors.Select(e => e.Description)));
 
-        return (MapToDto(user, DateTimeOffset.UtcNow), null);
+        return Result.Success<AdminUsuarioListItemDto, DomainError>(user.ToListItemDto(DateTimeOffset.UtcNow));
     }
 
-    public async Task<(AdminUsuarioListItemDto? User, string? Error)> EditarEmpleadoAsync(string id, AdminEditarEmpleadoDto dto, string adminId)
+    public async Task<Result<AdminUsuarioListItemDto, DomainError>> EditarEmpleadoAsync(string id, AdminEditarEmpleadoDto dto, string adminId)
     {
-        var user = await _userRepository.GetByIdAsync(id);
-        if (user == null)
-            return (null, "Usuario no encontrado.");
+        var user = await userRepository.GetByIdAsync(id);
+        if (user is null)
+            return Result.Failure<AdminUsuarioListItemDto, DomainError>(AuthError.UserNotFound(id));
 
         if (user.Eliminado)
-            return (null, "El usuario está eliminado. Restáuralo antes de modificarlo.");
+            return Result.Failure<AdminUsuarioListItemDto, DomainError>(AuthError.UserDeleted());
 
         if (dto.Rol == Rol.Cliente && user.Rol != Rol.Cliente)
-            return (null, "No se puede degradar a Cliente desde la administración interna.");
+            return Result.Failure<AdminUsuarioListItemDto, DomainError>(AuthError.CannotDowngradeToClient());
 
         if (id == adminId && dto.Rol != user.Rol)
-            return (null, "No puedes cambiar tu propio rol.");
+            return Result.Failure<AdminUsuarioListItemDto, DomainError>(AuthError.CannotModifySelf("cambiar el rol"));
 
-        // Cambio de email — validar duplicados y actualizar UserName
         if (!string.Equals(user.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
         {
-            var existente = await _userRepository.GetByEmailAsync(dto.Email);
-            if (existente != null && existente.Id != id)
-                return (null, "Ya existe un usuario con ese email.");
+            var existente = await userRepository.GetByEmailAsync(dto.Email);
+            if (existente is not null && existente.Id != id)
+                return Result.Failure<AdminUsuarioListItemDto, DomainError>(AuthError.EmailAlreadyExists(dto.Email));
 
-            var setEmail = await _userRepository.SetEmailAsync(user, dto.Email);
+            var setEmail = await userRepository.SetEmailAsync(user, dto.Email);
             if (!setEmail.Succeeded)
-                return (null, string.Join(", ", setEmail.Errors.Select(e => e.Description)));
+                return Result.Failure<AdminUsuarioListItemDto, DomainError>(
+                    AuthError.IdentityErrors(setEmail.Errors.Select(e => e.Description)));
         }
 
         user.NombreCompleto = dto.NombreCompleto.Trim();
@@ -177,80 +179,64 @@ public class AdminUserService : IAdminUserService
         user.PhoneNumber    = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
         user.Rol            = dto.Rol;
 
-        var result = await _userRepository.UpdateAsync(user);
+        var result = await userRepository.UpdateAsync(user);
         if (!result.Succeeded)
-            return (null, string.Join(", ", result.Errors.Select(e => e.Description)));
+            return Result.Failure<AdminUsuarioListItemDto, DomainError>(
+                AuthError.IdentityErrors(result.Errors.Select(e => e.Description)));
 
-        return (MapToDto(user, DateTimeOffset.UtcNow), null);
+        return Result.Success<AdminUsuarioListItemDto, DomainError>(user.ToListItemDto(DateTimeOffset.UtcNow));
     }
 
-    public async Task<(bool Ok, string? Error)> EliminarAsync(string id, string adminId)
+    public async Task<UnitResult<DomainError>> EliminarAsync(string id, string adminId)
     {
         if (id == adminId)
-            return (false, "No puedes eliminarte a ti mismo.");
+            return UnitResult.Failure<DomainError>(AuthError.CannotModifySelf("eliminar"));
 
-        var user = await _userRepository.GetByIdAsync(id);
-        if (user == null)
-            return (false, "Usuario no encontrado.");
+        var user = await userRepository.GetByIdAsync(id);
+        if (user is null)
+            return UnitResult.Failure<DomainError>(AuthError.UserNotFound(id));
 
         if (user.Eliminado)
-            return (true, null); // idempotente
+            return UnitResult.Success<DomainError>(); // idempotente
 
-        user.Eliminado       = true;
-        user.EliminadoEnUtc  = DateTime.UtcNow;
-        user.EliminadoPorId  = adminId;
+        user.Eliminado      = true;
+        user.EliminadoEnUtc = DateTime.UtcNow;
+        user.EliminadoPorId = adminId;
 
-        // Bloquear acceso indefinidamente
-        var lockoutResult = await _userRepository.SetLockoutAsync(user, bloquear: true);
+        var lockoutResult = await userRepository.SetLockoutAsync(user, bloquear: true);
         if (!lockoutResult.Succeeded)
-            return (false, string.Join(", ", lockoutResult.Errors.Select(e => e.Description)));
+            return UnitResult.Failure<DomainError>(AuthError.IdentityErrors(lockoutResult.Errors.Select(e => e.Description)));
 
-        var updateResult = await _userRepository.UpdateAsync(user);
+        var updateResult = await userRepository.UpdateAsync(user);
         if (!updateResult.Succeeded)
-            return (false, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+            return UnitResult.Failure<DomainError>(AuthError.IdentityErrors(updateResult.Errors.Select(e => e.Description)));
 
-        // Invalidar refresh tokens activos
-        await _userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenHashName);
-        await _userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenExpiryName);
+        await userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenHashName);
+        await userRepository.RemoveUserTokenAsync(user, TokenProvider, RefreshTokenExpiryName);
 
-        return (true, null);
+        return UnitResult.Success<DomainError>();
     }
 
-    public async Task<(bool Ok, string? Error)> RestaurarAsync(string id)
+    public async Task<UnitResult<DomainError>> RestaurarAsync(string id)
     {
-        var user = await _userRepository.GetByIdAsync(id);
-        if (user == null)
-            return (false, "Usuario no encontrado.");
+        var user = await userRepository.GetByIdAsync(id);
+        if (user is null)
+            return UnitResult.Failure<DomainError>(AuthError.UserNotFound(id));
 
         if (!user.Eliminado)
-            return (true, null); // idempotente
+            return UnitResult.Success<DomainError>(); // idempotente
 
-        user.Eliminado       = false;
-        user.EliminadoEnUtc  = null;
-        user.EliminadoPorId  = null;
+        user.Eliminado      = false;
+        user.EliminadoEnUtc = null;
+        user.EliminadoPorId = null;
 
-        // Desbloquear el acceso (el admin puede volver a bloquear si quiere)
-        var lockoutResult = await _userRepository.SetLockoutAsync(user, bloquear: false);
+        var lockoutResult = await userRepository.SetLockoutAsync(user, bloquear: false);
         if (!lockoutResult.Succeeded)
-            return (false, string.Join(", ", lockoutResult.Errors.Select(e => e.Description)));
+            return UnitResult.Failure<DomainError>(AuthError.IdentityErrors(lockoutResult.Errors.Select(e => e.Description)));
 
-        var updateResult = await _userRepository.UpdateAsync(user);
+        var updateResult = await userRepository.UpdateAsync(user);
         return updateResult.Succeeded
-            ? (true, null)
-            : (false, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+            ? UnitResult.Success<DomainError>()
+            : UnitResult.Failure<DomainError>(AuthError.IdentityErrors(updateResult.Errors.Select(e => e.Description)));
     }
-
-    private static AdminUsuarioListItemDto MapToDto(ApplicationUser u, DateTimeOffset ahora) => new()
-    {
-        Id             = u.Id,
-        NombreCompleto = u.NombreCompleto,
-        Email          = u.Email ?? string.Empty,
-        CodigoEmpleado = u.CodigoEmpleado,
-        PhoneNumber    = u.PhoneNumber,
-        Rol            = u.Rol.ToString(),
-        FechaRegistro  = u.FechaRegistro,
-        Bloqueado      = u.LockoutEnd != null && u.LockoutEnd > ahora,
-        Eliminado      = u.Eliminado,
-        EliminadoEnUtc = u.EliminadoEnUtc
-    };
 }

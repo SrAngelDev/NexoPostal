@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using Nexopostal.Shared.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -272,6 +273,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
+app.UseGlobalExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
@@ -293,7 +295,7 @@ using (var scope = app.Services.CreateScope())
         logger.LogInformation("Migraciones aplicadas correctamente");
 
         // Ejecutar DataSeeder (idempotente: solo siembra si la BD está vacía)
-        await IntranetDataSeeder.SeedAsync(dbContext, logger, oficinasService);
+        await IntranetDataSeeder.SeedAsync(dbContext, logger, oficinasService, app.Environment);
     }
     catch (Exception ex)
     {

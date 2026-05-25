@@ -18,6 +18,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CSharpFunctionalExtensions" Version="3.7.0" />
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nexopostal.Shared\Nexopostal.Shared.csproj" />
     <ProjectReference Include="..\Nexopostal.Ciudadano\Nexopostal.Ciudadano.csproj" />
     <ProjectReference Include="..\Nexopostal.Intranet\Nexopostal.Intranet.csproj" />
     <ProjectReference Include="..\Nexopostal.Reparto\Nexopostal.Reparto.csproj" />
