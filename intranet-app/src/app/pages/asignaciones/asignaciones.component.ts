@@ -26,6 +26,11 @@ export class AsignacionesComponent implements OnInit {
   userName = '';
   userRole = '';
 
+  /** Solo Admin y Supervisor pueden crear asignaciones manuales. */
+  get puedeCrearAsignacion(): boolean {
+    return this.userRole === 'Admin' || this.userRole === 'Supervisor';
+  }
+
   misCtasInfo = signal<MisCtasInfo | null>(null);
   ctaSeleccionado = signal<CtaAsignacion | null>(null);
   asignaciones = signal<AsignacionResumen[]>([]);
@@ -189,6 +194,7 @@ export class AsignacionesComponent implements OnInit {
 
   // ─── Modal Crear ───
   abrirCrearModal(): void {
+    if (!this.puedeCrearAsignacion) return;
     this.nuevaAsignacion = {
       numeroExpedicion: '',
       operarioAsignadoId: 0,

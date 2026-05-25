@@ -48,7 +48,11 @@
         </div>
         <div class="header-text">
           <h1 class="page-heading">Gestión de asignaciones</h1>
-          <p class="page-subheading">Asigna tareas a los operarios de tu CTA y supervisa su estado en tiempo real.</p>
+          @if (puedeCrearAsignacion) {
+            <p class="page-subheading">Asigna tareas a los operarios de tu CTA y supervisa su estado en tiempo real.</p>
+          } @else {
+            <p class="page-subheading">Consulta tus tareas asignadas y avanza su estado escaneando paquetes.</p>
+          }
           @if (ctaSeleccionado(); as cta) {
             <span class="chip chip-brand" style="margin-top: 0.5rem;">
               <span class="material-symbols-outlined">domain</span>
@@ -71,10 +75,12 @@
               </div>
             }
           }
-          <button class="btn btn-primary" (click)="abrirCrearModal()">
-            <span class="material-symbols-outlined">add</span>
-            Nueva asignación
-          </button>
+          @if (puedeCrearAsignacion) {
+            <button class="btn btn-primary" (click)="abrirCrearModal()">
+              <span class="material-symbols-outlined">add</span>
+              Nueva asignación
+            </button>
+          }
         </div>
       </header>
 
@@ -214,18 +220,20 @@
           </div>
           <h3 class="empty-title">Sin asignaciones</h3>
           <p class="empty-text">No hay asignaciones{{ filtroEstado ? ' con el estado seleccionado' : '' }}.</p>
-          <button class="btn btn-primary" (click)="abrirCrearModal()">
-            <span class="material-symbols-outlined">add</span>
-            Crear primera asignación
-          </button>
+          @if (puedeCrearAsignacion) {
+            <button class="btn btn-primary" (click)="abrirCrearModal()">
+              <span class="material-symbols-outlined">add</span>
+              Crear primera asignación
+            </button>
+          }
         </div>
       }
     }
   </main>
 </div>
 
-<!-- ════════════ Modal: Crear asignación ════════════ -->
-@if (showCrearModal()) {
+<!-- ════════════ Modal: Crear asignación (solo Admin/Supervisor) ════════════ -->
+@if (showCrearModal() && puedeCrearAsignacion) {
   <div class="modal-overlay fade-in" (click)="cerrarCrearModal()">
     <div class="modal-card surface-elevated scale-in" (click)="$event.stopPropagation()">
       <header class="modal-header">

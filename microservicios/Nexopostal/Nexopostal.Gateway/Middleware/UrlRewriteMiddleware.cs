@@ -38,7 +38,8 @@ public class UrlRewriteMiddleware
         "/api/nexopostal/admin-envios",    // Panel global de envíos (admin)
         "/api/nexopostal/admin-clientes",  // Vista 360 de clientes (admin)
         "/api/nexopostal/notificaciones",  // Broadcast notifications (admin)
-        "/api/nexopostal/tarifas"          // El gateway pierde los query params en GET
+        "/api/nexopostal/tarifas",         // El gateway pierde los query params en GET
+        "/api/asignaciones/buscar"         // GET con ?codigo=...; el gateway perdería la query
     ];
 
     // Compatibilidad para endpoints raíz /api/{apiKey} sin routeKey explícito.

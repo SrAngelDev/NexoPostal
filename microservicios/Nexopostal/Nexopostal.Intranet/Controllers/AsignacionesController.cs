@@ -34,12 +34,13 @@ public class AsignacionesController : ControllerBase
 
     /// <summary>
     /// Crea una nueva asignación de tarea.
-    /// El OperarioCTA asigna paquetes a operarios de su CTA.
-    /// El OperarioOficina puede auto-asignarse tareas de la cola de su oficina.
+    /// Solo Admin y Supervisor pueden asignar tareas manualmente; los operarios
+    /// (CTA y Oficina) reciben sus tareas y las avanzan mediante escaneo o desde
+    /// la cola autoasignada por el sistema (ScanProcessorService).
     /// </summary>
     [HttpPost]
     [HttpPost("crear")]
-    [Authorize(Roles = "Admin,OperarioCTA,OperarioOficina")]
+    [Authorize(Roles = "Admin,Supervisor")]
     [ProducesResponseType(typeof(AsignacionDetalleDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
