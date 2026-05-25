@@ -139,7 +139,9 @@ public static class ApiOrchestrationConfig
 
         orchestrator.AddApi("admision", url + "/")
             .AddRoute("paquete", GatewayVerb.POST, new RouteInfo { Path = "api/admision/paquete" })
-            .AddRoute("admision-interno", GatewayVerb.POST, new RouteInfo { Path = "api/admision/interno/" });
+            .AddRoute("admision-interno", GatewayVerb.POST, new RouteInfo { Path = "api/admision/interno/" })
+            // Alta presencial por OperarioOficina (formulario intranet-app/alta-en-oficina)
+            .AddRoute("admision-oficina-alta", GatewayVerb.POST, new RouteInfo { Path = "api/admision/oficina/alta" });
     }
 
     // SCAN (Escaneo operativo en Intranet)
@@ -162,8 +164,10 @@ public static class ApiOrchestrationConfig
             .AddRoute("mi-perfil", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/mi-perfil" })
             .AddRoute("ruta", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/ruta" })
             .AddRoute("rutas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/rutas" })
-            .AddRoute("ruta-iniciar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
-            .AddRoute("ruta-finalizar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
+            // El UrlRewriteMiddleware compone routeKey como `{segments[1]}-{segments[3]}`
+            // ⇒ para /api/reparto/rutas/{id}/iniciar genera "rutas-iniciar" (plural).
+            .AddRoute("rutas-iniciar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
+            .AddRoute("rutas-finalizar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
             .AddRoute("confirmar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/confirmar" })
             .AddRoute("ubicacion", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/ubicacion" })
             .AddRoute("entregas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/entregas" })
@@ -182,6 +186,8 @@ public static class ApiOrchestrationConfig
             .AddRoute("asignaciones-crear", GatewayVerb.POST, new RouteInfo { Path = "api/asignaciones/crear" })
             .AddRoute("mis-pendientes", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/mis-pendientes" })
             .AddRoute("mis-en-progreso", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/mis-en-progreso" })
+            // Busca una tarea del operario autenticado por código de expedición (?codigo=)
+            .AddRoute("asignaciones-buscar", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/buscar" })
             .AddRoute("cta", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/cta/" })
             .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/" })
             .AddRoute("iniciar", GatewayVerb.PUT, new RouteInfo { Path = "api/asignaciones/" })
@@ -212,6 +218,8 @@ public static class ApiOrchestrationConfig
 
         orchestrator.AddApi("incidencias", url + "/")
             .AddRoute("incidencias-crear", GatewayVerb.POST, new RouteInfo { Path = "api/incidencias" })
+            // Incidencia automática "PaqueteFueraDeTareas" desde el modal de escaneo
+            .AddRoute("incidencias-reportar-fuera-tareas", GatewayVerb.POST, new RouteInfo { Path = "api/incidencias/reportar-fuera-tareas" })
             .AddRoute("incidencias-cta", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/cta/" })
             .AddRoute("incidencias-global", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/global" })
             .AddRoute("incidencias-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/incidencias/" })

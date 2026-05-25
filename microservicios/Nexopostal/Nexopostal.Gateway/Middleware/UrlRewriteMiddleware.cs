@@ -86,7 +86,13 @@ public class UrlRewriteMiddleware
             ["oficinaspostales|listar"] = "oficinaspostales-listar",
             ["oficinaspostales|buscar"] = "oficinaspostales-buscar",
             ["oficinaspostales|resolver"] = "oficinaspostales-resolver",
-            ["reparto|entregas/pendientes-asignacion"] = "entregas-pendientes-asignacion"
+            ["reparto|entregas/pendientes-asignacion"] = "entregas-pendientes-asignacion",
+            // Búsqueda de tarea por código de expedición (?codigo=...) desde la pantalla de Asignaciones
+            ["asignaciones|buscar"] = "asignaciones-buscar",
+            // Incidencia automática "PaqueteFueraDeTareas" al confirmar paso con escáner desconocido
+            ["incidencias|reportar-fuera-tareas"] = "incidencias-reportar-fuera-tareas",
+            // Alta presencial en oficina (POST /api/admision/oficina/alta)
+            ["admision|oficina/alta"] = "admision-oficina-alta"
         };
 
     public async Task InvokeAsync(HttpContext context)
