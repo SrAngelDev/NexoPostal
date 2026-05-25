@@ -195,9 +195,29 @@ public class OficinaPostalService : IOficinaPostalService
         if (string.IsNullOrWhiteSpace(identityUserId))
             return (false, "IdentityUserId no válido.", null);
 
+        if (dto is null || dto.NuevoOficinaJsonId <= 0)
+            return (false, "Debes seleccionar una oficina válida del catálogo.", null);
+
         var oficina = _oficinasJson.ObtenerPorId(dto.NuevoOficinaJsonId);
         if (oficina == null)
             return (false, $"Oficina con ID {dto.NuevoOficinaJsonId} no encontrada en el catálogo.", null);
+
+        try
+        {
+            return await ActualizarOficinaAdminInterno(identityUserId, dto, oficina);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error actualizando la oficina del usuario {IdentityUserId} a {OficinaId} ({Oficina})",
+                identityUserId, oficina.Id, oficina.Nombre);
+            return (false, $"No se pudo actualizar la oficina: {ex.GetBaseException().Message}", null);
+        }
+    }
+
+    private async Task<(bool Ok, string? Error, MiOficinaInfoDto? Resultado)> ActualizarOficinaAdminInterno(
+        string identityUserId, AdminActualizarOficinaDto dto, OficinaJsonDto oficina)
+    {
 
         // Un operario de oficina opera siempre desde UNA única oficina postal,
         // pero por compatibilidad histórica (y por seeds antiguos) pueden existir
