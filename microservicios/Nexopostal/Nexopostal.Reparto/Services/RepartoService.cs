@@ -84,8 +84,10 @@ public class RepartoService : IRepartoService
         return repartidores.Select(r => new RepartidorResumenDto
         {
             Id = r.Id,
+            IdentityUserId = r.IdentityUserId,
             NombreCompleto = r.NombreCompleto,
             CodigoEmpleado = r.CodigoEmpleado,
+            Rol = r.Rol,
             Telefono = r.Telefono,
             OficinaJsonId = r.OficinaJsonId,
             OficinaNombre = r.OficinaNombre,
@@ -104,8 +106,10 @@ public class RepartoService : IRepartoService
         return new RepartidorResumenDto
         {
             Id = r.Id,
+            IdentityUserId = r.IdentityUserId,
             NombreCompleto = r.NombreCompleto,
             CodigoEmpleado = r.CodigoEmpleado,
+            Rol = r.Rol,
             Telefono = r.Telefono,
             OficinaJsonId = r.OficinaJsonId,
             OficinaNombre = r.OficinaNombre,
@@ -117,11 +121,16 @@ public class RepartoService : IRepartoService
 
     public async Task<RepartidorResumenDto> CrearRepartidor(CrearRepartidorDto dto)
     {
+        var rolNormalizado = string.Equals(dto.Rol, "JefeReparto", StringComparison.OrdinalIgnoreCase)
+            ? "JefeReparto"
+            : "Repartidor";
+
         var repartidor = new Repartidor
         {
             IdentityUserId = dto.IdentityUserId,
             NombreCompleto = dto.NombreCompleto,
             CodigoEmpleado = dto.CodigoEmpleado,
+            Rol = rolNormalizado,
             Telefono = dto.Telefono,
             OficinaJsonId = dto.OficinaJsonId,
             OficinaNombre = dto.OficinaNombre,
@@ -131,13 +140,15 @@ public class RepartoService : IRepartoService
 
         await _repartidorRepo.CreateAsync(repartidor);
 
-        _logger.LogInformation("Repartidor creado: {Codigo} - {Nombre}", repartidor.CodigoEmpleado, repartidor.NombreCompleto);
+        _logger.LogInformation("Repartidor creado: {Codigo} - {Nombre} ({Rol})", repartidor.CodigoEmpleado, repartidor.NombreCompleto, repartidor.Rol);
 
         return new RepartidorResumenDto
         {
             Id = repartidor.Id,
+            IdentityUserId = repartidor.IdentityUserId,
             NombreCompleto = repartidor.NombreCompleto,
             CodigoEmpleado = repartidor.CodigoEmpleado,
+            Rol = repartidor.Rol,
             Telefono = repartidor.Telefono,
             OficinaJsonId = repartidor.OficinaJsonId,
             OficinaNombre = repartidor.OficinaNombre,
@@ -171,8 +182,10 @@ public class RepartoService : IRepartoService
         return (new RepartidorResumenDto
         {
             Id = repartidor.Id,
+            IdentityUserId = repartidor.IdentityUserId,
             NombreCompleto = repartidor.NombreCompleto,
             CodigoEmpleado = repartidor.CodigoEmpleado,
+            Rol = repartidor.Rol,
             Telefono = repartidor.Telefono,
             OficinaJsonId = repartidor.OficinaJsonId,
             OficinaNombre = repartidor.OficinaNombre,

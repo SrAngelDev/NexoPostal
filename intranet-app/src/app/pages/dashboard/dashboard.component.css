@@ -276,6 +276,37 @@
   font-size: 1rem;
 }
 
+.notif-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.notif-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.75rem;
+  padding: 0 0.5rem;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 0.375rem;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.notif-clear:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.notif-clear .material-symbols-outlined {
+  font-size: 0.95rem;
+}
+
 .notif-list {
   overflow-y: auto;
   flex: 1;

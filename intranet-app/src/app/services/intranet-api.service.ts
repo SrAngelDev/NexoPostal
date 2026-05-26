@@ -32,6 +32,18 @@ export interface MisCtasInfo {
   ctas: CtaAsignacion[];
 }
 
+/** Información de la oficina del OperarioOficina autenticado. */
+export interface MiOficinaInfo {
+  oficinaJsonId: number;
+  oficinaNombre: string;
+  codigoPostal: string;
+  ciudad: string;
+  direccion: string;
+  rol: string;
+  activo: boolean;
+  fechaAsignacion: string;
+}
+
 export interface DashboardCta {
   ctaId: number;
   ctaCodigo: string;
@@ -59,12 +71,29 @@ export interface OperarioResumen {
   fechaAsignacion: string;
 }
 
+export interface OperarioDetalle {
+  id: number;
+  identityUserId: string;
+  nombreCompleto: string;
+  codigoEmpleado: string;
+  rol: string;
+  centroTratamientoId: number;
+  ctaCodigo: string;
+  ctaNombre: string;
+  activo: boolean;
+  fechaAsignacion: string;
+  tareasPendientes: number;
+  tareasEnProgreso: number;
+  tareasCompletadasHoy: number;
+}
+
 export interface AsignacionResumen {
   id: number;
   numeroExpedicion: string;
   tipoTarea: string;
   estadoTarea: string;
   esUrgente: boolean;
+  operarioAsignadoId?: number;
   operarioAsignado: string;
   asignadoPor: string;
   fechaAsignacion: string;
@@ -142,9 +171,24 @@ export class IntranetApiService {
     return this.http.get<MisCtasInfo>('/api/operarios/mis-ctas');
   }
 
+  /** Obtiene la oficina asignada al OperarioOficina autenticado */
+  obtenerMiOficina(): Observable<MiOficinaInfo> {
+    return this.http.get<MiOficinaInfo>('/api/operarios/mi-oficina');
+  }
+
   /** Obtiene los operarios de un CTA */
   obtenerOperariosCta(ctaId: number): Observable<OperarioResumen[]> {
     return this.http.get<OperarioResumen[]>(`/api/operarios/cta/${ctaId}`);
+  }
+
+  /** Obtiene el detalle de un operario con estadísticas de tareas */
+  obtenerOperarioDetalle(id: number): Observable<OperarioDetalle> {
+    return this.http.get<OperarioDetalle>(`/api/operarios/${id}`);
+  }
+
+  /** Desactiva un operario (Admin o Supervisor) */
+  desactivarOperario(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/operarios/${id}`);
   }
 
   // ─── CTAs ───
@@ -174,6 +218,11 @@ export class IntranetApiService {
   /** Tareas en progreso del operario autenticado */
   obtenerMisEnProgreso(): Observable<AsignacionResumen[]> {
     return this.http.get<AsignacionResumen[]>('/api/asignaciones/mis-en-progreso');
+  }
+
+  /** Tareas completadas recientemente por el operario autenticado */
+  obtenerMisCompletadas(max = 50): Observable<AsignacionResumen[]> {
+    return this.http.get<AsignacionResumen[]>(`/api/asignaciones/mis-completadas?max=${max}`);
   }
 
   /**
@@ -209,6 +258,11 @@ export class IntranetApiService {
   /** Cancela una tarea */
   cancelarTarea(id: number): Observable<AsignacionDetalle> {
     return this.http.put<AsignacionDetalle>(`/api/asignaciones/${id}/cancelar`, {});
+  }
+
+  /** Reasigna una tarea (Pendiente o EnProgreso) a otro OperarioCTA del mismo CTA. */
+  reasignarTarea(id: number, nuevoOperarioId: number): Observable<AsignacionDetalle> {
+    return this.http.put<AsignacionDetalle>(`/api/asignaciones/${id}/reasignar`, { nuevoOperarioId });
   }
 
   // ─── Movimientos ───

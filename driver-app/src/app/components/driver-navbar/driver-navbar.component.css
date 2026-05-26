@@ -1,0 +1,402 @@
+/* ================================================================
+   DriverNavbarComponent — barra de navegación unificada driver-app
+   ================================================================ */
+
+.driver-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  height: 3.75rem;
+  background: linear-gradient(135deg, #064e3b 0%, #059669 60%, #10b981 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px -8px rgba(6, 78, 59, 0.6);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  color: #fff;
+}
+
+/* ── Secciones ── */
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ── Botón atrás ── */
+.nav-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.6rem;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-back:hover, .nav-back:active {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.nav-back .material-symbols-outlined { font-size: 1.2rem; }
+
+/* ── Icono de página (tile amarilla) ── */
+.nav-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: rgba(255, 193, 7, 0.15);
+  border-radius: 0.5rem;
+  color: #FFC107;
+  flex-shrink: 0;
+}
+.nav-icon-tile .material-symbols-outlined { font-size: 1.35rem; }
+
+/* ── Título + subtítulo ── */
+.nav-title-group {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.05rem;
+}
+.nav-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+.nav-subtitle {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+/* ── Badge SignalR ── */
+.nav-signalr {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+.nav-signalr .signalr-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+}
+/* Online */
+.nav-signalr[data-estado="conectado"] {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+.nav-signalr[data-estado="conectado"] .signalr-dot {
+  background: #22c55e;
+  box-shadow: 0 0 5px rgba(34, 197, 94, 0.7);
+}
+/* Connecting */
+.nav-signalr[data-estado="conectando"] {
+  background: rgba(250, 204, 21, 0.12);
+  color: #fde68a;
+  border-color: rgba(250, 204, 21, 0.25);
+}
+.nav-signalr[data-estado="conectando"] .signalr-dot {
+  background: #facc15;
+  animation: dot-pulse 1s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ── Campana notificaciones ── */
+.notif-wrapper { position: relative; }
+
+.nav-bell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.6rem;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.18s, color 0.18s;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-bell:hover, .nav-bell:active { background: rgba(255, 255, 255, 0.15); color: #fff; }
+.nav-bell .material-symbols-outlined { font-size: 1.2rem; }
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  pointer-events: none;
+}
+
+/* ── Panel de notificaciones ── */
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  width: min(340px, calc(100vw - 1.5rem));
+  max-height: 420px;
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  animation: notif-in 0.16s ease both;
+}
+@keyframes notif-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.notif-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+.notif-panel-header h3 {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notif-panel-actions { display: flex; align-items: center; gap: 0.25rem; }
+
+.notif-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #64748b;
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.35rem;
+  transition: background 0.15s, color 0.15s;
+}
+.notif-action-btn .material-symbols-outlined { font-size: 0.95rem; }
+.notif-action-btn:hover { background: #f1f5f9; color: #0f172a; }
+.notif-action-btn.notif-close:hover { background: #fee2e2; color: #ef4444; }
+
+.notif-body { overflow-y: auto; flex: 1; }
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: #f8fafc; }
+
+.notif-icon {
+  font-size: 1.1rem;
+  color: #64748b;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notif-content { flex: 1; min-width: 0; }
+.notif-titulo {
+  margin: 0 0 0.1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.notif-msg {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #334155;
+  line-height: 1.4;
+}
+.notif-time {
+  display: block;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  margin-top: 0.2rem;
+}
+
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 2.5rem 1rem;
+  color: #94a3b8;
+  text-align: center;
+}
+.notif-empty .material-symbols-outlined { font-size: 2rem; }
+.notif-empty p { margin: 0; font-size: 0.82rem; }
+
+/* ── Píldora de usuario ── */
+.nav-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem 0.3rem 0.3rem;
+}
+
+.nav-avatar {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.nav-user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.nav-user-text strong {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+.nav-user-text small {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+}
+
+/* ── Botón logout ── */
+.nav-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 0.6rem;
+  color: #fca5a5;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-logout:hover, .nav-logout:active {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fff;
+}
+.nav-logout .material-symbols-outlined { font-size: 1.1rem; }
+
+/* ── Estilos para botones proyectados via ng-content ── */
+:host ::ng-deep .nav-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.6rem;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  -webkit-tap-highlight-color: transparent;
+}
+:host ::ng-deep .nav-action-btn:hover,
+:host ::ng-deep .nav-action-btn:active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+:host ::ng-deep .nav-action-btn .material-symbols-outlined { font-size: 1.2rem; }
+:host ::ng-deep .nav-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Responsive mobile-first ── */
+/* Ocultar texto del badge SignalR y "Salir" en pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .driver-nav { padding: 0 0.75rem; gap: 0.5rem; }
+  .nav-signalr { display: none; }
+  .nav-logout-text { display: none; }
+  .nav-logout { padding: 0.45rem 0.55rem; }
+  .nav-user-text { display: none; }
+  .nav-user-pill { padding: 0.25rem; border-radius: 50%; }
+}
+
+/* En pantallas medianas, ocultar sólo el texto del rol */
+@media (min-width: 481px) and (max-width: 700px) {
+  .nav-user-text small { display: none; }
+  .nav-signalr { display: none; }
+}

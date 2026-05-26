@@ -1,6 +1,7 @@
-import { Component, EventEmitter, Input, AfterViewInit, OnDestroy, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
+import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 
 @Component({
   selector: 'app-barcode-scanner',
@@ -9,52 +10,67 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
   templateUrl: './barcode-scanner.component.html',
   styleUrls: ['./barcode-scanner.component.css']
 })
-export class BarcodeScannerComponent implements AfterViewInit, OnDestroy {
+export class BarcodeScannerComponent implements OnDestroy {
   @Input() alturaScanner = 280;
   @Input() continuoMode = true;
   @Output() codigoDetectado = new EventEmitter<string>();
+
+  @ViewChild('videoEl') videoEl?: ElementRef<HTMLVideoElement>;
 
   scannerId = 'barcode-scanner-' + Math.random().toString(36).substring(7);
   escaneando = false;
   error: string | null = null;
 
-  private html5Qrcode: Html5Qrcode | null = null;
-  private ultimoCodigo = '';
-  private ultimoTimestamp = 0;
-  private readonly DEBOUNCE_MS = 2000; // evitar escaneos duplicados
+  private reader: BrowserMultiFormatReader | null = null;
+  private controls: IScannerControls | null = null;
 
-  ngAfterViewInit(): void {
-    this.html5Qrcode = new Html5Qrcode(this.scannerId, {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.QR_CODE,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.DATA_MATRIX
-      ],
-      verbose: false
-    });
-  }
+  // Doble confirmación: solo emitimos el código cuando dos lecturas consecutivas
+  // coinciden. Evita las lecturas corruptas típicas de barras (ej. "NX*-@DA#!WU").
+  private lecturaPrevia = '';
+  private ultimoEmitido = '';
+  private ultimoTimestamp = 0;
+  private readonly DEBOUNCE_MS = 1500;
 
   ngOnDestroy(): void {
     this.detenerEscaneo();
   }
 
   async iniciarEscaneo(): Promise<void> {
-    if (!this.html5Qrcode || this.escaneando) return;
+    if (this.escaneando) return;
+    if (!this.videoEl) {
+      this.error = 'Video no disponible';
+      return;
+    }
 
     this.error = null;
+    this.lecturaPrevia = '';
 
     try {
-      await this.html5Qrcode.start(
-        { facingMode: 'environment' }, // cámara trasera preferida
+      if (!this.reader) {
+        const hints = new Map<DecodeHintType, unknown>();
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+          BarcodeFormat.QR_CODE,
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.CODE_39,
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.DATA_MATRIX
+        ]);
+        hints.set(DecodeHintType.TRY_HARDER, true);
+        this.reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 80 });
+      }
+
+      this.controls = await this.reader.decodeFromConstraints(
         {
-          fps: 10,
-          qrbox: { width: 250, height: 150 },
-          aspectRatio: 1.5
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
         },
-        (decodedText) => this.onScanSuccess(decodedText),
-        () => {} // ignora errores de frames sin código
+        this.videoEl.nativeElement,
+        (result) => {
+          if (result) this.onLectura(result.getText());
+        }
       );
       this.escaneando = true;
     } catch (err: any) {
@@ -63,14 +79,13 @@ export class BarcodeScannerComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  async detenerEscaneo(): Promise<void> {
-    if (!this.html5Qrcode || !this.escaneando) return;
-
+  detenerEscaneo(): void {
     try {
-      await this.html5Qrcode.stop();
+      this.controls?.stop();
     } catch {
-      // Ignorar error al detener
+      // Ignorar
     }
+    this.controls = null;
     this.escaneando = false;
   }
 
@@ -81,22 +96,27 @@ export class BarcodeScannerComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private onScanSuccess(decodedText: string): void {
-    const now = Date.now();
+  private onLectura(decodedText: string): void {
     const codigo = decodedText.trim().toUpperCase();
 
-    // Debounce: ignorar escaneos duplicados muy seguidos
-    if (codigo === this.ultimoCodigo && (now - this.ultimoTimestamp) < this.DEBOUNCE_MS) {
+    // 1) Doble confirmación: dos lecturas iguales seguidas.
+    if (codigo !== this.lecturaPrevia) {
+      this.lecturaPrevia = codigo;
       return;
     }
 
-    this.ultimoCodigo = codigo;
-    this.ultimoTimestamp = now;
+    // 2) Debounce: no repetir el mismo código en una ventana corta.
+    const now = Date.now();
+    if (codigo === this.ultimoEmitido && (now - this.ultimoTimestamp) < this.DEBOUNCE_MS) {
+      return;
+    }
 
-    // Emitir código detectado
+    this.ultimoEmitido = codigo;
+    this.ultimoTimestamp = now;
+    this.lecturaPrevia = '';
+
     this.codigoDetectado.emit(codigo);
 
-    // Si no es modo continuo, detener cámara
     if (!this.continuoMode) {
       this.detenerEscaneo();
     }

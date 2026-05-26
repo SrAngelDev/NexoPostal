@@ -41,6 +41,7 @@ public static class RepartoDataSeeder
         if (env.IsDevelopment())
         {
             await SeedDevelopmentRepartidoresAsync(context, logger);
+            await SeedPaquetesPendientesBcnAsync(context, logger);
         }
 
         logger.LogInformation("Seed de Reparto completado");
@@ -73,6 +74,7 @@ public static class RepartoDataSeeder
                 IdentityUserId = JefeRepartoSeedId,
                 NombreCompleto = "Javier Torres Moreno",
                 CodigoEmpleado = "JRP001",
+                Rol = "JefeReparto",
                 Telefono = "620555666",
                 OficinaJsonId = OficinaMadridPrincipal,
                 OficinaNombre = OficinaMadridPrincipalNombre,
@@ -96,6 +98,7 @@ public static class RepartoDataSeeder
                 IdentityUserId = JefeRepartoSeedId2,
                 NombreCompleto = "Cristina Vidal Roca",
                 CodigoEmpleado = "JRP002",
+                Rol = "JefeReparto",
                 Telefono = "620777888",
                 OficinaJsonId = OficinaBarcelonaPrincipal,
                 OficinaNombre = OficinaBarcelonaPrincipalNombre,
@@ -147,6 +150,7 @@ public static class RepartoDataSeeder
                 IdentityUserId = DevJefeRepartoSevillaId,
                 NombreCompleto = "Isabel Domínguez Pérez",
                 CodigoEmpleado = "JRP003",
+                Rol = "JefeReparto",
                 Telefono = "620777666",
                 OficinaJsonId = OficinaSevillaPrincipal,
                 OficinaNombre = OficinaSevillaPrincipalNombre,
@@ -166,5 +170,169 @@ public static class RepartoDataSeeder
         }
         if (nuevos > 0) await context.SaveChangesAsync();
         logger.LogInformation("[DEV] Creados {Count} repartidores extra (Bilbao/Sevilla)", nuevos);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Bandeja del JefeReparto en CTA Barcelona - El Prat (CTA-BCN)
+    // ─────────────────────────────────────────────────────────────────────────
+    // CTA-BCN es el 5º CTA creado por IntranetDataSeeder, por lo que su Id
+    // autogenerado es 5 (orden: COR, GIJ, BIL, PNA, BCN, ZGZ, MAD, ...).
+    private const int CtaBcnId = 5;
+    private const string CtaBcnCodigo = "CTA-BCN";
+
+    /// <summary>
+    /// Siembra paquetes en la bandeja del JefeReparto del CTA Barcelona - El Prat
+    /// para poder probar el panel "/bandeja-jefe" sin necesidad de hacer escaneos
+    /// reales en toda la cadena Admisión → CTA origen → CTA destino.
+    /// Idempotente por <c>NumeroExpedicion</c> (prefijo NXI-SEEDBCN-...).
+    /// </summary>
+    private static async Task SeedPaquetesPendientesBcnAsync(RepartoDbContext context, ILogger logger)
+    {
+        var pendientes = new List<PaquetePendienteReparto>
+        {
+            new()
+            {
+                NumeroExpedicion = "NXI-SEEDBCN-001",
+                NumeroSeguimiento = "NXP-SEEDBCN-001",
+                CtaId = CtaBcnId,
+                CtaCodigo = CtaBcnCodigo,
+                NombreDestinatario = "Marta Puig Ferrer",
+                TelefonoDestinatario = "612001001",
+                DireccionEntrega = "Carrer de Provença, 215, 3º 2ª",
+                CodigoPostalDestino = "08008",
+                CiudadDestino = "Barcelona",
+                EsUrgente = true,
+                Observaciones = "Llamar al portero automático",
+                FechaRegistro = DateTime.UtcNow.AddMinutes(-45)
+            },
+            new()
+            {
+                NumeroExpedicion = "NXI-SEEDBCN-002",
+                NumeroSeguimiento = "NXP-SEEDBCN-002",
+                CtaId = CtaBcnId,
+                CtaCodigo = CtaBcnCodigo,
+                NombreDestinatario = "Jordi Mas Soler",
+                TelefonoDestinatario = "612002002",
+                DireccionEntrega = "Avinguda Diagonal, 547, 5º 1ª",
+                CodigoPostalDestino = "08029",
+                CiudadDestino = "Barcelona",
+                EsUrgente = false,
+                Observaciones = null,
+                FechaRegistro = DateTime.UtcNow.AddMinutes(-40)
+            },
+            new()
+            {
+                NumeroExpedicion = "NXI-SEEDBCN-003",
+                NumeroSeguimiento = "NXP-SEEDBCN-003",
+                CtaId = CtaBcnId,
+                CtaCodigo = CtaBcnCodigo,
+                NombreDestinatario = "Núria Vila Camps",
+                TelefonoDestinatario = "612003003",
+                DireccionEntrega = "Carrer del Comerç, 36, bajos",
+                CodigoPostalDestino = "08003",
+                CiudadDestino = "Barcelona",
+                EsUrgente = true,
+                Observaciones = "Entregar antes de las 14:00",
+                FechaRegistro = DateTime.UtcNow.AddMinutes(-30)
+            },
+            new()
+            {
+                NumeroExpedicion = "NXI-SEEDBCN-004",
+                NumeroSeguimiento = "NXP-SEEDBCN-004",
+                CtaId = CtaBcnId,
+                CtaCodigo = CtaBcnCodigo,
+                NombreDestinatario = "Pau Casas Vidal",
+                TelefonoDestinatario = "612004004",
+                DireccionEntrega = "Plaça de Catalunya, 14, 2º",
+                CodigoPostalDestino = "08002",
+                CiudadDestino = "Barcelona",
+                EsUrgente = false,
+                Observaciones = null,
+                FechaRegistro = DateTime.UtcNow.AddMinutes(-25)
+            },
+            new()
+            {
+                NumeroExpedicion = "NXI-SEEDBCN-005",
+                NumeroSeguimiento = "NXP-SEEDBCN-005",
+                CtaId = CtaBcnId,
+                CtaCodigo = CtaBcnCodigo,
+                NombreDestinatario = "Helena Ribas Aragó",
+                TelefonoDestinatario = "612005005",
+                DireccionEntrega = "Carrer del Bruc, 122, 4º 3ª",
+                CodigoPostalDestino = "08009",
+                CiudadDestino = "Barcelona",
+                EsUrgente = false,
+                Observaciones = "Dejar en buzón si no hay nadie",
+                FechaRegistro = DateTime.UtcNow.AddMinutes(-15)
+            },
+            new()
+            {
+                NumeroExpedicion = "NXI-SEEDBCN-006",
+                NumeroSeguimiento = "NXP-SEEDBCN-006",
+                CtaId = CtaBcnId,
+                CtaCodigo = CtaBcnCodigo,
+                NombreDestinatario = "Ferran Roig Bosch",
+                TelefonoDestinatario = "612006006",
+                DireccionEntrega = "Carrer Major, 28, 1º",
+                CodigoPostalDestino = "08820",
+                CiudadDestino = "El Prat de Llobregat",
+                EsUrgente = true,
+                Observaciones = "Cliente prefiere entrega en mano",
+                FechaRegistro = DateTime.UtcNow.AddMinutes(-10)
+            },
+            new()
+            {
+                NumeroExpedicion = "NXI-SEEDBCN-007",
+                NumeroSeguimiento = "NXP-SEEDBCN-007",
+                CtaId = CtaBcnId,
+                CtaCodigo = CtaBcnCodigo,
+                NombreDestinatario = "Aina Serra Lloret",
+                TelefonoDestinatario = "612007007",
+                DireccionEntrega = "Rambla de Catalunya, 90, 6º 1ª",
+                CodigoPostalDestino = "08008",
+                CiudadDestino = "Barcelona",
+                EsUrgente = false,
+                Observaciones = null,
+                FechaRegistro = DateTime.UtcNow.AddMinutes(-5)
+            },
+            new()
+            {
+                NumeroExpedicion = "NXI-SEEDBCN-008",
+                NumeroSeguimiento = "NXP-SEEDBCN-008",
+                CtaId = CtaBcnId,
+                CtaCodigo = CtaBcnCodigo,
+                NombreDestinatario = "Roger Llorens Pou",
+                TelefonoDestinatario = "612008008",
+                DireccionEntrega = "Carrer de Sants, 200, ático",
+                CodigoPostalDestino = "08028",
+                CiudadDestino = "Barcelona",
+                EsUrgente = false,
+                Observaciones = "Edificio sin ascensor",
+                FechaRegistro = DateTime.UtcNow.AddMinutes(-2)
+            }
+        };
+
+        var nuevos = 0;
+        foreach (var p in pendientes)
+        {
+            var existe = await context.PaquetesPendientesReparto
+                .AnyAsync(x => x.NumeroExpedicion == p.NumeroExpedicion);
+            if (existe) continue;
+
+            context.PaquetesPendientesReparto.Add(p);
+            nuevos++;
+        }
+
+        if (nuevos > 0)
+        {
+            await context.SaveChangesAsync();
+            logger.LogInformation(
+                "[DEV] Sembrados {Count} paquetes pendientes en bandeja CTA-BCN (Barcelona - El Prat)",
+                nuevos);
+        }
+        else
+        {
+            logger.LogInformation("[DEV] Paquetes pendientes CTA-BCN ya existen, omitiendo seed");
+        }
     }
 }

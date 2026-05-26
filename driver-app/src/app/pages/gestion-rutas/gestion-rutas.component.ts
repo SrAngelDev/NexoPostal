@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
+import { DriverNavbarComponent } from '../../components/driver-navbar/driver-navbar.component';
 
 interface RutaResumen {
   id: number;
@@ -18,7 +19,7 @@ interface RutaResumen {
 @Component({
   selector: 'app-gestion-rutas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DriverNavbarComponent],
   templateUrl: './gestion-rutas.component.html',
   styleUrl: './gestion-rutas.component.css'
 })

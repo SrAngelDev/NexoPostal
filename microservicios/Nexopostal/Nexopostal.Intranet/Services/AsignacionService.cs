@@ -35,6 +35,9 @@ public interface IAsignacionService
     /// <summary>Obtiene las tareas en progreso de un operario</summary>
     Task<List<AsignacionResumenDto>> ObtenerTareasEnProgreso(int operarioId);
 
+    /// <summary>Obtiene las últimas tareas completadas de un operario (más recientes primero).</summary>
+    Task<List<AsignacionResumenDto>> ObtenerTareasCompletadas(int operarioId, int max = 50);
+
     /// <summary>Marca una tarea como iniciada (Pendiente → EnProgreso)</summary>
     Task<AsignacionDetalleDto?> IniciarTarea(int asignacionId, int operarioId);
 
@@ -44,6 +47,12 @@ public interface IAsignacionService
     /// <summary>Cancela una tarea (cualquier estado → Cancelada)</summary>
     Task<bool> CancelarTarea(int asignacionId, int operarioLogisticoId);
 
+    /// <summary>
+    /// Reasigna una tarea (Pendiente o EnProgreso) a otro OperarioCTA del mismo CTA.
+    /// Resetea el estado a Pendiente para que el nuevo operario inicie de cero.
+    /// </summary>
+    Task<AsignacionDetalleDto?> ReasignarTarea(int asignacionId, int nuevoOperarioId, int supervisorOperarioId);
+
     /// <summary>Obtiene todas las asignaciones de un CTA</summary>
     Task<List<AsignacionResumenDto>> ObtenerAsignacionesCta(int ctaId, EstadoTarea? filtroEstado = null);
 
@@ -52,6 +61,18 @@ public interface IAsignacionService
 
     /// <summary>Busca una tarea pendiente o en progreso del operario por número de expedición / seguimiento.</summary>
     Task<AsignacionResumenDto?> BuscarEnMisTareasAsync(int operarioId, string codigo);
+
+    /// <summary>Obtiene las tareas pendientes de un OperarioOficina (urgentes primero).</summary>
+    Task<List<AsignacionResumenDto>> ObtenerTareasPendientesOficina(int operarioOficinaId);
+
+    /// <summary>Obtiene las tareas en progreso de un OperarioOficina.</summary>
+    Task<List<AsignacionResumenDto>> ObtenerTareasEnProgresoOficina(int operarioOficinaId);
+
+    /// <summary>Tareas completadas recientemente por un OperarioOficina (más recientes primero).</summary>
+    Task<List<AsignacionResumenDto>> ObtenerTareasCompletadasOficina(int operarioOficinaId, int max = 50);
+
+    /// <summary>Busca una tarea pendiente o en progreso de un OperarioOficina por número de expedición / seguimiento.</summary>
+    Task<AsignacionResumenDto?> BuscarEnMisTareasOficinaAsync(int operarioOficinaId, string codigo);
 }
 
 public class AsignacionService : IAsignacionService
@@ -134,6 +155,57 @@ public class AsignacionService : IAsignacionService
     {
         var asignaciones = await _asignacionRepo.GetByOperarioAsync(operarioId, EstadoTarea.EnProgreso);
         return asignaciones.Select(a => MapToResumen(a)).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<AsignacionResumenDto>> ObtenerTareasPendientesOficina(int operarioOficinaId)
+    {
+        var asignaciones = await _asignacionRepo.GetByOperarioOficinaAsync(operarioOficinaId, EstadoTarea.Pendiente);
+        return asignaciones.Select(a => MapToResumen(a)).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<AsignacionResumenDto>> ObtenerTareasEnProgresoOficina(int operarioOficinaId)
+    {
+        var asignaciones = await _asignacionRepo.GetByOperarioOficinaAsync(operarioOficinaId, EstadoTarea.EnProgreso);
+        return asignaciones.Select(a => MapToResumen(a)).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<AsignacionResumenDto>> ObtenerTareasCompletadas(int operarioId, int max = 50)
+    {
+        var asignaciones = await _asignacionRepo.GetByOperarioAsync(operarioId, EstadoTarea.Completada);
+        return asignaciones
+            .OrderByDescending(a => a.FechaCompletada ?? a.FechaAsignacion)
+            .Take(max)
+            .Select(a => MapToResumen(a))
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<AsignacionResumenDto>> ObtenerTareasCompletadasOficina(int operarioOficinaId, int max = 50)
+    {
+        var asignaciones = await _asignacionRepo.GetByOperarioOficinaAsync(operarioOficinaId, EstadoTarea.Completada);
+        return asignaciones
+            .OrderByDescending(a => a.FechaCompletada ?? a.FechaAsignacion)
+            .Take(max)
+            .Select(a => MapToResumen(a))
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<AsignacionResumenDto?> BuscarEnMisTareasOficinaAsync(int operarioOficinaId, string codigo)
+    {
+        if (string.IsNullOrWhiteSpace(codigo)) return null;
+        var clave = codigo.Trim();
+
+        var pendientes = await _asignacionRepo.GetByOperarioOficinaAsync(operarioOficinaId, EstadoTarea.Pendiente);
+        var enProgreso = await _asignacionRepo.GetByOperarioOficinaAsync(operarioOficinaId, EstadoTarea.EnProgreso);
+
+        var match = pendientes.Concat(enProgreso)
+            .FirstOrDefault(a => string.Equals(a.NumeroExpedicion, clave, StringComparison.OrdinalIgnoreCase));
+
+        return match == null ? null : MapToResumen(match);
     }
 
     /// <inheritdoc />
@@ -226,6 +298,68 @@ public class AsignacionService : IAsignacionService
     }
 
     /// <inheritdoc />
+    public async Task<AsignacionDetalleDto?> ReasignarTarea(int asignacionId, int nuevoOperarioId, int supervisorOperarioId)
+    {
+        var asignacion = await _asignacionRepo.GetByIdAsync(asignacionId);
+        if (asignacion == null) return null;
+
+        if (asignacion.EstadoTarea == EstadoTarea.Completada)
+            throw new InvalidOperationException("No se puede reasignar una tarea completada");
+        if (asignacion.EstadoTarea == EstadoTarea.Cancelada)
+            throw new InvalidOperationException("No se puede reasignar una tarea cancelada");
+
+        if (asignacion.OperarioOficinaAsignadoId != null)
+            throw new InvalidOperationException("La reasignación solo está disponible para tareas de CTA");
+
+        if (asignacion.OperarioAsignadoId == nuevoOperarioId)
+            throw new InvalidOperationException("La tarea ya está asignada a ese operario");
+
+        var nuevoOperario = await _operarioRepo.GetByIdAsync(nuevoOperarioId)
+            ?? throw new ArgumentException("Operario destino no encontrado");
+
+        if (!nuevoOperario.Activo)
+            throw new InvalidOperationException("El operario destino está inactivo");
+
+        if (nuevoOperario.CentroTratamientoId != asignacion.CtaId)
+            throw new InvalidOperationException("El operario destino no pertenece al CTA de la tarea");
+
+        if (nuevoOperario.Rol != RolOperario.OperarioCTA)
+            throw new InvalidOperationException("Solo se puede reasignar a operarios con rol OperarioCTA");
+
+        var ctaId = asignacion.CtaId
+            ?? throw new InvalidOperationException("La tarea no tiene un CTA asociado");
+
+        var operarioOrigenId = asignacion.OperarioAsignadoId;
+
+        asignacion.OperarioAsignadoId = nuevoOperarioId;
+        asignacion.AsignadoPorId = supervisorOperarioId;
+        asignacion.EstadoTarea = EstadoTarea.Pendiente;
+        asignacion.FechaInicio = null;
+        asignacion.FechaAsignacion = DateTime.UtcNow;
+
+        await _asignacionRepo.UpdateAsync(asignacion);
+
+        _logger.LogInformation(
+            "Tarea {Id} reasignada de operario {OrigenId} a operario {DestinoId} por supervisor {SupervisorId}",
+            asignacionId, operarioOrigenId, nuevoOperarioId, supervisorOperarioId);
+
+        var supervisor = await _operarioRepo.GetWithCtaAsync(supervisorOperarioId)
+            ?? throw new InvalidOperationException("Supervisor no encontrado");
+
+        // Notificar al nuevo operario como si fuese una asignación normal
+        await _notificacionService.NotificarTareaAsignada(
+            nuevoOperarioId,
+            ctaId,
+            supervisor.CentroTratamiento.Codigo,
+            asignacion.NumeroExpedicion,
+            asignacion.TipoTarea.ToString(),
+            asignacion.EsUrgente,
+            supervisor.NombreCompleto);
+
+        return await ObtenerDetalle(asignacionId);
+    }
+
+    /// <inheritdoc />
     public async Task<List<AsignacionResumenDto>> ObtenerAsignacionesCta(int ctaId, EstadoTarea? filtroEstado = null)
     {
         var asignaciones = await _asignacionRepo.GetByCtaAsync(ctaId, filtroEstado);
@@ -308,6 +442,7 @@ public class AsignacionService : IAsignacionService
         TipoTarea = a.TipoTarea.ToString(),
         EstadoTarea = a.EstadoTarea.ToString(),
         EsUrgente = a.EsUrgente,
+        OperarioAsignadoId = a.OperarioAsignadoId ?? a.OperarioOficinaAsignadoId,
         OperarioAsignado = a.OperarioAsignado?.NombreCompleto ?? a.OperarioOficinaAsignado?.NombreCompleto ?? string.Empty,
         AsignadoPor = a.AsignadoPor?.NombreCompleto ?? "Sistema",
         FechaAsignacion = a.FechaAsignacion,

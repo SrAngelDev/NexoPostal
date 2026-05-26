@@ -647,3 +647,125 @@
     flex: 1;
   }
 }
+
+/* ============ MOBILE OPTIMIZATIONS (driver-app crítico) ============ */
+@media (max-width: 640px) {
+  .ruta-main {
+    padding: 0.6rem;
+    gap: 0.6rem;
+  }
+
+  .ruta-nav {
+    padding: 0.55rem 0.65rem;
+    gap: 0.4rem;
+  }
+  .ruta-nav .nav-left h1 { font-size: 0.95rem; }
+  .ruta-nav .sub { font-size: 0.7rem; }
+  .ruta-nav .icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+  .ruta-nav .badge {
+    font-size: 0.68rem;
+    padding: 0.18rem 0.55rem;
+  }
+
+  .ruta-resumen {
+    padding: 0.85rem;
+    gap: 0.6rem;
+  }
+  .ruta-resumen h2 { font-size: 1rem; }
+  .ruta-resumen p { font-size: 0.78rem; }
+
+  .metrics-grid {
+    gap: 0.5rem;
+  }
+  .metric-card {
+    padding: 0.7rem 0.75rem;
+  }
+  .metric-card span { font-size: 0.72rem; }
+  .metric-card strong { font-size: 1.1rem; }
+
+  .mapa-canvas { height: 240px; }
+  .mapa-card header,
+  .navegacion-card header,
+  .entregas-list header,
+  .confirmacion-card header {
+    padding: 0.7rem 0.8rem;
+  }
+  .navegacion-body { padding: 0.75rem; gap: 0.55rem; }
+
+  .stop-actions .btn,
+  .mapa-actions .btn,
+  .ruta-resumen-actions .btn {
+    min-height: 44px;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.875rem;
+    flex: 1;
+  }
+  .stop-actions { display: grid; grid-template-columns: 1fr 1fr; }
+
+  /* Lista de paradas: scroll natural de página, mejor target táctil */
+  .items {
+    max-height: none;
+    overflow: visible;
+  }
+  .item {
+    padding: 0.9rem 0.8rem;
+    min-height: 64px;
+    gap: 0.7rem;
+    align-items: center;
+  }
+  .item-order {
+    width: 34px;
+    height: 34px;
+    font-size: 0.82rem;
+  }
+  .item-body strong { font-size: 0.95rem; }
+  .item-body span { font-size: 0.8rem; }
+  .item-status {
+    font-size: 0.68rem;
+    padding: 0.22rem 0.5rem;
+  }
+
+  .confirm-form {
+    padding: 0.85rem;
+    gap: 0.85rem;
+  }
+  .confirm-form input,
+  .confirm-form select,
+  .confirm-form textarea {
+    padding: 0.75rem 0.7rem;
+    font-size: 16px; /* evita zoom en iOS */
+    border-radius: 12px;
+  }
+  .confirm-form input[type="file"] {
+    padding: 0.65rem;
+  }
+
+  .btn {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+  }
+  .confirmacion-card .btn {
+    width: 100%;
+    padding: 0.95rem 1rem;
+    font-size: 0.95rem;
+    min-height: 52px;
+  }
+}
+
+@media (max-width: 420px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+  .metric-card strong { font-size: 1rem; }
+  .ruta-nav .nav-left { gap: 0.5rem; }
+  .ruta-nav .brand-icon { display: none; }
+  .mapa-legend { font-size: 0.7rem; gap: 0.45rem; }
+  .item-status { display: none; }
+  .item-body strong { font-size: 0.9rem; }
+}

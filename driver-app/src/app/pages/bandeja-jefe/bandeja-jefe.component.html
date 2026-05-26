@@ -1,0 +1,167 @@
+<div class="page-container">
+  <app-driver-navbar icon="inbox" title="Bandeja — Paquetes para asignar" (backClick)="volver()">
+    <button class="nav-action-btn" (click)="refrescar()" title="Refrescar">
+      <span class="material-symbols-outlined">refresh</span>
+    </button>
+  </app-driver-navbar>
+
+  @if (mensaje()) {
+    <div class="banner banner-ok">
+      <span class="material-symbols-outlined">check_circle</span>
+      {{ mensaje() }}
+    </div>
+  }
+  @if (error()) {
+    <div class="banner banner-error">
+      <span class="material-symbols-outlined">error</span>
+      {{ error() }}
+    </div>
+  }
+
+  <div class="toolbar">
+    <div class="toolbar-info">
+      <strong>{{ seleccion().size }}</strong> seleccionado(s) de {{ pendientes().length }}
+    </div>
+    <div class="toolbar-actions">
+      <button class="btn btn-secondary" (click)="seleccionarTodos()" [disabled]="pendientes().length === 0">
+        <span class="material-symbols-outlined">select_all</span>
+        Todos
+      </button>
+      <button class="btn btn-secondary" (click)="limpiarSeleccion()" [disabled]="seleccion().size === 0">
+        <span class="material-symbols-outlined">deselect</span>
+        Limpiar
+      </button>
+      <button class="btn btn-primary" (click)="abrirModal('nueva')" [disabled]="seleccion().size === 0">
+        <span class="material-symbols-outlined">add_road</span>
+        Crear ruta
+      </button>
+      <button class="btn btn-accent" (click)="abrirModal('existente')"
+              [disabled]="seleccion().size === 0 || rutasPlanificadas().length === 0">
+        <span class="material-symbols-outlined">playlist_add</span>
+        Añadir a ruta
+      </button>
+    </div>
+  </div>
+
+  @if (cargando()) {
+    <div class="loading">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+      Cargando bandeja...
+    </div>
+  } @else if (pendientes().length === 0) {
+    <div class="empty">
+      <span class="material-symbols-outlined">inbox</span>
+      <p>No hay paquetes pendientes de asignar.</p>
+      <small>Cuando un CTA marque un paquete como "Disponible para reparto" aparecerá aquí.</small>
+    </div>
+  } @else {
+    <div class="bandeja-grid">
+      @for (p of pendientes(); track p.id) {
+        <div class="paquete-card"
+             [class.seleccionado]="estaSeleccionado(p.id)"
+             [class.urgente]="p.esUrgente"
+             (click)="toggleSeleccion(p.id)">
+          <div class="paquete-header">
+            <input type="checkbox"
+                   [checked]="estaSeleccionado(p.id)"
+                   (click)="$event.stopPropagation()"
+                   (change)="toggleSeleccion(p.id)">
+            <span class="paquete-codigo">{{ p.numeroExpedicion }}</span>
+            @if (p.esUrgente) {
+              <span class="badge badge-urgente">
+                <span class="material-symbols-outlined">priority_high</span>URGENTE
+              </span>
+            }
+          </div>
+          <div class="paquete-cuerpo">
+            <div class="info-row">
+              <span class="material-symbols-outlined">person</span>
+              <span>{{ p.nombreDestinatario }}</span>
+            </div>
+            <div class="info-row">
+              <span class="material-symbols-outlined">location_on</span>
+              <span>{{ p.direccionEntrega }}</span>
+            </div>
+            <div class="info-row">
+              <span class="material-symbols-outlined">mail</span>
+              <span>{{ p.codigoPostalDestino }} {{ p.ciudadDestino }}</span>
+            </div>
+            @if (p.telefonoDestinatario) {
+              <div class="info-row">
+                <span class="material-symbols-outlined">call</span>
+                <span>{{ p.telefonoDestinatario }}</span>
+              </div>
+            }
+            <div class="info-row info-meta">
+              <span class="material-symbols-outlined">warehouse</span>
+              <span>CTA {{ p.ctaCodigo }}</span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (mostrarModal()) {
+    <div class="modal-backdrop" (click)="cerrarModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h3>
+          @if (modo() === 'nueva') {
+            Crear nueva ruta
+          } @else {
+            Añadir a ruta existente
+          }
+        </h3>
+        <p class="modal-sub">{{ seleccion().size }} paquete(s) seleccionado(s)</p>
+
+        @if (modo() === 'nueva') {
+          <label>
+            Repartidor
+            <select [ngModel]="repartidorIdSeleccionado()" (ngModelChange)="repartidorIdSeleccionado.set($event)">
+              <option [ngValue]="null">— Seleccionar —</option>
+              @for (r of repartidores(); track r.id) {
+                <option [ngValue]="r.id">
+                  {{ r.nombreCompleto }} ({{ r.codigoEmpleado }}) — {{ r.oficinaNombre }}
+                </option>
+              }
+            </select>
+          </label>
+
+          <label>
+            Fecha de reparto
+            <input type="date" [ngModel]="fechaRuta()" (ngModelChange)="fechaRuta.set($event)">
+          </label>
+
+          <label>
+            Observaciones (opcional)
+            <textarea rows="2" [ngModel]="observacionesRuta()" (ngModelChange)="observacionesRuta.set($event)" maxlength="200"></textarea>
+          </label>
+        } @else {
+          <label>
+            Ruta planificada
+            <select [ngModel]="rutaExistenteIdSeleccionada()" (ngModelChange)="rutaExistenteIdSeleccionada.set($event)">
+              <option [ngValue]="null">— Seleccionar —</option>
+              @for (r of rutasPlanificadas(); track r.id) {
+                <option [ngValue]="r.id">
+                  {{ r.codigo }} — {{ r.repartidorNombre }} ({{ r.totalEntregas }} entregas)
+                </option>
+              }
+            </select>
+          </label>
+        }
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="cerrarModal()" [disabled]="procesando()">Cancelar</button>
+          <button class="btn btn-primary" (click)="confirmar()" [disabled]="!puedeAsignar() || procesando()">
+            @if (procesando()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Procesando...
+            } @else {
+              Confirmar
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

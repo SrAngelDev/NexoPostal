@@ -289,6 +289,64 @@ body {
 html, body {
   max-width: 100%;
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Safe-area insets (iPhone notch / Android gesture bar) */
+@supports (padding: env(safe-area-inset-top)) {
+  .dashboard-nav,
+  .ruta-nav,
+  .page-nav,
+  .mapa-nav,
+  .navbar {
+    padding-top: env(safe-area-inset-top);
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  .ruta-main,
+  .dashboard-main,
+  .main-content,
+  .page-container > *:not(nav),
+  .mapa-page {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Mejor experiencia táctil */
+button,
+.btn,
+a,
+[class*="btn-"],
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(26, 35, 126, 0.12);
+}
+
+/* Inputs sin zoom-in iOS (>=16px) */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="search"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  input[type="file"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Utilidades de visibilidad responsive */
+.mobile-only { display: none !important; }
+.desktop-only { display: initial !important; }
+@media (max-width: 768px) {
+  .mobile-only { display: initial !important; }
+  .desktop-only { display: none !important; }
 }
 
 @media (max-width: 768px) {
@@ -390,4 +448,19 @@ html, body {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+  .main-content,
+  .page-content,
+  .container,
+  main {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* Pantallas muy pequeñas (< 360px, dispositivos antiguos) */
+@media (max-width: 360px) {
+  .nav-user { display: none !important; }
+  .btn-lg { font-size: 0.9375rem; }
+  .page-heading,
+  h2.page-heading { font-size: 1.125rem !important; }
 }

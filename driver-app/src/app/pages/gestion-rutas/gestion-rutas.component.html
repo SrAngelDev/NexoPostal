@@ -1,13 +1,9 @@
 <div class="page-container">
-  <nav class="page-nav">
-    <button class="btn-back" (click)="volver()">
-      <span class="material-symbols-outlined">arrow_back</span>
-    </button>
-    <h2 class="page-title">Gestión de Rutas</h2>
-    <button class="btn-refresh" (click)="cargarRutas()">
+  <app-driver-navbar icon="route" title="Gestión de Rutas" (backClick)="volver()">
+    <button class="nav-action-btn" (click)="cargarRutas()" title="Refrescar">
       <span class="material-symbols-outlined">refresh</span>
     </button>
-  </nav>
+  </app-driver-navbar>
 
   @if (cargando()) {
     <div class="loading">

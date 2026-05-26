@@ -9,8 +9,10 @@ namespace Nexopostal.Reparto.DTOs;
 public class RepartidorResumenDto
 {
     public int Id { get; set; }
+    public string IdentityUserId { get; set; } = string.Empty;
     public string NombreCompleto { get; set; } = string.Empty;
     public string CodigoEmpleado { get; set; } = string.Empty;
+    public string Rol { get; set; } = "Repartidor";
     public string? Telefono { get; set; }
     public int OficinaJsonId { get; set; }
     public string OficinaNombre { get; set; } = string.Empty;
@@ -24,6 +26,8 @@ public class CrearRepartidorDto
     public string IdentityUserId { get; set; } = string.Empty;
     public string NombreCompleto { get; set; } = string.Empty;
     public string CodigoEmpleado { get; set; } = string.Empty;
+    /// <summary>"JefeReparto" o "Repartidor". Por defecto "Repartidor".</summary>
+    public string Rol { get; set; } = "Repartidor";
     public string? Telefono { get; set; }
     public int OficinaJsonId { get; set; }
     public string OficinaNombre { get; set; } = string.Empty;

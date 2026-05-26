@@ -8,7 +8,7 @@
   </div>
 
   <div class="scanner-stage" [style.min-height.px]="alturaScanner">
-    <div [id]="scannerId" class="scanner-view"></div>
+    <video #videoEl [id]="scannerId" class="scanner-view" muted playsinline autoplay></video>
 
     @if (!escaneando) {
       <div class="scanner-overlay">

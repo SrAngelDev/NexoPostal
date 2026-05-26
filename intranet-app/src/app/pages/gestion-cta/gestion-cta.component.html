@@ -1,72 +1,6 @@
 <div class="page">
   <!-- ===== NAVBAR ===== -->
-  <nav class="navbar">
-    <div class="nav-brand">
-      <button class="nav-back" (click)="volverDashboard()">
-        <span class="material-symbols-outlined">arrow_back</span>
-      </button>
-      <span class="material-symbols-outlined nav-icon">domain</span>
-      <h1 class="nav-title">Mi CTA</h1>
-    </div>
-    <div class="nav-actions">
-      <!-- Campana de notificaciones -->
-      <div class="notif-wrapper">
-        <button class="nav-bell" (click)="toggleNotificaciones()">
-          <span class="material-symbols-outlined">notifications</span>
-          @if (signalr.notificacionesNoLeidas() > 0) {
-            <span class="notif-badge">{{ signalr.notificacionesNoLeidas() }}</span>
-          }
-        </button>
-
-        <!-- Panel de notificaciones -->
-        @if (showNotificaciones()) {
-          <div class="notif-panel" (click)="$event.stopPropagation()">
-            <div class="notif-panel-header">
-              <h3>Notificaciones</h3>
-              @if (signalr.notificaciones().length > 0) {
-                <button class="notif-clear" (click)="signalr.limpiarNotificaciones()">Limpiar</button>
-              }
-            </div>
-            <div class="notif-panel-body">
-              @if (signalr.notificaciones().length === 0) {
-                <div class="notif-empty">
-                  <span class="material-symbols-outlined">notifications_off</span>
-                  <p>Sin notificaciones</p>
-                </div>
-              }
-              @for (n of signalr.notificaciones(); track n.fechaHora) {
-                <div class="notif-item" [class.notif-urgente]="n.esUrgente">
-                  <div class="notif-item-header">
-                    <span class="notif-tipo-badge" [attr.data-tipo]="n.tipo">
-                      {{ n.tipo === 'PaqueteRecibidoEnCta' ? 'Nuevo paquete' :
-                         n.tipo === 'TareaAsignada' ? 'Tarea asignada' :
-                         n.tipo === 'TareaCompletada' ? 'Tarea completada' :
-                         n.tipo === 'MovimientoDespachado' ? 'Movimiento' :
-                         n.tipo === 'IncidenciaCreada' ? 'Incidencia' : n.tipo }}
-                    </span>
-                    <span class="notif-hora">{{ formatearFecha(n.fechaHora) }}</span>
-                  </div>
-                  <p class="notif-titulo">{{ n.titulo }}</p>
-                  <p class="notif-mensaje">{{ n.mensaje }}</p>
-                </div>
-              }
-            </div>
-          </div>
-        }
-      </div>
-
-      <div class="nav-signalr-status" [class.status-connected]="signalr.conectado()">
-        <span class="status-dot"></span>
-        {{ signalr.conectado() ? 'En línea' : 'Desconectado' }}
-      </div>
-      <span class="nav-user">{{ userName }}</span>
-      <span class="nav-role">{{ userRole }}</span>
-      <button (click)="logout()" class="nav-logout">
-        <span class="material-symbols-outlined">logout</span>
-        Salir
-      </button>
-    </div>
-  </nav>
+  <app-intranet-navbar icon="domain" title="Mi CTA" />
 
   <main class="main-content">
     @if (loading()) {
@@ -228,10 +162,10 @@
             Acciones rápidas
           </h2>
           <div class="actions-grid">
-            <button class="action-card" (click)="irAsignaciones()">
-              <span class="material-symbols-outlined action-icon">assignment</span>
-              <span class="action-title">Gestionar asignaciones</span>
-              <span class="action-desc">Asignar paquetes a operarios, ver tareas</span>
+            <button class="action-card" (click)="volverDashboard()">
+              <span class="material-symbols-outlined action-icon">arrow_back</span>
+              <span class="action-title">Volver al panel</span>
+              <span class="action-desc">Regresa al panel de gestión principal</span>
             </button>
             <button class="action-card" (click)="irSeguimientoInterno()">
               <span class="material-symbols-outlined action-icon">search</span>

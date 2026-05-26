@@ -93,6 +93,7 @@ builder.Services.AddScoped<IReintentoEntregaService, ReintentoEntregaService>();
 builder.Services.AddScoped<IBalanceoCargaService, BalanceoCargaService>();
 builder.Services.AddScoped<IVehiculoRepository, VehiculoRepository>();
 builder.Services.AddScoped<IVehiculoService, VehiculoService>();
+builder.Services.AddScoped<IBandejaPendientesService, BandejaPendientesService>();
 
 // Notificador SignalR (singleton: usa IHubContext que es thread-safe)
 builder.Services.AddSingleton<IRepartoNotifier, RepartoNotifier>();

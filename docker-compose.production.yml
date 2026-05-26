@@ -127,6 +127,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
+      - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - CiudadanoSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - IntranetSettings__ServiceKey=${INTER_SERVICE_KEY}
     networks:
       - nexopostal-net
     depends_on:
@@ -146,6 +149,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
+      - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - CiudadanoSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - IntranetSettings__ServiceKey=${INTER_SERVICE_KEY}
     networks:
       - nexopostal-net
     depends_on:
@@ -165,6 +171,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
+      - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
     networks:
       - nexopostal-net
     depends_on:

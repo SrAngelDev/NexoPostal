@@ -124,6 +124,90 @@ namespace Nexopostal.Reparto.Migrations
                     b.ToTable("EntregasPaquetes");
                 });
 
+            modelBuilder.Entity("Nexopostal.Reparto.Models.PaquetePendienteReparto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AsignadoARutaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AsignadoPorIdentityUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("CiudadDestino")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CodigoPostalDestino")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("CtaCodigo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("CtaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DireccionEntrega")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<int?>("EntregaPaqueteId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("EsUrgente")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("FechaAsignacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("FechaRegistro")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NombreDestinatario")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("NumeroExpedicion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("NumeroSeguimiento")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TelefonoDestinatario")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NumeroExpedicion")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PaquetesPendientesReparto_NumeroExpedicion");
+
+                    b.HasIndex("CtaId", "AsignadoARutaId")
+                        .HasDatabaseName("IX_PaquetesPendientesReparto_Cta_Asignacion");
+
+                    b.ToTable("PaquetesPendientesReparto");
+                });
+
             modelBuilder.Entity("Nexopostal.Reparto.Models.Repartidor", b =>
                 {
                     b.Property<int>("Id")
@@ -164,6 +248,11 @@ namespace Nexopostal.Reparto.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Rol")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Telefono")
                         .HasMaxLength(20)

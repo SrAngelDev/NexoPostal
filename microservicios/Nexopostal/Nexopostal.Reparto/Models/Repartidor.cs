@@ -37,6 +37,15 @@ public class Repartidor
     [MaxLength(20)]
     public string CodigoEmpleado { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Rol funcional dentro de Reparto: "JefeReparto" o "Repartidor".
+    /// Desnormalizado desde Auth para no depender de RPC cross-service
+    /// al filtrar/listar (p.ej. KPIs y chips de UI).
+    /// </summary>
+    [Required]
+    [MaxLength(20)]
+    public string Rol { get; set; } = "Repartidor";
+
     /// <summary>Teléfono de contacto para coordinación</summary>
     [MaxLength(20)]
     public string? Telefono { get; set; }

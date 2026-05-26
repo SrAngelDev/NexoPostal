@@ -103,6 +103,9 @@ services:
       - ./.env
     environment:
       - ASPNETCORE_URLS=http://+:80
+      - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - CiudadanoSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - IntranetSettings__ServiceKey=${INTER_SERVICE_KEY}
     expose:
       - "80"
     networks:
@@ -120,6 +123,9 @@ services:
       - ./.env
     environment:
       - ASPNETCORE_URLS=http://+:80
+      - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - CiudadanoSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - IntranetSettings__ServiceKey=${INTER_SERVICE_KEY}
     expose:
       - "80"
     networks:
@@ -137,6 +143,7 @@ services:
       - ./.env
     environment:
       - ASPNETCORE_URLS=http://+:80
+      - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
     expose:
       - "80"
     networks:

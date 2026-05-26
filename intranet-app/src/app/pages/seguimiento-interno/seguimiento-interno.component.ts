@@ -10,11 +10,13 @@ import {
   ActualizarEstadoInternoRequest,
   ESTADOS_INTERNOS
 } from '../../services/envios-interno.service';
+import { BarcodeScannerComponent } from '../../components/barcode-scanner/barcode-scanner.component';
+import { IntranetNavbarComponent } from '../../components/intranet-navbar/intranet-navbar.component';
 
 @Component({
   selector: 'app-seguimiento-interno',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BarcodeScannerComponent, IntranetNavbarComponent],
   templateUrl: './seguimiento-interno.component.html',
   styleUrl: './seguimiento-interno.component.css'
 })
@@ -45,6 +47,9 @@ export class SeguimientoInternoComponent {
   observaciones = '';
   actualizandoEstado = signal(false);
   estadoError = signal('');
+
+  // ─── Escáner de cámara ───
+  mostrarScanner = signal(false);
 
   // ─── Pestaña activa ───
   tabActiva = signal<'buscar' | 'listar'>('buscar');
@@ -122,6 +127,20 @@ export class SeguimientoInternoComponent {
         }
       }
     });
+  }
+
+  toggleScanner(): void {
+    this.mostrarScanner.update(v => !v);
+    if (!this.mostrarScanner()) return;
+    // Limpiar estado anterior al abrir
+    this.searchError.set('');
+    this.envioDetalle.set(null);
+  }
+
+  onCodigoEscaneado(codigo: string): void {
+    this.searchQuery = codigo;
+    this.mostrarScanner.set(false);
+    this.buscar();
   }
 
   limpiarBusqueda(): void {

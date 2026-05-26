@@ -39,7 +39,8 @@ public class UrlRewriteMiddleware
         "/api/nexopostal/admin-clientes",  // Vista 360 de clientes (admin)
         "/api/nexopostal/notificaciones",  // Broadcast notifications (admin)
         "/api/nexopostal/tarifas",         // El gateway pierde los query params en GET
-        "/api/asignaciones/buscar"         // GET con ?codigo=...; el gateway perdería la query
+        "/api/asignaciones/buscar",        // GET con ?codigo=...; el gateway perdería la query
+        "/api/nexopostal/reparto/entregas$" // GET ?rutaId=...; sufijo $ = match exacto (no toca sub-paths)
     ];
 
     // Compatibilidad para endpoints raíz /api/{apiKey} sin routeKey explícito.
@@ -115,8 +116,17 @@ public class UrlRewriteMiddleware
     {
         foreach (var prefix in DirectProxyPaths)
         {
-            if (path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            // Sufijo "$" indica match exacto del path (sin permitir sub-paths).
+            if (prefix.EndsWith('$'))
+            {
+                var exact = prefix[..^1];
+                if (path.Equals(exact, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            else if (path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
                 return true;
+            }
         }
         return false;
     }

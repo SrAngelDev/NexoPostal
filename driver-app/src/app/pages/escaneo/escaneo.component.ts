@@ -10,6 +10,7 @@ import {
   ActualizarEstadoInternoRequest
 } from '../../services/envios-interno.service';
 import { BarcodeScannerComponent } from '../../components/barcode-scanner/barcode-scanner.component';
+import { DriverNavbarComponent } from '../../components/driver-navbar/driver-navbar.component';
 
 interface HistorialEntrega {
   expedicion: string;
@@ -22,7 +23,7 @@ interface HistorialEntrega {
 @Component({
   selector: 'app-escaneo',
   standalone: true,
-  imports: [CommonModule, FormsModule, BarcodeScannerComponent],
+  imports: [CommonModule, FormsModule, BarcodeScannerComponent, DriverNavbarComponent],
   templateUrl: './escaneo.component.html',
   styleUrl: './escaneo.component.css'
 })

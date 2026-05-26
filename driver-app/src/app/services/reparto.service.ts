@@ -12,14 +12,26 @@ export type EstadoEntregaConfirmacion =
 
 export interface RepartidorPerfil {
   id: number;
+  identityUserId?: string;
   nombreCompleto: string;
   codigoEmpleado: string;
+  rol?: string;
   telefono?: string;
   oficinaJsonId: number;
   oficinaNombre: string;
   tipoVehiculo: string;
+  matriculaVehiculo?: string;
   activo: boolean;
   rutasHoy: number;
+}
+
+export interface EditarRepartidorRequest {
+  nombreCompleto: string;
+  telefono?: string;
+  oficinaJsonId: number;
+  oficinaNombre: string;
+  tipoVehiculo: string;
+  matriculaVehiculo?: string;
 }
 
 export interface EntregaPaquete {
@@ -129,6 +141,38 @@ export interface RutaResumen {
   fallidos: number;
 }
 
+export interface PaqueteBandejaJefe {
+  id: number;
+  numeroExpedicion: string;
+  numeroSeguimiento: string;
+  ctaId: number;
+  ctaCodigo: string;
+  nombreDestinatario: string;
+  telefonoDestinatario?: string;
+  direccionEntrega: string;
+  codigoPostalDestino: string;
+  ciudadDestino?: string;
+  esUrgente: boolean;
+  observaciones?: string;
+  fechaRegistro: string;
+  asignadoARutaId?: number;
+  entregaPaqueteId?: number;
+  fechaAsignacion?: string;
+}
+
+export interface AsignarPendienteARutaRequest {
+  rutaRepartoId: number;
+  ordenEnRuta?: number;
+}
+
+export interface CrearRutaRepartoRequest {
+  repartidorId: number;
+  fechaReparto: string; // ISO date (yyyy-MM-dd)
+  oficinaOrigenJsonId: number;
+  oficinaOrigenNombre: string;
+  observaciones?: string;
+}
+
 export const ESTADOS_CONFIRMACION: { valor: EstadoEntregaConfirmacion; etiqueta: string; icono: string }[] = [
   { valor: 'Entregado', etiqueta: 'Entregado', icono: 'home' },
   { valor: 'EntregadoPuntoAlternativo', etiqueta: 'Entregado punto alternativo', icono: 'storefront' },
@@ -203,5 +247,53 @@ export class RepartoService {
     const params: Record<string, string> = {};
     if (fecha) params['fecha'] = fecha;
     return this.http.get<RutaResumen[]>(`${this.API_URL}/rutas`, { params });
+  }
+
+  obtenerRepartidores(soloActivos = true): Observable<RepartidorPerfil[]> {
+    return this.http.get<RepartidorPerfil[]>(`${this.API_URL}/repartidores`, {
+      params: { soloActivos }
+    });
+  }
+
+  // ─── Gestión de repartidores (JefeReparto / Admin) ───
+
+  /**
+   * Lista los repartidores. Si el caller es JefeReparto, el backend fuerza
+   * el filtrado por su propia oficina, ignorando el parámetro de oficina.
+   */
+  listarMisRepartidores(incluirInactivos = false): Observable<RepartidorPerfil[]> {
+    return this.http.get<RepartidorPerfil[]>(`${this.API_URL}/repartidores`, {
+      params: { incluirInactivos }
+    });
+  }
+
+  editarRepartidor(id: number, dto: EditarRepartidorRequest): Observable<RepartidorPerfil> {
+    return this.http.put<RepartidorPerfil>(`${this.API_URL}/repartidores/${id}`, dto);
+  }
+
+  desactivarRepartidor(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.API_URL}/repartidores/${id}`);
+  }
+
+  reactivarRepartidor(id: number): Observable<void> {
+    return this.http.post<void>(`${this.API_URL}/repartidores/${id}/reactivar`, {});
+  }
+
+  crearRuta(req: CrearRutaRepartoRequest): Observable<RutaRepartoDetalle> {
+    // El Gateway expone esta operación bajo routeKey "crear-ruta" (la lib AspNetCore.ApiGateway
+    // no permite GET y POST con la misma routeKey "rutas"). Backend final: POST /api/reparto/rutas.
+    return this.http.post<RutaRepartoDetalle>(`${this.API_URL}/crear-ruta`, req);
+  }
+
+  // ─── Bandeja del JefeReparto (paquetes DisponibleParaReparto) ───
+
+  obtenerBandeja(ctaId?: number, incluirAsignados = false): Observable<PaqueteBandejaJefe[]> {
+    const params: Record<string, string | number | boolean> = { incluirAsignados };
+    if (ctaId !== undefined) params['ctaId'] = ctaId;
+    return this.http.get<PaqueteBandejaJefe[]>(`${this.API_URL}/bandeja`, { params });
+  }
+
+  asignarPendienteARuta(pendienteId: number, req: AsignarPendienteARutaRequest): Observable<unknown> {
+    return this.http.post<unknown>(`${this.API_URL}/bandeja/${pendienteId}/asignar-a-ruta`, req);
   }
 }

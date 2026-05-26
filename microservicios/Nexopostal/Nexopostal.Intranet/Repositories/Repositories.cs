@@ -259,6 +259,28 @@ public class AsignacionPaqueteRepository : IAsignacionPaqueteRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<AsignacionPaquete?> GetByExpedicionTipoOficinaAsync(
+        string numeroExpedicion,
+        TipoTarea tipoTarea,
+        int oficinaJsonId,
+        bool incluirCanceladas = false)
+    {
+        var query = _context.AsignacionesPaquetes
+            .Where(a =>
+                a.NumeroExpedicion == numeroExpedicion &&
+                a.TipoTarea == tipoTarea &&
+                a.OficinaJsonId == oficinaJsonId);
+
+        if (!incluirCanceladas)
+        {
+            query = query.Where(a => a.EstadoTarea != EstadoTarea.Cancelada);
+        }
+
+        return await query
+            .OrderByDescending(a => a.FechaAsignacion)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<AsignacionPaquete> CreateAsync(AsignacionPaquete asignacion)
     {
         _context.AsignacionesPaquetes.Add(asignacion);

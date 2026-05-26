@@ -8,11 +8,12 @@ import {
   RutaResumen
 } from '../../services/reparto.service';
 import { AuthService } from '../../services/auth.service';
+import { DriverNavbarComponent } from '../../components/driver-navbar/driver-navbar.component';
 
 @Component({
   selector: 'app-asignar-paradas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DriverNavbarComponent],
   templateUrl: './asignar-paradas.component.html',
   styleUrl: './asignar-paradas.component.css'
 })

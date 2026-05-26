@@ -160,8 +160,10 @@ export interface OficinaJsonResumen {
 
 export interface RepartidorAdminDto {
   id: number;
+  identityUserId: string;
   nombreCompleto: string;
   codigoEmpleado: string;
+  rol: string;
   telefono?: string;
   oficinaJsonId: number;
   oficinaNombre: string;
@@ -172,6 +174,18 @@ export interface RepartidorAdminDto {
 
 export interface EditarRepartidorDto {
   nombreCompleto: string;
+  telefono?: string;
+  oficinaJsonId: number;
+  oficinaNombre: string;
+  tipoVehiculo: string;
+  matriculaVehiculo?: string;
+}
+
+export interface CrearRepartidorDto {
+  identityUserId: string;
+  nombreCompleto: string;
+  codigoEmpleado: string;
+  rol: string;
   telefono?: string;
   oficinaJsonId: number;
   oficinaNombre: string;
@@ -317,6 +331,10 @@ export class AdminService {
 
   obtenerRepartidorPorIdentity(userId: string): Observable<RepartidorAdminDto> {
     return this.http.get<RepartidorAdminDto>(`${this.REPARTIDORES_URL}/identity/${userId}`);
+  }
+
+  crearRepartidor(dto: CrearRepartidorDto): Observable<RepartidorAdminDto> {
+    return this.http.post<RepartidorAdminDto>(this.REPARTIDORES_URL, dto);
   }
 
   editarRepartidor(id: number, dto: EditarRepartidorDto): Observable<RepartidorAdminDto> {

@@ -19,17 +19,20 @@ public class RepartoController : ControllerBase
 {
     private readonly IRepartoService _repartoService;
     private readonly ICiudadanoTrackingNotifierService _ciudadanoTrackingNotifier;
+    private readonly IBandejaPendientesService _bandejaService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<RepartoController> _logger;
 
     public RepartoController(
         IRepartoService repartoService,
         ICiudadanoTrackingNotifierService ciudadanoTrackingNotifier,
+        IBandejaPendientesService bandejaService,
         IConfiguration configuration,
         ILogger<RepartoController> logger)
     {
         _repartoService = repartoService;
         _ciudadanoTrackingNotifier = ciudadanoTrackingNotifier;
+        _bandejaService = bandejaService;
         _configuration = configuration;
         _logger = logger;
     }
@@ -40,12 +43,16 @@ public class RepartoController : ControllerBase
 
     /// <summary>
     /// Obtiene la lista de repartidores, opcionalmente filtrada por oficina.
-    /// Solo JefeReparto y Admin pueden ver la nómina completa.
+    /// Si el caller es JefeReparto (no Admin) se fuerza el filtro a su propia oficina.
     /// </summary>
     [HttpGet("repartidores")]
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> ObtenerRepartidores([FromQuery] int? oficinaJsonId, [FromQuery] bool incluirInactivos = false)
     {
+        var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
+        if (oficinaJefe.HasValue)
+            oficinaJsonId = oficinaJefe.Value;
+
         var repartidores = await _repartoService.ObtenerRepartidores(oficinaJsonId, incluirInactivos);
         return Ok(repartidores);
     }
@@ -64,10 +71,12 @@ public class RepartoController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene el perfil de repartidor del usuario autenticado (para driver-app).
+    /// Obtiene el perfil de repartidor del usuario autenticado.
+    /// Lo usan tanto driver-app (Repartidor) como el panel del JefeReparto
+    /// para descubrir su propia OficinaJsonId.
     /// </summary>
     [HttpGet("mi-perfil")]
-    [Authorize(Roles = "Repartidor")]
+    [Authorize(Roles = "Repartidor,JefeReparto")]
     public async Task<IActionResult> ObtenerMiPerfil()
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -85,6 +94,7 @@ public class RepartoController : ControllerBase
 
     /// <summary>
     /// Crea un nuevo repartidor (solo JefeReparto y Admin).
+    /// Si el caller es JefeReparto, se fuerza la oficina a la suya propia.
     /// </summary>
     [HttpPost("repartidores")]
     [Authorize(Roles = "Admin,JefeReparto")]
@@ -92,6 +102,10 @@ public class RepartoController : ControllerBase
     {
         try
         {
+            var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
+            if (oficinaJefe.HasValue && dto.OficinaJsonId != oficinaJefe.Value)
+                return Forbid();
+
             var repartidor = await _repartoService.CrearRepartidor(dto);
             return CreatedAtAction(nameof(ObtenerRepartidores), null, repartidor);
         }
@@ -104,11 +118,22 @@ public class RepartoController : ControllerBase
 
     /// <summary>
     /// Edita la ficha de un repartidor (oficina, vehículo, contacto).
+    /// El JefeReparto solo puede editar repartidores de su misma oficina y
+    /// no puede moverlos a otra oficina.
     /// </summary>
     [HttpPut("repartidores/{id:int}")]
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> EditarRepartidor(int id, [FromBody] EditarRepartidorDto dto)
     {
+        var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
+        if (oficinaJefe.HasValue)
+        {
+            if (!await PerteneceAOficinaAsync(id, oficinaJefe.Value))
+                return Forbid();
+            if (dto.OficinaJsonId != oficinaJefe.Value)
+                return Forbid();
+        }
+
         var (repartidor, error) = await _repartoService.EditarRepartidor(id, dto);
         if (repartidor == null)
             return BadRequest(new { message = error });
@@ -122,6 +147,10 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> DesactivarRepartidor(int id)
     {
+        var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
+        if (oficinaJefe.HasValue && !await PerteneceAOficinaAsync(id, oficinaJefe.Value))
+            return Forbid();
+
         var (ok, error) = await _repartoService.DesactivarRepartidor(id);
         return ok ? NoContent() : BadRequest(new { message = error });
     }
@@ -133,6 +162,10 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> ReactivarRepartidor(int id)
     {
+        var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
+        if (oficinaJefe.HasValue && !await PerteneceAOficinaAsync(id, oficinaJefe.Value))
+            return Forbid();
+
         var (ok, error) = await _repartoService.ReactivarRepartidor(id);
         return ok ? NoContent() : BadRequest(new { message = error });
     }
@@ -508,6 +541,67 @@ public class RepartoController : ControllerBase
         return Ok(resultado);
     }
 
+    // ═══════════════════════════════════════════
+    //  BANDEJA DEL JEFEREPARTO (paquetes DisponibleParaReparto)
+    // ═══════════════════════════════════════════
+
+    /// <summary>
+    /// Endpoint interno usado por Intranet al escanear DisponibleParaReparto.
+    /// Registra el paquete en la bandeja del JefeReparto del CTA destino.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("interno/bandeja/registrar")]
+    [ProducesResponseType(typeof(RegistrarPaqueteBandejaResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> RegistrarPaqueteEnBandeja([FromBody] RegistrarPaqueteBandejaRequestDto dto)
+    {
+        if (!IsInternalServiceAuthorized())
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Service key inválida" });
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var resultado = await _bandejaService.RegistrarPaqueteAsync(dto);
+        if (!resultado.Success)
+            return BadRequest(resultado);
+
+        return Ok(resultado);
+    }
+
+    /// <summary>
+    /// Lista los paquetes en la bandeja del JefeReparto.
+    /// Por defecto filtra por CTA recibido en query y oculta los ya asignados a ruta.
+    /// </summary>
+    [HttpGet("bandeja")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ObtenerBandeja(
+        [FromQuery] int? ctaId,
+        [FromQuery] bool incluirAsignados = false)
+    {
+        var pendientes = await _bandejaService.ListarPendientesAsync(ctaId, incluirAsignados);
+        return Ok(pendientes);
+    }
+
+    /// <summary>
+    /// El JefeReparto añade un pendiente de la bandeja a una ruta planificada.
+    /// Crea la EntregaPaquete asociada y marca el pendiente como asignado.
+    /// </summary>
+    [HttpPost("bandeja/{pendienteId:int}/asignar-a-ruta")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> AsignarPendienteARuta(int pendienteId, [FromBody] AsignarPendienteARutaDto dto)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value
+                     ?? User.FindFirst("nameid")?.Value;
+
+        var (pendiente, entrega, error) = await _bandejaService.AsignarARutaAsync(pendienteId, dto, userId);
+        if (error is not null)
+            return BadRequest(new { message = error });
+
+        return Ok(new { pendiente, entrega });
+    }
+
     private bool IsInternalServiceAuthorized()
     {
         var expectedKey = _configuration["InterServiceSettings:ServiceKey"]
@@ -518,6 +612,31 @@ public class RepartoController : ControllerBase
             return false;
 
         return SecureEquals(expectedKey, providedKey);
+    }
+
+    /// <summary>
+    /// Si el usuario autenticado es JefeReparto (y NO Admin), devuelve su OficinaJsonId
+    /// para limitar la operación a su propia oficina. Devuelve null si es Admin o no se
+    /// puede resolver el perfil.
+    /// </summary>
+    private async Task<int?> GetOficinaSiJefeRepartoAsync()
+    {
+        if (User.IsInRole("Admin")) return null;
+        if (!User.IsInRole("JefeReparto")) return null;
+
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value
+                     ?? User.FindFirst("nameid")?.Value;
+        if (string.IsNullOrEmpty(userId)) return null;
+
+        var perfil = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
+        return perfil?.OficinaJsonId;
+    }
+
+    private async Task<bool> PerteneceAOficinaAsync(int repartidorId, int oficinaJsonId)
+    {
+        var lista = await _repartoService.ObtenerRepartidores(oficinaJsonId, incluirInactivos: true);
+        return lista.Any(r => r.Id == repartidorId);
     }
 
     private static bool SecureEquals(string expected, string provided)

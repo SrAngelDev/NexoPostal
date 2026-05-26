@@ -5,11 +5,12 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { IntranetApiService, MisCtasInfo, CtaAsignacion, DashboardCta } from '../../services/intranet-api.service';
 import { SignalrService, NotificacionSignalR } from '../../services/signalr.service';
+import { IntranetNavbarComponent } from '../../components/intranet-navbar/intranet-navbar.component';
 
 @Component({
   selector: 'app-gestion-cta',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IntranetNavbarComponent],
   templateUrl: './gestion-cta.component.html',
   styleUrl: './gestion-cta.component.css'
 })
@@ -38,6 +39,12 @@ export class GestionCtaComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // OperarioCTA no necesita esta vista general — va directo a sus tareas
+    if (this.userRole === 'OperarioCTA') {
+      this.router.navigate(['/asignaciones'], { replaceUrl: true });
+      return;
+    }
+
     // Conectar SignalR
     this.signalr.conectar();
 

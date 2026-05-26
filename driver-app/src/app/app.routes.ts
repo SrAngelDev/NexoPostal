@@ -38,6 +38,16 @@ export const routes: Routes = [
     canActivate: [jefeRepartoGuard]
   },
   {
+    path: 'bandeja-jefe',
+    loadComponent: () => import('./pages/bandeja-jefe/bandeja-jefe.component').then(m => m.BandejaJefeComponent),
+    canActivate: [jefeRepartoGuard]
+  },
+  {
+    path: 'mis-repartidores',
+    loadComponent: () => import('./pages/mis-repartidores/mis-repartidores.component').then(m => m.MisRepartidoresComponent),
+    canActivate: [jefeRepartoGuard]
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard]

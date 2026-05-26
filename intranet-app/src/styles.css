@@ -240,7 +240,8 @@ html, body {
 .navbar,
 .dashboard-nav,
 .admin-nav,
-.page-nav {
+.page-nav,
+.topbar {
   background: var(--gradient-night) !important;
   color: #fff !important;
   border-bottom: 1px solid rgba(255,255,255,0.06) !important;
@@ -249,7 +250,8 @@ html, body {
 .navbar .nav-icon,
 .dashboard-nav .nav-icon,
 .admin-nav .nav-icon,
-.page-nav .nav-icon { color: var(--brand-accent) !important; }
+.page-nav .nav-icon,
+.topbar .nav-icon { color: var(--brand-accent) !important; }
 .navbar .nav-role,
 .dashboard-nav .nav-role,
 .admin-nav .nav-role {

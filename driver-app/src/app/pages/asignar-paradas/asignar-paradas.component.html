@@ -1,13 +1,9 @@
 <div class="page-container">
-  <nav class="page-nav">
-    <button class="btn-back" (click)="volver()" title="Volver">
-      <span class="material-symbols-outlined">arrow_back</span>
-    </button>
-    <h2 class="page-title">Asignar paradas a rutas</h2>
-    <button class="btn-refresh" (click)="cargar()" [disabled]="cargando()" title="Refrescar">
+  <app-driver-navbar icon="swap_horiz" title="Asignar paradas a rutas" (backClick)="volver()">
+    <button class="nav-action-btn" (click)="cargar()" [disabled]="cargando()" title="Refrescar">
       <span class="material-symbols-outlined" [class.spinning]="cargando()">refresh</span>
     </button>
-  </nav>
+  </app-driver-navbar>
 
   @if (mensaje(); as m) {
     <div class="banner banner-ok">

@@ -1,14 +1,15 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import * as L from 'leaflet';
 import { RepartoService, UbicacionActiva } from '../../services/reparto.service';
 import { AuthService } from '../../services/auth.service';
+import { DriverNavbarComponent } from '../../components/driver-navbar/driver-navbar.component';
 
 @Component({
   selector: 'app-mapa-tiempo-real',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, DriverNavbarComponent],
   templateUrl: './mapa-tiempo-real.component.html',
   styleUrl: './mapa-tiempo-real.component.css'
 })
@@ -21,6 +22,13 @@ export class MapaTiempoRealComponent implements OnInit, OnDestroy {
   cargando = signal(false);
   error = signal<string | null>(null);
   ultimaActualizacion = signal<Date | null>(null);
+
+  navSubtitle = computed(() => {
+    const t = this.ultimaActualizacion();
+    const base = `${this.ubicaciones().length} repartidor(es) activo(s)`;
+    if (!t) return base;
+    return `${base} · ${t.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+  });
 
   constructor(
     private repartoService: RepartoService,

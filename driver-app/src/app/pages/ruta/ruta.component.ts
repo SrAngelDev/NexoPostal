@@ -12,6 +12,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { DriverNavbarComponent } from '../../components/driver-navbar/driver-navbar.component';
 import {
   EntregaPaquete,
   EstadoEntregaConfirmacion,
@@ -36,7 +37,7 @@ type NavegadorExterno = 'google' | 'waze';
 @Component({
   selector: 'app-ruta',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DriverNavbarComponent],
   templateUrl: './ruta.component.html',
   styleUrl: './ruta.component.css'
 })
@@ -668,8 +669,16 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     try {
-      this.leafletModule ??= await import('leaflet');
+      if (!this.leafletModule) {
+        const mod: any = await import('leaflet');
+        // Leaflet es CJS: con interop de esbuild a veces L.map vive en .default
+        this.leafletModule = (mod?.map ? mod : mod?.default) as typeof import('leaflet');
+      }
       const L = this.leafletModule;
+
+      if (!L || typeof L.map !== 'function') {
+        throw new Error('Leaflet no expone L.map (interop fallido)');
+      }
 
       this.mapa = L.map(this.mapCanvas.nativeElement, {
         zoomControl: false,
@@ -687,7 +696,8 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
       this.actualizarMapa();
 
       setTimeout(() => this.mapa?.invalidateSize(), 0);
-    } catch {
+    } catch (err) {
+      console.error('[ruta] No se pudo inicializar Leaflet:', err);
       this.mapaDisponible.set(false);
     }
   }

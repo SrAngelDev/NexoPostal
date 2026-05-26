@@ -23,6 +23,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'gestion-equipo',
+    loadComponent: () => import('./pages/gestion-equipo/gestion-equipo.component').then(m => m.GestionEquipoComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'asignaciones',
     loadComponent: () => import('./pages/asignaciones/asignaciones.component').then(m => m.AsignacionesComponent),
     canActivate: [authGuard]

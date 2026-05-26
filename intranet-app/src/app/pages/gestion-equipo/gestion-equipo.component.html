@@ -1,0 +1,211 @@
+<div class="page">
+  <!-- ===== NAVBAR ===== -->
+  <app-intranet-navbar icon="supervisor_account" title="Gestión de Equipo" />
+
+  <main class="equipo-main">
+
+    <!-- Cabecera CTA -->
+    @if (misCtasInfo(); as info) {
+      <div class="cta-header animate-in">
+        <div class="cta-header-info">
+          @if (ctaSeleccionado(); as cta) {
+            <h2 class="cta-nombre">{{ cta.ctaNombre }}</h2>
+            <p class="cta-meta">{{ cta.ctaCodigo }} &middot; {{ cta.area }}</p>
+          }
+        </div>
+
+        @if (info.ctas.length > 1) {
+          <div class="cta-selector-wrap">
+            <label class="cta-selector-label">CTA activo</label>
+            <select class="cta-selector" (change)="onCtaChange($event)">
+              @for (c of info.ctas; track c.ctaId) {
+                <option [value]="c.ctaId" [selected]="ctaSeleccionado()?.ctaId === c.ctaId">
+                  {{ c.ctaNombre }}
+                </option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="state-loading animate-in">
+        <span class="material-symbols-outlined spin">autorenew</span>
+        Cargando equipo...
+      </div>
+    }
+
+    <!-- Error -->
+    @if (!loading() && error()) {
+      <div class="state-error animate-in">
+        <span class="material-symbols-outlined">error_outline</span>
+        {{ error() }}
+      </div>
+    }
+
+    <!-- Contenido -->
+    @if (!loading() && !error()) {
+
+      <!-- Resumen -->
+      <div class="team-summary animate-in">
+        <div class="summary-pill summary-total">
+          <span class="summary-num">{{ operarios().length }}</span>
+          <span class="summary-lbl">Total</span>
+        </div>
+        <div class="summary-pill summary-activos">
+          <span class="summary-num">{{ activosCount() }}</span>
+          <span class="summary-lbl">Activos</span>
+        </div>
+        @if (inactivosCount() > 0) {
+          <div class="summary-pill summary-inactivos">
+            <span class="summary-num">{{ inactivosCount() }}</span>
+            <span class="summary-lbl">Inactivos</span>
+          </div>
+        }
+      </div>
+
+      <!-- Lista de operarios -->
+      @if (operarios().length === 0) {
+        <div class="state-empty animate-in">
+          <span class="material-symbols-outlined">group_off</span>
+          <p>No hay operarios asignados a este CTA.</p>
+        </div>
+      } @else {
+        <div class="operarios-list animate-in">
+          @for (op of operarios(); track op.id) {
+            <button class="operario-card" [class.card-inactivo]="!op.activo" (click)="verDetalle(op)">
+              <div class="op-avatar" [class.avatar-inactivo]="!op.activo">
+                <span class="material-symbols-outlined">person</span>
+              </div>
+              <div class="op-info">
+                <span class="op-nombre">{{ op.nombreCompleto }}</span>
+                <span class="op-codigo">{{ op.codigoEmpleado }}</span>
+                <div class="op-badges">
+                  <span class="badge badge-rol">{{ rolLabel(op.rol) }}</span>
+                  <span class="badge" [class.badge-activo]="op.activo" [class.badge-inactivo]="!op.activo">
+                    {{ op.activo ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </div>
+              </div>
+              <span class="material-symbols-outlined op-chevron">chevron_right</span>
+            </button>
+          }
+        </div>
+      }
+    }
+  </main>
+</div>
+
+<!-- ===== OVERLAY NOTIFICACIONES ===== -->
+@if (showNotificaciones()) {
+  <div class="notif-overlay" (click)="cerrarNotificaciones()"></div>
+}
+
+<!-- ===== MODAL DETALLE ===== -->
+@if (showModal()) {
+  <div class="modal-overlay" (click)="cerrarModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">Detalle del operario</h2>
+        <button class="modal-close" (click)="cerrarModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        @if (loadingDetalle()) {
+          <div class="modal-loading">
+            <span class="material-symbols-outlined spin">autorenew</span>
+            Cargando...
+          </div>
+        } @else if (errorDetalle() && !operarioDetalle()) {
+          <div class="modal-error">
+            <span class="material-symbols-outlined">error_outline</span>
+            {{ errorDetalle() }}
+          </div>
+        } @else if (operarioDetalle(); as op) {
+
+          <!-- Cabecera del operario -->
+          <div class="op-detail-header">
+            <div class="op-detail-avatar" [class.avatar-inactivo]="!op.activo">
+              <span class="material-symbols-outlined">person</span>
+            </div>
+            <div class="op-detail-info">
+              <h3 class="op-detail-nombre">{{ op.nombreCompleto }}</h3>
+              <span class="op-codigo">{{ op.codigoEmpleado }}</span>
+              <div class="op-badges">
+                <span class="badge badge-rol">{{ rolLabel(op.rol) }}</span>
+                <span class="badge" [class.badge-activo]="op.activo" [class.badge-inactivo]="!op.activo">
+                  {{ op.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Info adicional -->
+          <div class="detail-rows">
+            <div class="detail-row">
+              <span class="detail-label">CTA asignado</span>
+              <span class="detail-value">{{ op.ctaCodigo }} — {{ op.ctaNombre }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Asignado desde</span>
+              <span class="detail-value">{{ op.fechaAsignacion | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+
+          <!-- Stats de tareas -->
+          <div class="task-stats">
+            <div class="task-stat task-pending">
+              <span class="task-num">{{ op.tareasPendientes }}</span>
+              <span class="task-lbl">Pendientes</span>
+            </div>
+            <div class="task-stat task-progress">
+              <span class="task-num">{{ op.tareasEnProgreso }}</span>
+              <span class="task-lbl">En progreso</span>
+            </div>
+            <div class="task-stat task-done">
+              <span class="task-num">{{ op.tareasCompletadasHoy }}</span>
+              <span class="task-lbl">Completadas hoy</span>
+            </div>
+          </div>
+
+          <!-- Desactivar -->
+          @if (op.activo) {
+            <div class="deactivate-section">
+              @if (!confirmDesactivar()) {
+                <button class="btn-deactivate" (click)="pedirConfirmacionDesactivar()">
+                  <span class="material-symbols-outlined">person_off</span>
+                  Desactivar operario
+                </button>
+              } @else {
+                <div class="confirm-box">
+                  <p class="confirm-text">
+                    ¿Confirmas la desactivación de <strong>{{ op.nombreCompleto }}</strong>?
+                    Esta acción impedirá que acceda al sistema operativo.
+                  </p>
+                  @if (errorDetalle()) {
+                    <p class="confirm-error">{{ errorDetalle() }}</p>
+                  }
+                  <div class="confirm-actions">
+                    <button class="btn-cancel" (click)="cancelarConfirmacion()">Cancelar</button>
+                    <button class="btn-confirm-yes" [disabled]="desactivando()" (click)="desactivarOperario()">
+                      @if (desactivando()) {
+                        <span class="material-symbols-outlined spin">autorenew</span>
+                        Desactivando...
+                      } @else {
+                        Sí, desactivar
+                      }
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+}

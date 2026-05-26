@@ -1,0 +1,339 @@
+/* ================================================================
+   IntranetNavbarComponent — barra de navegación unificada
+   ================================================================ */
+
+.intranet-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 1.5rem;
+  height: 4rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1a237e 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 16px -8px rgba(0, 0, 0, 0.5);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  color: #fff;
+}
+
+/* ── Secciones ── */
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Botón atrás ── */
+.nav-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+  flex-shrink: 0;
+}
+.nav-back:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.nav-back .material-symbols-outlined { font-size: 1.2rem; }
+
+/* ── Icono de página (tile amarilla) ── */
+.nav-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: rgba(255, 193, 7, 0.15);
+  border-radius: 0.5rem;
+  color: #FFC107;
+  flex-shrink: 0;
+}
+.nav-icon-tile .material-symbols-outlined { font-size: 1.35rem; }
+
+/* ── Título ── */
+.nav-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Badge SignalR ── */
+.nav-signalr {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+.nav-signalr .signalr-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+}
+.nav-signalr.is-online {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+.nav-signalr.is-online .signalr-dot {
+  background: #22c55e;
+  box-shadow: 0 0 5px rgba(34, 197, 94, 0.7);
+}
+
+/* ── Campana notificaciones ── */
+.notif-wrapper { position: relative; }
+
+.nav-bell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.18s, color 0.18s;
+}
+.nav-bell:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+.nav-bell .material-symbols-outlined { font-size: 1.2rem; }
+
+.notif-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  pointer-events: none;
+}
+
+/* ── Panel de notificaciones ── */
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  width: 340px;
+  max-height: 440px;
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  animation: notif-in 0.16s ease both;
+}
+@keyframes notif-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+.notif-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+.notif-panel-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notif-panel-actions { display: flex; align-items: center; gap: 0.25rem; }
+
+.notif-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: #64748b;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.35rem;
+  transition: background 0.15s, color 0.15s;
+}
+.notif-action-btn .material-symbols-outlined { font-size: 1rem; }
+.notif-action-btn:hover { background: #f1f5f9; color: #0f172a; }
+.notif-action-btn.notif-close:hover { background: #fee2e2; color: #ef4444; }
+
+.notif-body { overflow-y: auto; flex: 1; }
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: #f8fafc; }
+.notif-item.notif-urgente { background: #fff5f5; }
+.notif-item.notif-urgente:hover { background: #fee2e2; }
+
+.notif-icon {
+  font-size: 1.2rem;
+  color: #64748b;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.notif-urgente .notif-icon { color: #ef4444; }
+
+.notif-content { flex: 1; min-width: 0; }
+.notif-titulo {
+  margin: 0 0 0.1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.notif-msg {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #334155;
+  line-height: 1.4;
+}
+.notif-time {
+  display: block;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 0.2rem;
+}
+
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  color: #94a3b8;
+  text-align: center;
+}
+.notif-empty .material-symbols-outlined { font-size: 2rem; }
+.notif-empty p { margin: 0; font-size: 0.85rem; }
+
+/* ── Píldora de usuario ── */
+.nav-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.nav-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+.nav-user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  color: #fff;
+}
+.nav-user-text strong { font-size: 0.8rem; }
+.nav-user-text small { font-size: 0.7rem; color: rgba(255, 255, 255, 0.55); }
+
+/* ── Botón logout ── */
+.nav-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+  white-space: nowrap;
+}
+.nav-logout:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.nav-logout .material-symbols-outlined { font-size: 1.15rem; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .intranet-nav {
+    height: auto;
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .nav-signalr span:not(.signalr-dot) { display: none; }
+  .nav-signalr { padding: 0.3rem 0.45rem; min-width: 0; }
+  .nav-user-text { display: none; }
+  .logout-label { display: none; }
+  .notif-panel { width: min(340px, 90vw); right: -0.5rem; }
+  .nav-title { font-size: 1rem; }
+}
+
+@media (max-width: 480px) {
+  .nav-user-pill { display: none; }
+  .nav-logout { padding: 0.45rem 0.6rem; }
+}

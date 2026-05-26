@@ -32,6 +32,7 @@ public class AdmisionService : IAdmisionService
     private readonly IOficinaPostalService _oficinaService;
     private readonly INotificacionService _notificacionService;
     private readonly IAsignacionService _asignacionService;
+    private readonly IOperarioOficinaRepository _operarioOficinaRepo;
     private readonly ILogger<AdmisionService> _logger;
 
     public AdmisionService(
@@ -40,6 +41,7 @@ public class AdmisionService : IAdmisionService
         IOficinaPostalService oficinaService,
         INotificacionService notificacionService,
         IAsignacionService asignacionService,
+        IOperarioOficinaRepository operarioOficinaRepo,
         ILogger<AdmisionService> logger)
     {
         _movimientoRepo = movimientoRepo;
@@ -47,6 +49,7 @@ public class AdmisionService : IAdmisionService
         _oficinaService = oficinaService;
         _notificacionService = notificacionService;
         _asignacionService = asignacionService;
+        _operarioOficinaRepo = operarioOficinaRepo;
         _logger = logger;
     }
 
@@ -96,24 +99,37 @@ public class AdmisionService : IAdmisionService
         // 4. NO se autoasigna tarea en CTA al admitir. El flujo entra primero por la oficina origen.
 
         // 5. 📡 Notificar SOLO a la OFICINA ORIGEN. CTA y Reparto se enteran por escaneo.
+        //    Preferimos la OficinaOrigenId elegida explícitamente por el cliente; si no llega,
+        //    caemos al resolutor por CP (oficina más cercana).
         int? oficinaOrigenJsonId = null;
         string? oficinaOrigenNombre = null;
-        if (!string.IsNullOrWhiteSpace(dto.CodigoPostalOrigen))
+        string? oficinaOrigenCp = null;
+
+        if (dto.OficinaOrigenId is int oficinaElegidaId && oficinaElegidaId > 0)
+        {
+            var oficinaElegida = _oficinaService.ObtenerPorId(oficinaElegidaId);
+            if (oficinaElegida != null)
+            {
+                oficinaOrigenJsonId = oficinaElegida.Id;
+                oficinaOrigenNombre = oficinaElegida.Nombre;
+                oficinaOrigenCp = oficinaElegida.CodigoPostal;
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Admisión {Expedicion}: OficinaOrigenId={Of} no existe en el JSON; se intentará resolver por CP",
+                    dto.NumeroExpedicion, oficinaElegidaId);
+            }
+        }
+
+        if (!oficinaOrigenJsonId.HasValue && !string.IsNullOrWhiteSpace(dto.CodigoPostalOrigen))
         {
             var oficinaOrigen = await _oficinaService.ResolverOficinaPorCp(dto.CodigoPostalOrigen);
             if (oficinaOrigen != null)
             {
                 oficinaOrigenJsonId = oficinaOrigen.OficinaId;
                 oficinaOrigenNombre = oficinaOrigen.OficinaNombre;
-
-                await _notificacionService.NotificarNuevoPaqueteEnOficina(
-                    oficinaOrigen.OficinaId,
-                    oficinaOrigen.OficinaNombre,
-                    dto.NumeroExpedicion,
-                    dto.EsUrgente,
-                    dto.CodigoPostalOrigen,
-                    dto.CodigoPostalDestino,
-                    dto.Observaciones);
+                oficinaOrigenCp = oficinaOrigen.OficinaCodigoPostal;
             }
             else
             {
@@ -121,6 +137,18 @@ public class AdmisionService : IAdmisionService
                     "Admisión {Expedicion}: no se pudo resolver oficina origen para CP {Cp}",
                     dto.NumeroExpedicion, dto.CodigoPostalOrigen);
             }
+        }
+
+        if (oficinaOrigenJsonId.HasValue)
+        {
+            await _notificacionService.NotificarNuevoPaqueteEnOficina(
+                oficinaOrigenJsonId.Value,
+                oficinaOrigenNombre ?? string.Empty,
+                dto.NumeroExpedicion,
+                dto.EsUrgente,
+                oficinaOrigenCp ?? dto.CodigoPostalOrigen ?? string.Empty,
+                dto.CodigoPostalDestino,
+                dto.Observaciones);
         }
 
         _logger.LogInformation(
@@ -154,6 +182,47 @@ public class AdmisionService : IAdmisionService
                 _logger.LogError(ex,
                     "No se pudo crear tarea SalidaOficinaACta para expedición {Exp} (operario {Op})",
                     dto.NumeroExpedicion, operarioOficinaId);
+            }
+        }
+        // 5.ter Si el envío se paga online con recogida en oficina (el cliente llevará el paquete),
+        //       crear automáticamente una tarea RecepcionOficina para que el operario de esa oficina
+        //       lo espere y haga el escaneo de recepción cuando llegue.
+        else if (!dto.YaRecogidoEnOrigen && oficinaOrigenJsonId.HasValue)
+        {
+            try
+            {
+                var operariosOficinaOrigen = await _operarioOficinaRepo.GetByOficinaAsync(
+                    oficinaOrigenJsonId.Value, soloActivos: true);
+                var operarioDestino = operariosOficinaOrigen.FirstOrDefault();
+
+                if (operarioDestino != null)
+                {
+                    await _asignacionService.CrearAsignacionOficina(
+                        numeroExpedicion: dto.NumeroExpedicion,
+                        operarioOficinaId: operarioDestino.Id,
+                        tipoTarea: TipoTarea.RecepcionOficina,
+                        oficinaJsonId: oficinaOrigenJsonId,
+                        oficinaNombre: oficinaOrigenNombre,
+                        esUrgente: dto.EsUrgente,
+                        creadorOperarioCtaId: null,
+                        observaciones: $"Esperando entrega del cliente en oficina. Destino: {dto.CodigoPostalDestino} ({ctaDestino.CtaCodigo}).");
+
+                    _logger.LogInformation(
+                        "Tarea RecepcionOficina autoasignada a operario {Op} (expedición {Exp}, oficina {Ofi})",
+                        operarioDestino.Id, dto.NumeroExpedicion, oficinaOrigenJsonId);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Admisión {Expedicion}: oficina origen {Ofi} sin operarios activos; no se creó tarea RecepcionOficina",
+                        dto.NumeroExpedicion, oficinaOrigenJsonId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "No se pudo crear tarea RecepcionOficina automática para expedición {Exp} (oficina {Ofi})",
+                    dto.NumeroExpedicion, oficinaOrigenJsonId);
             }
         }
 

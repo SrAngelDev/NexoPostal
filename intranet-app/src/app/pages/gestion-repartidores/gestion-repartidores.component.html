@@ -23,6 +23,10 @@
           <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
           Recargar
         </button>
+        <button class="btn btn-primary" (click)="abrirCrear()" title="Dar de alta un JefeReparto o Repartidor">
+          <span class="material-symbols-outlined">person_add</span>
+          Nuevo repartidor
+        </button>
       </div>
     </header>
 
@@ -150,6 +154,17 @@
                     <div class="avatar avatar-success">{{ r.nombreCompleto.slice(0, 2).toUpperCase() }}</div>
                     <div class="cell-user-text">
                       <div class="cell-user-name">{{ r.nombreCompleto }}</div>
+                      @if (r.rol === 'JefeReparto') {
+                        <span class="chip chip-warning chip-xs">
+                          <span class="material-symbols-outlined">manage_accounts</span>
+                          Jefe de reparto
+                        </span>
+                      } @else {
+                        <span class="chip chip-info chip-xs">
+                          <span class="material-symbols-outlined">two_wheeler</span>
+                          Repartidor
+                        </span>
+                      }
                     </div>
                   </div>
                 </td>
@@ -317,6 +332,153 @@
             } @else {
               <span class="material-symbols-outlined">save</span>
               Guardar
+            }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════ Modal: Nuevo repartidor ════════════ -->
+@if (mostrarModalCrear()) {
+  <div class="modal-overlay fade-in" (click)="cerrarCrear()">
+    <div class="modal-card surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-success">
+            <span class="material-symbols-outlined">person_add</span>
+          </div>
+          <h2>Alta de repartidor</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarCrear()" title="Cerrar">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div class="modal-form">
+        <div class="alert alert-info">
+          <span class="material-symbols-outlined">info</span>
+          <span>
+            Selecciona un usuario con rol <strong>JefeReparto</strong> o <strong>Repartidor</strong> que aún no tenga
+            perfil operativo, y asígnale oficina y vehículo. Los usuarios se crean previamente desde
+            <strong>Gestión de Usuarios</strong>.
+          </span>
+        </div>
+
+        <div class="form-grid">
+          <div class="field field-full">
+            <label class="field-label">Usuario sin perfil operativo</label>
+            <select
+              class="select"
+              [ngModel]="formCrear().identityUserId"
+              (ngModelChange)="seleccionarUsuarioHuerfano($event)"
+              [disabled]="cargandoHuerfanos() || usuariosHuerfanos().length === 0">
+              <option value="" disabled>
+                @if (cargandoHuerfanos()) {
+                  Cargando usuarios…
+                } @else if (usuariosHuerfanos().length === 0) {
+                  No hay usuarios pendientes de asignar
+                } @else {
+                  — Selecciona un usuario —
+                }
+              </option>
+              @for (u of usuariosHuerfanos(); track u.id) {
+                <option [value]="u.id">{{ u.nombreCompleto }} · {{ u.rol }} · {{ u.email }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Nombre completo</label>
+            <input
+              type="text"
+              class="input"
+              [ngModel]="formCrear().nombreCompleto"
+              (ngModelChange)="actualizarFormCrear('nombreCompleto', $event)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Código de empleado</label>
+            <input
+              type="text"
+              class="input"
+              [ngModel]="formCrear().codigoEmpleado"
+              (ngModelChange)="actualizarFormCrear('codigoEmpleado', $event)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Rol operativo</label>
+            <select
+              class="select"
+              [ngModel]="formCrear().rol"
+              (ngModelChange)="actualizarFormCrear('rol', $event)">
+              <option value="Repartidor">Repartidor</option>
+              <option value="JefeReparto">Jefe de reparto</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Teléfono</label>
+            <input
+              type="text"
+              class="input"
+              [ngModel]="formCrear().telefono"
+              (ngModelChange)="actualizarFormCrear('telefono', $event)" />
+          </div>
+          <div class="field field-full">
+            <label class="field-label">Oficina de referencia</label>
+            <select
+              class="select"
+              [ngModel]="formCrear().oficinaJsonId"
+              (ngModelChange)="cambiarOficinaCrear($event)"
+              [disabled]="oficinas().length === 0">
+              <option [ngValue]="0" disabled>
+                @if (oficinas().length === 0) {
+                  Cargando oficinas…
+                } @else {
+                  — Selecciona una oficina —
+                }
+              </option>
+              @for (of of oficinas(); track of.id) {
+                <option [ngValue]="of.id">{{ of.nombre }} — {{ of.codigoPostal }} {{ of.ciudad }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Tipo de vehículo</label>
+            <select
+              class="select"
+              [ngModel]="formCrear().tipoVehiculo"
+              (ngModelChange)="actualizarFormCrear('tipoVehiculo', $event)">
+              @for (t of tiposVehiculo; track t) {
+                <option [value]="t">{{ t }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Matrícula</label>
+            <input
+              type="text"
+              class="input"
+              [ngModel]="formCrear().matriculaVehiculo"
+              (ngModelChange)="actualizarFormCrear('matriculaVehiculo', $event)" />
+          </div>
+        </div>
+
+        @if (creacionError()) {
+          <div class="alert alert-danger">
+            <span class="material-symbols-outlined">error</span>
+            {{ creacionError() }}
+          </div>
+        }
+
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarCrear()" [disabled]="savingCreacion()">Cancelar</button>
+          <button class="btn btn-primary" (click)="guardarCrear()" [disabled]="savingCreacion()">
+            @if (savingCreacion()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Guardando…
+            } @else {
+              <span class="material-symbols-outlined">save</span>
+              Crear repartidor
             }
           </button>
         </footer>

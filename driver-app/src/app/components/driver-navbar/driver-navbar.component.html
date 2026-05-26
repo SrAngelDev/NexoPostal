@@ -1,0 +1,93 @@
+<nav class="driver-nav">
+  <!-- ── Izquierda: back + icon + título ── -->
+  <div class="nav-left">
+    @if (showBack) {
+      <button class="nav-back" (click)="onBack()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+    }
+    <div class="nav-icon-tile">
+      <span class="material-symbols-outlined">{{ icon }}</span>
+    </div>
+    <div class="nav-title-group">
+      <h1 class="nav-title">{{ title }}</h1>
+      @if (subtitle) {
+        <span class="nav-subtitle">{{ subtitle }}</span>
+      }
+    </div>
+  </div>
+
+  <!-- ── Derecha: extras · signalr · notif · usuario · logout ── -->
+  <div class="nav-right">
+    <!-- Contenido extra inyectado por el padre (p.ej. badges GPS, refresh) -->
+    <ng-content />
+
+    <!-- Estado SignalR -->
+    <span class="nav-signalr" [attr.data-estado]="signalr.estadoConexion()">
+      <span class="signalr-dot"></span>
+      {{ estadoLabel }}
+    </span>
+
+    <!-- Campana de notificaciones -->
+    <div class="notif-wrapper">
+      <button class="nav-bell" (click)="toggleNotif()" title="Notificaciones">
+        <span class="material-symbols-outlined">notifications</span>
+        @if (signalr.noLeidas() > 0) {
+          <span class="notif-badge">{{ signalr.noLeidas() > 9 ? '9+' : signalr.noLeidas() }}</span>
+        }
+      </button>
+      @if (showNotif()) {
+        <div class="notif-panel" (click)="$event.stopPropagation()">
+          <div class="notif-panel-header">
+            <h3>Notificaciones</h3>
+            <div class="notif-panel-actions">
+              @if (signalr.notificaciones().length > 0) {
+                <button class="notif-action-btn" (click)="signalr.limpiar()">
+                  <span class="material-symbols-outlined">cleaning_services</span>
+                  Limpiar
+                </button>
+              }
+              <button class="notif-action-btn notif-close" (click)="toggleNotif()">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+          </div>
+          <div class="notif-body">
+            @for (n of signalr.notificaciones(); track n.id) {
+              <div class="notif-item">
+                <span class="material-symbols-outlined notif-icon">info</span>
+                <div class="notif-content">
+                  @if (n.titulo) {
+                    <p class="notif-titulo">{{ n.titulo }}</p>
+                  }
+                  <p class="notif-msg">{{ n.mensaje }}</p>
+                  <span class="notif-time">{{ n.fechaUtc | date:'dd/MM HH:mm' }}</span>
+                </div>
+              </div>
+            } @empty {
+              <div class="notif-empty">
+                <span class="material-symbols-outlined">notifications_off</span>
+                <p>Sin notificaciones</p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Píldora de usuario -->
+    <div class="nav-user-pill">
+      <div class="nav-avatar">{{ initials }}</div>
+      <div class="nav-user-text">
+        <strong>{{ userName }}</strong>
+        <small>{{ roleLabel }}</small>
+      </div>
+    </div>
+
+    <!-- Logout -->
+    <button class="nav-logout" (click)="logout()" title="Cerrar sesión">
+      <span class="material-symbols-outlined">logout</span>
+      <span class="nav-logout-text">Salir</span>
+    </button>
+  </div>
+</nav>

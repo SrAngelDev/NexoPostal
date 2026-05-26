@@ -18,6 +18,8 @@
 .quick-blue   { border-left: 4px solid #1565c0; } .quick-blue   .material-symbols-outlined { color: #1565c0; }
 .quick-green  { border-left: 4px solid #2e7d32; } .quick-green  .material-symbols-outlined { color: #2e7d32; }
 .quick-orange { border-left: 4px solid #ef6c00; } .quick-orange .material-symbols-outlined { color: #ef6c00; }
+.quick-purple { border-left: 4px solid #6a1b9a; } .quick-purple .material-symbols-outlined { color: #6a1b9a; }
+.quick-teal   { border-left: 4px solid #00897b; } .quick-teal   .material-symbols-outlined { color: #00897b; }
 
 .section-title { margin: 18px 16px 4px; font-size: 0.95rem; color: #555; text-transform: uppercase; letter-spacing: .04em; }
 
@@ -38,3 +40,59 @@
 .stat-purple { border-top: 4px solid #6a1b9a; } .stat-purple .material-symbols-outlined, .stat-purple .stat-value { color: #6a1b9a; }
 .stat-red   { border-top: 4px solid #c62828; } .stat-red   .material-symbols-outlined, .stat-red   .stat-value { color: #c62828; }
 .stat-gray  { border-top: 4px solid #757575; } .stat-gray  .material-symbols-outlined, .stat-gray  .stat-value { color: #757575; }
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+  .page-nav { padding: 12px; gap: 8px; }
+  .page-title { font-size: 1rem; }
+  .nav-brand .material-symbols-outlined { font-size: 22px; }
+  .nav-user { display: none; }
+  .btn-back, .btn-refresh, .btn-logout {
+    width: 40px; height: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 10px;
+  }
+  .quick-card {
+    padding: 14px 16px;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .quick-card .material-symbols-outlined {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .quick-title {
+    font-size: 0.95rem;
+    flex: 1 1 auto;
+  }
+  .quick-desc {
+    flex: 1 1 100%;
+    font-size: 0.78rem;
+    margin: 0;
+  }
+
+  .section-title { margin: 14px 12px 2px; font-size: 0.85rem; }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+  .stat-card { padding: 14px 8px; }
+  .stat-value { font-size: 1.5rem; }
+  .stat-card .material-symbols-outlined { font-size: 1.5rem; }
+  .stat-label { font-size: 0.72rem; }
+}
+
+@media (max-width: 360px) {
+  .stats-grid { gap: 8px; }
+  .stat-value { font-size: 1.25rem; }
+}

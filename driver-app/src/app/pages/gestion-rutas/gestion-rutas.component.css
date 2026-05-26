@@ -17,5 +17,14 @@
 .ruta-estado { font-size: 0.8rem; padding: 3px 10px; border-radius: 99px; }
 .estado-planificada { background: #e3f2fd; color: #1565c0; }
 .estado-en-curso { background: #fff8e1; color: #f57f17; }
+
+@media (max-width: 640px) {
+  .page-nav { padding: 12px; }
+  .page-title { font-size: 1rem; }
+  .btn-back, .btn-refresh { width: 40px; height: 40px; padding: 0; justify-content: center; }
+  .rutas-list { padding: 12px; gap: 10px; }
+  .ruta-card { padding: 14px; }
+  .ruta-codigo { font-size: 0.95rem; }
+}
 .estado-completada { background: #e8f5e9; color: #2e7d32; }
 .ruta-info, .ruta-progreso { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #555; margin-top: 4px; }

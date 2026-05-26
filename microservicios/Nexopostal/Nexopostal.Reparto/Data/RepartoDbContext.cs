@@ -19,6 +19,7 @@ public class RepartoDbContext : DbContext
     public DbSet<EntregaPaquete> EntregasPaquetes { get; set; }
     public DbSet<UbicacionRepartidor> UbicacionesRepartidores { get; set; }
     public DbSet<Vehiculo> Vehiculos { get; set; }
+    public DbSet<PaquetePendienteReparto> PaquetesPendientesReparto { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -138,6 +139,30 @@ public class RepartoDbContext : DbContext
 
             entity.HasIndex(e => e.Activo)
                 .HasDatabaseName("IX_Vehiculos_Activo");
+        });
+
+        // ===== PaquetePendienteReparto =====
+        modelBuilder.Entity<PaquetePendienteReparto>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.NumeroExpedicion).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.NumeroSeguimiento).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.CtaCodigo).HasMaxLength(20);
+            entity.Property(e => e.NombreDestinatario).HasMaxLength(150);
+            entity.Property(e => e.TelefonoDestinatario).HasMaxLength(30);
+            entity.Property(e => e.DireccionEntrega).HasMaxLength(250);
+            entity.Property(e => e.CodigoPostalDestino).HasMaxLength(10);
+            entity.Property(e => e.CiudadDestino).HasMaxLength(100);
+            entity.Property(e => e.Observaciones).HasMaxLength(500);
+            entity.Property(e => e.AsignadoPorIdentityUserId).HasMaxLength(450);
+
+            entity.HasIndex(e => e.NumeroExpedicion)
+                .IsUnique()
+                .HasDatabaseName("IX_PaquetesPendientesReparto_NumeroExpedicion");
+
+            entity.HasIndex(e => new { e.CtaId, e.AsignadoARutaId })
+                .HasDatabaseName("IX_PaquetesPendientesReparto_Cta_Asignacion");
         });
     }
 }

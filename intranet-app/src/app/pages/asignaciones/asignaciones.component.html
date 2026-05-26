@@ -1,33 +1,6 @@
 <div class="page">
   <!-- ═══════ NAVBAR ═══════ -->
-  <nav class="topbar">
-    <div class="topbar-left">
-      <button class="btn btn-ghost btn-icon" (click)="volverDashboard()" title="Volver">
-        <span class="material-symbols-outlined">arrow_back</span>
-      </button>
-      <div class="icon-tile icon-tile-brand">
-        <span class="material-symbols-outlined">assignment</span>
-      </div>
-      <h1 class="topbar-title">Asignaciones</h1>
-    </div>
-    <div class="topbar-right">
-      <span class="signalr-status" [class.is-online]="signalr.conectado()">
-        <span class="signalr-dot"></span>
-        {{ signalr.conectado() ? 'En línea' : 'Desconectado' }}
-      </span>
-      <div class="topbar-user">
-        <div class="avatar avatar-success">{{ userName.slice(0, 2).toUpperCase() }}</div>
-        <div class="topbar-user-text">
-          <strong>{{ userName }}</strong>
-          <small>{{ userRole }}</small>
-        </div>
-      </div>
-      <button class="btn btn-secondary action-danger" (click)="logout()">
-        <span class="material-symbols-outlined">logout</span>
-        Salir
-      </button>
-    </div>
-  </nav>
+  <app-intranet-navbar icon="assignment" title="Asignaciones" />
 
   <main class="page-content fade-in-up">
     @if (loading()) {
@@ -53,7 +26,14 @@
           } @else {
             <p class="page-subheading">Consulta tus tareas asignadas y avanza su estado escaneando paquetes.</p>
           }
-          @if (ctaSeleccionado(); as cta) {
+          @if (esOperarioOficina) {
+            @if (miOficinaInfo(); as ofi) {
+              <span class="chip chip-brand" style="margin-top: 0.5rem;">
+                <span class="material-symbols-outlined">store</span>
+                {{ ofi.oficinaNombre }} — {{ ofi.ciudad }} ({{ ofi.codigoPostal }})
+              </span>
+            }
+          } @else if (ctaSeleccionado(); as cta) {
             <span class="chip chip-brand" style="margin-top: 0.5rem;">
               <span class="material-symbols-outlined">domain</span>
               {{ cta.ctaCodigo }} — {{ cta.ctaNombre }}
@@ -144,10 +124,16 @@
               <option value="Cancelada">Cancelada</option>
             </select>
           </div>
-          <button class="btn btn-secondary" (click)="cargarDatos()">
+          <button class="btn btn-secondary" (click)="refrescar()">
             <span class="material-symbols-outlined">refresh</span>
             Actualizar
           </button>
+          @if (tieneCompletadasVisibles) {
+            <button class="btn btn-secondary" (click)="limpiarCompletadas()" title="Ocultar tareas completadas de la vista">
+              <span class="material-symbols-outlined">cleaning_services</span>
+              Limpiar completadas
+            </button>
+          }
         </div>
       </section>
 
@@ -164,6 +150,9 @@
                 <th>Asignado por</th>
                 <th>Fecha</th>
                 <th>Prioridad</th>
+                @if (puedeGestionarTareas) {
+                  <th class="cell-actions-header">Acciones</th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -207,6 +196,29 @@
                       <span class="chip">Normal</span>
                     }
                   </td>
+                  @if (puedeGestionarTareas) {
+                    <td class="cell-actions">
+                      @if (puedeGestionar(asig)) {
+                        <button
+                          class="btn btn-icon btn-sm btn-ghost"
+                          type="button"
+                          title="Reasignar a otro operario"
+                          (click)="abrirReasignar(asig)">
+                          <span class="material-symbols-outlined">swap_horiz</span>
+                        </button>
+                        <button
+                          class="btn btn-icon btn-sm btn-ghost btn-danger-ghost"
+                          type="button"
+                          title="Cancelar tarea"
+                          [disabled]="cancelandoId() === asig.id"
+                          (click)="cancelarTarea(asig)">
+                          <span class="material-symbols-outlined">cancel</span>
+                        </button>
+                      } @else {
+                        <span class="cell-meta">—</span>
+                      }
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -338,6 +350,55 @@
             } @else {
               <span class="material-symbols-outlined">report</span>
               Reportar incidencia
+            }
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════ Modal: Reasignar tarea ════════════ -->
+@if (showReasignarModal() && tareaAReasignar(); as tarea) {
+  <div class="modal-overlay fade-in" (click)="cerrarReasignar()">
+    <div class="modal-card modal-small surface-elevated scale-in" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-title">
+          <div class="icon-tile icon-tile-brand"><span class="material-symbols-outlined">swap_horiz</span></div>
+          <h2>Reasignar tarea</h2>
+        </div>
+        <button class="btn btn-icon btn-ghost" (click)="cerrarReasignar()"><span class="material-symbols-outlined">close</span></button>
+      </header>
+      <div class="modal-form">
+        <div class="alert alert-info">
+          <span class="material-symbols-outlined">info</span>
+          <span>Vas a reasignar la tarea <strong>{{ getTipoTareaLabel(tarea.tipoTarea) }}</strong> del paquete <strong>{{ tarea.numeroExpedicion }}</strong> (actualmente asignada a <strong>{{ tarea.operarioAsignado }}</strong>). El estado pasará a <em>Pendiente</em> para que el nuevo operario inicie de cero.</span>
+        </div>
+        <div class="field field-full">
+          <label class="field-label">Nuevo operario *</label>
+          <select class="select" [(ngModel)]="nuevoOperarioReasignarId">
+            <option [value]="0" disabled>Seleccionar operario</option>
+            @for (op of operariosReasignarCandidatos; track op.id) {
+              <option [value]="op.id">{{ op.nombreCompleto }} ({{ op.codigoEmpleado }})</option>
+            }
+          </select>
+          @if (operariosReasignarCandidatos.length === 0) {
+            <p class="cell-meta">No hay otros OperarioCTA activos disponibles en este CTA.</p>
+          }
+        </div>
+        @if (reasignarError()) {
+          <div class="alert alert-danger"><span class="material-symbols-outlined">error</span>{{ reasignarError() }}</div>
+        }
+        <footer class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarReasignar()" [disabled]="reasignando()">Cancelar</button>
+          <button class="btn btn-primary" (click)="confirmarReasignar()"
+                  [disabled]="reasignando() || !nuevoOperarioReasignarId">
+            @if (reasignando()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Reasignando…
+            } @else {
+              <span class="material-symbols-outlined">swap_horiz</span>
+              Reasignar
             }
           </button>
         </footer>

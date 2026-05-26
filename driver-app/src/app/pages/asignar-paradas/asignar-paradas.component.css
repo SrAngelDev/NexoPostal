@@ -35,5 +35,11 @@
 
 @media (max-width: 600px) {
   .entrega-actions { flex-direction: column; }
-  .btn-asignar { justify-content: center; }
+  .btn-asignar { justify-content: center; min-height: 44px; padding: 11px 16px; }
+  .ruta-select { min-height: 44px; font-size: 16px; }
+  .page-nav { padding: 12px; }
+  .page-title { font-size: 1rem; }
+  .btn-back, .btn-refresh { width: 40px; height: 40px; padding: 0; justify-content: center; }
+  .lista { padding: 12px; gap: 10px; }
+  .entrega-card { padding: 14px; }
 }

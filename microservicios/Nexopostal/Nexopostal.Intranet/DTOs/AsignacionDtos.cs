@@ -32,6 +32,16 @@ public class CrearAsignacionDto
 }
 
 /// <summary>
+/// DTO para reasignar una tarea pendiente o en progreso a otro OperarioCTA.
+/// </summary>
+public class ReasignarTareaDto
+{
+    /// <summary>Id del operario destino. Debe pertenecer al mismo CTA y tener rol OperarioCTA.</summary>
+    [Required]
+    public int NuevoOperarioId { get; set; }
+}
+
+/// <summary>
 /// Resumen de una asignación para listados.
 /// </summary>
 public class AsignacionResumenDto
@@ -41,6 +51,8 @@ public class AsignacionResumenDto
     public string TipoTarea { get; set; } = string.Empty;
     public string EstadoTarea { get; set; } = string.Empty;
     public bool EsUrgente { get; set; }
+    /// <summary>Id del operario al que está asignada (CTA u oficina, según corresponda).</summary>
+    public int? OperarioAsignadoId { get; set; }
     public string OperarioAsignado { get; set; } = string.Empty;
     public string AsignadoPor { get; set; } = string.Empty;
     public DateTime FechaAsignacion { get; set; }

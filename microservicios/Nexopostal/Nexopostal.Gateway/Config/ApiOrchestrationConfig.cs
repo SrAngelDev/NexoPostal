@@ -164,6 +164,9 @@ public static class ApiOrchestrationConfig
             .AddRoute("mi-perfil", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/mi-perfil" })
             .AddRoute("ruta", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/ruta" })
             .AddRoute("rutas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/rutas" })
+            // La lib AspNetCore.ApiGateway no permite mismo routeKey con verbos distintos,
+            // por eso el POST usa routeKey "crear-ruta" (frontend llama a /api/nexopostal/reparto/crear-ruta).
+            .AddRoute("crear-ruta", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas" })
             // El UrlRewriteMiddleware compone routeKey como `{segments[1]}-{segments[3]}`
             // ⇒ para /api/reparto/rutas/{id}/iniciar genera "rutas-iniciar" (plural).
             .AddRoute("rutas-iniciar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
@@ -174,7 +177,12 @@ public static class ApiOrchestrationConfig
             .AddRoute("dashboard", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/dashboard" })
             .AddRoute("ubicaciones-activas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/ubicaciones-activas" })
             .AddRoute("entregas-pendientes-asignacion", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/entregas/pendientes-asignacion" })
-            .AddRoute("entregas-reasignar", GatewayVerb.PATCH, new RouteInfo { Path = "api/reparto/entregas/" });
+            .AddRoute("entregas-reasignar", GatewayVerb.PATCH, new RouteInfo { Path = "api/reparto/entregas/" })
+            .AddRoute("repartidores", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/repartidores" })
+            .AddRoute("bandeja", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/bandeja" })
+            // POST /api/reparto/bandeja/{id}/asignar-a-ruta — UrlRewriteMiddleware genera
+            // routeKey "bandeja-asignar-a-ruta" + parameters "{id}/asignar-a-ruta".
+            .AddRoute("bandeja-asignar-a-ruta", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/bandeja/" });
     }
 
     // ASIGNACIONES (Intranet / Logistica)
@@ -192,7 +200,8 @@ public static class ApiOrchestrationConfig
             .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/" })
             .AddRoute("iniciar", GatewayVerb.PUT, new RouteInfo { Path = "api/asignaciones/" })
             .AddRoute("completar", GatewayVerb.PUT, new RouteInfo { Path = "api/asignaciones/" })
-            .AddRoute("cancelar", GatewayVerb.PUT, new RouteInfo { Path = "api/asignaciones/" });
+            .AddRoute("cancelar", GatewayVerb.PUT, new RouteInfo { Path = "api/asignaciones/" })
+            .AddRoute("reasignar", GatewayVerb.PUT, new RouteInfo { Path = "api/asignaciones/" });
     }
 
     // MOVIMIENTOS (Troncales entre CTAs)

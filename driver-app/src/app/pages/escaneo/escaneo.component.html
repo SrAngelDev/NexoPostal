@@ -1,28 +1,6 @@
 <div class="page">
   <!-- ===== NAVBAR ===== -->
-  <nav class="navbar">
-    <div class="nav-brand">
-      <button class="nav-back" (click)="volverDashboard()">
-        <span class="material-symbols-outlined">arrow_back</span>
-      </button>
-      <span class="material-symbols-outlined nav-icon">qr_code_scanner</span>
-      <h1 class="nav-title">Escaneo de entregas</h1>
-    </div>
-    <div class="nav-actions">
-      @if (historial().length > 0) {
-        <span class="nav-counter">
-          <span class="material-symbols-outlined">check_circle</span>
-          {{ contarEntregas() }}
-        </span>
-      }
-      <span class="nav-user">{{ userName }}</span>
-      <span class="nav-role">{{ userRole }}</span>
-      <button (click)="logout()" class="nav-logout">
-        <span class="material-symbols-outlined">logout</span>
-        Salir
-      </button>
-    </div>
-  </nav>
+  <app-driver-navbar icon="qr_code_scanner" title="Escaneo de entregas" (backClick)="volverDashboard()" />
 
   <main class="main-content">
     <!-- ===== ESCÁNER ===== -->

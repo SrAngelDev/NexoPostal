@@ -1,3 +1,13 @@
 /* gestion-repartidores — overrides puntuales.
    Layout y componentes vienen de utilidades globales en src/styles.css. */
 .icon-muted { color: var(--text-subtle); font-size: 1.25rem; }
+
+/* Chip compacto para indicar Rol bajo el nombre del repartidor */
+.chip-xs {
+  margin-top: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  gap: 0.25rem;
+}
+.chip-xs .material-symbols-outlined { font-size: 0.85rem; }

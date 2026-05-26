@@ -3,12 +3,12 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { SignalrService } from '../../services/signalr.service';
-import { NotificationBellComponent } from '../../components/notification-bell/notification-bell.component';
+import { DriverNavbarComponent } from '../../components/driver-navbar/driver-navbar.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, NotificationBellComponent],
+  imports: [CommonModule, DriverNavbarComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
@@ -35,9 +35,6 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.authService.getToken()) {
-      this.signalr.iniciar();
-    }
   }
 
   private getRoleLabel(): string {

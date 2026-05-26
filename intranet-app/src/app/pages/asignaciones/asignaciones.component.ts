@@ -7,6 +7,7 @@ import {
   IntranetApiService,
   MisCtasInfo,
   CtaAsignacion,
+  MiOficinaInfo,
   AsignacionResumen,
   OperarioResumen,
   CrearAsignacionRequest
@@ -14,11 +15,12 @@ import {
 import { ScanService, ScanResult } from '../../services/scan.service';
 import { SignalrService } from '../../services/signalr.service';
 import { BarcodeScannerComponent } from '../../components/barcode-scanner/barcode-scanner.component';
+import { IntranetNavbarComponent } from '../../components/intranet-navbar/intranet-navbar.component';
 
 @Component({
   selector: 'app-asignaciones',
   standalone: true,
-  imports: [CommonModule, FormsModule, BarcodeScannerComponent],
+  imports: [CommonModule, FormsModule, BarcodeScannerComponent, IntranetNavbarComponent],
   templateUrl: './asignaciones.component.html',
   styleUrl: './asignaciones.component.css'
 })
@@ -31,15 +33,29 @@ export class AsignacionesComponent implements OnInit {
     return this.userRole === 'Admin' || this.userRole === 'Supervisor';
   }
 
+  /** Solo Admin y Supervisor pueden cancelar/reasignar tareas (gestión administrativa). */
+  get puedeGestionarTareas(): boolean {
+    return this.userRole === 'Admin' || this.userRole === 'Supervisor';
+  }
+
   misCtasInfo = signal<MisCtasInfo | null>(null);
   ctaSeleccionado = signal<CtaAsignacion | null>(null);
+  miOficinaInfo = signal<MiOficinaInfo | null>(null);
   asignaciones = signal<AsignacionResumen[]>([]);
   operarios = signal<OperarioResumen[]>([]);
   loading = signal(true);
   error = signal('');
 
+  /** True si el usuario autenticado es OperarioOficina (sin CTA asignado). */
+  get esOperarioOficina(): boolean {
+    return this.userRole === 'OperarioOficina';
+  }
+
   // Filtro
   filtroEstado = '';
+
+  /** IDs de asignaciones completadas que el usuario ha "limpiado" (oculto). */
+  completadasOcultas = signal<Set<number>>(new Set<number>());
 
   // Modal crear asignación
   showCrearModal = signal(false);
@@ -52,6 +68,16 @@ export class AsignacionesComponent implements OnInit {
   };
   creando = signal(false);
   crearError = signal('');
+
+  // Modal reasignar
+  showReasignarModal = signal(false);
+  tareaAReasignar = signal<AsignacionResumen | null>(null);
+  nuevoOperarioReasignarId = 0;
+  reasignando = signal(false);
+  reasignarError = signal('');
+
+  // Cancelación en curso (por id)
+  cancelandoId = signal<number | null>(null);
 
   // Buscador / escáner integrado
   codigoBusqueda = '';
@@ -106,14 +132,21 @@ export class AsignacionesComponent implements OnInit {
 
     effect(() => {
       const ultima = this.signalr.ultimaNotificacion();
-      const cta = this.ctaSeleccionado();
-
-      if (!ultima || !cta) return;
-      if (ultima.ctaId !== cta.ctaId) return;
+      if (!ultima) return;
       if (!this.eventosConRefresco.has(ultima.tipo)) return;
 
       const claveEvento = `${ultima.tipo}|${ultima.numeroExpedicion ?? ''}|${ultima.fechaHora}`;
       if (claveEvento === this.ultimoEventoProcesado) return;
+
+      if (this.esOperarioOficina) {
+        this.ultimoEventoProcesado = claveEvento;
+        this.cargarTareasOficina();
+        return;
+      }
+
+      const cta = this.ctaSeleccionado();
+      if (!cta) return;
+      if (ultima.ctaId !== cta.ctaId) return;
 
       this.ultimoEventoProcesado = claveEvento;
       this.cargarAsignaciones(cta.ctaId);
@@ -128,6 +161,11 @@ export class AsignacionesComponent implements OnInit {
   cargarDatos(): void {
     this.loading.set(true);
     this.error.set('');
+
+    if (this.esOperarioOficina) {
+      this.cargarDatosOficina();
+      return;
+    }
 
     this.intranetApi.obtenerMisCtas().subscribe({
       next: (info) => {
@@ -145,6 +183,54 @@ export class AsignacionesComponent implements OnInit {
           ? 'No estás asignado a ningún CTA.'
           : 'Error al cargar datos.');
       }
+    });
+  }
+
+  /** Carga inicial para OperarioOficina: info de oficina + sus tareas. */
+  private cargarDatosOficina(): void {
+    this.intranetApi.obtenerMiOficina().subscribe({
+      next: (info) => {
+        this.miOficinaInfo.set(info);
+        this.cargarTareasOficina();
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(err.status === 404
+          ? 'No estás asignado a ninguna oficina.'
+          : 'Error al cargar tu oficina.');
+      }
+    });
+  }
+
+  /** Refresca pendientes + en progreso + completadas recientes para OperarioOficina. */
+  private cargarTareasOficina(): void {
+    this.loading.set(true);
+    let recibidos = 0;
+    let pendientes: AsignacionResumen[] = [];
+    let enProgreso: AsignacionResumen[] = [];
+    let completadas: AsignacionResumen[] = [];
+
+    const fusionar = () => {
+      recibidos++;
+      if (recibidos < 3) return;
+      // Filtrar completadas "limpiadas" localmente.
+      const ocultas = this.completadasOcultas();
+      const completadasVisibles = completadas.filter(a => !ocultas.has(a.id));
+      this.asignaciones.set([...pendientes, ...enProgreso, ...completadasVisibles]);
+      this.loading.set(false);
+    };
+
+    this.intranetApi.obtenerMisPendientes().subscribe({
+      next: (xs) => { pendientes = xs; fusionar(); },
+      error: () => { pendientes = []; fusionar(); }
+    });
+    this.intranetApi.obtenerMisEnProgreso().subscribe({
+      next: (xs) => { enProgreso = xs; fusionar(); },
+      error: () => { enProgreso = []; fusionar(); }
+    });
+    this.intranetApi.obtenerMisCompletadas().subscribe({
+      next: (xs) => { completadas = xs; fusionar(); },
+      error: () => { completadas = []; fusionar(); }
     });
   }
 
@@ -187,9 +273,34 @@ export class AsignacionesComponent implements OnInit {
   }
 
   get asignacionesFiltradas(): AsignacionResumen[] {
-    const todas = this.asignaciones();
+    const ocultas = this.completadasOcultas();
+    const todas = this.asignaciones().filter(a => !ocultas.has(a.id));
     if (!this.filtroEstado) return todas;
     return todas.filter(a => a.estadoTarea === this.filtroEstado);
+  }
+
+  /** Número de tareas completadas visibles (para mostrar el botón Limpiar). */
+  get tieneCompletadasVisibles(): boolean {
+    const ocultas = this.completadasOcultas();
+    return this.asignaciones().some(a => a.estadoTarea === 'Completada' && !ocultas.has(a.id));
+  }
+
+  /** Oculta localmente las tareas completadas (no las borra del backend). */
+  limpiarCompletadas(): void {
+    const completadas = this.asignaciones().filter(a => a.estadoTarea === 'Completada');
+    const nuevas = new Set(this.completadasOcultas());
+    for (const a of completadas) nuevas.add(a.id);
+    this.completadasOcultas.set(nuevas);
+  }
+
+  /** Refresca la vista actual según el rol. */
+  refrescar(): void {
+    if (this.esOperarioOficina) {
+      this.cargarTareasOficina();
+      return;
+    }
+    const cta = this.ctaSeleccionado();
+    if (cta) this.cargarAsignaciones(cta.ctaId);
   }
 
   // ─── Modal Crear ───
@@ -302,6 +413,7 @@ export class AsignacionesComponent implements OnInit {
   /** Lanza el escaneo en backend con el modoSugerido de la tarea. */
   private confirmarTarea(tarea: AsignacionResumen): void {
     const cta = this.ctaSeleccionado();
+    const oficina = this.miOficinaInfo();
     if (!tarea.modoSugerido) {
       this.buscando.set(false);
       this.scanError.set(`La tarea "${tarea.tipoTarea}" no tiene un modo de escaneo asociado`);
@@ -313,6 +425,8 @@ export class AsignacionesComponent implements OnInit {
       modoOperacion: tarea.modoSugerido,
       ctaId: cta?.ctaId,
       ctaCodigo: cta?.ctaCodigo,
+      oficinaJsonId: oficina?.oficinaJsonId,
+      oficinaNombre: oficina?.oficinaNombre,
       operarioNombre: this.userName,
       esUrgente: tarea.esUrgente
     }).subscribe({
@@ -322,6 +436,7 @@ export class AsignacionesComponent implements OnInit {
           this.scanOk.set(`✔ ${res.mensaje || tarea.numeroExpedicion + ' procesado'}`);
           this.codigoBusqueda = '';
           if (cta) this.cargarAsignaciones(cta.ctaId);
+          else if (this.esOperarioOficina) this.cargarTareasOficina();
         } else {
           this.scanError.set(res.mensaje || 'El escaneo no se pudo completar');
         }
@@ -413,5 +528,85 @@ export class AsignacionesComponent implements OnInit {
   getTipoTareaLabel(tipo: string): string {
     const found = this.tiposTarea.find(t => t.valor === tipo);
     return found ? found.etiqueta : tipo;
+  }
+
+  // ─── Gestión administrativa: Cancelar / Reasignar ───
+
+  /** True si la tarea puede gestionarse (no terminal). */
+  puedeGestionar(tarea: AsignacionResumen): boolean {
+    return this.puedeGestionarTareas
+      && tarea.estadoTarea !== 'Completada'
+      && tarea.estadoTarea !== 'Cancelada';
+  }
+
+  cancelarTarea(tarea: AsignacionResumen): void {
+    if (!this.puedeGestionar(tarea)) return;
+    const ok = confirm(`¿Cancelar la tarea ${this.getTipoTareaLabel(tarea.tipoTarea)} del paquete ${tarea.numeroExpedicion}?`);
+    if (!ok) return;
+
+    this.cancelandoId.set(tarea.id);
+    this.intranetApi.cancelarTarea(tarea.id).subscribe({
+      next: () => {
+        this.cancelandoId.set(null);
+        this.refrescar();
+      },
+      error: (err) => {
+        this.cancelandoId.set(null);
+        alert(err.error?.message || 'No se pudo cancelar la tarea');
+      }
+    });
+  }
+
+  abrirReasignar(tarea: AsignacionResumen): void {
+    if (!this.puedeGestionar(tarea)) return;
+    this.tareaAReasignar.set(tarea);
+    this.nuevoOperarioReasignarId = 0;
+    this.reasignarError.set('');
+    // Asegurar que tenemos la lista de operarios del CTA cargada
+    const cta = this.ctaSeleccionado();
+    if (cta && this.operarios().length === 0) {
+      this.cargarOperarios(cta.ctaId);
+    }
+    this.showReasignarModal.set(true);
+  }
+
+  cerrarReasignar(): void {
+    this.showReasignarModal.set(false);
+    this.tareaAReasignar.set(null);
+    this.reasignarError.set('');
+  }
+
+  /** Lista de operarios CTA candidatos (excluye Supervisor y al operario actualmente asignado). */
+  get operariosReasignarCandidatos(): OperarioResumen[] {
+    const tarea = this.tareaAReasignar();
+    return this.operarios().filter(o =>
+      o.rol === 'OperarioCTA' &&
+      (!tarea || o.id !== tarea.operarioAsignadoId)
+    );
+  }
+
+  confirmarReasignar(): void {
+    const tarea = this.tareaAReasignar();
+    if (!tarea) return;
+    const nuevoId = +this.nuevoOperarioReasignarId;
+    if (!nuevoId) {
+      this.reasignarError.set('Selecciona un operario destino');
+      return;
+    }
+    this.reasignando.set(true);
+    this.reasignarError.set('');
+
+    this.intranetApi.reasignarTarea(tarea.id, nuevoId).subscribe({
+      next: () => {
+        this.reasignando.set(false);
+        this.showReasignarModal.set(false);
+        this.tareaAReasignar.set(null);
+        this.refrescar();
+      },
+      error: (err) => {
+        this.reasignando.set(false);
+        this.reasignarError.set(err.error?.message || 'No se pudo reasignar la tarea');
+      }
+    });
   }
 }

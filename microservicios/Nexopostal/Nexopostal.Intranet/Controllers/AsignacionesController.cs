@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Intranet.DTOs;
 using Nexopostal.Intranet.Models;
+using Nexopostal.Intranet.Repositories;
 using Nexopostal.Intranet.Services;
 using System.Security.Claims;
 
@@ -25,11 +26,16 @@ public class AsignacionesController : ControllerBase
 {
     private readonly IAsignacionService _asignacionService;
     private readonly IOperarioService _operarioService;
+    private readonly IOperarioOficinaRepository _operarioOficinaRepo;
 
-    public AsignacionesController(IAsignacionService asignacionService, IOperarioService operarioService)
+    public AsignacionesController(
+        IAsignacionService asignacionService,
+        IOperarioService operarioService,
+        IOperarioOficinaRepository operarioOficinaRepo)
     {
         _asignacionService = asignacionService;
         _operarioService = operarioService;
+        _operarioOficinaRepo = operarioOficinaRepo;
     }
 
     /// <summary>
@@ -68,11 +74,22 @@ public class AsignacionesController : ControllerBase
     [ProducesResponseType(typeof(List<AsignacionResumenDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<AsignacionResumenDto>>> ObtenerMisPendientes()
     {
-        var operario = await ObtenerOperarioActual();
-        if (operario == null) return Ok(new List<AsignacionResumenDto>());
+        // Bifurcar por el rol del JWT primero. Un mismo IdentityUserId puede
+        // tener fila histórica en OperariosCta y otra activa en OperariosOficina;
+        // priorizar oficina cuando el rol del token lo indica evita falsos vacíos.
+        if (EsRolOficina())
+        {
+            var operarioOficina = await ObtenerOperarioOficinaActual();
+            if (operarioOficina != null)
+                return Ok(await _asignacionService.ObtenerTareasPendientesOficina(operarioOficina.Id));
+            return Ok(new List<AsignacionResumenDto>());
+        }
 
-        var tareas = await _asignacionService.ObtenerTareasPendientes(operario.Id);
-        return Ok(tareas);
+        var operario = await ObtenerOperarioActual();
+        if (operario != null)
+            return Ok(await _asignacionService.ObtenerTareasPendientes(operario.Id));
+
+        return Ok(new List<AsignacionResumenDto>());
     }
 
     /// <summary>
@@ -82,11 +99,43 @@ public class AsignacionesController : ControllerBase
     [ProducesResponseType(typeof(List<AsignacionResumenDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<AsignacionResumenDto>>> ObtenerMisEnProgreso()
     {
-        var operario = await ObtenerOperarioActual();
-        if (operario == null) return Ok(new List<AsignacionResumenDto>());
+        if (EsRolOficina())
+        {
+            var operarioOficina = await ObtenerOperarioOficinaActual();
+            if (operarioOficina != null)
+                return Ok(await _asignacionService.ObtenerTareasEnProgresoOficina(operarioOficina.Id));
+            return Ok(new List<AsignacionResumenDto>());
+        }
 
-        var tareas = await _asignacionService.ObtenerTareasEnProgreso(operario.Id);
-        return Ok(tareas);
+        var operario = await ObtenerOperarioActual();
+        if (operario != null)
+            return Ok(await _asignacionService.ObtenerTareasEnProgreso(operario.Id));
+
+        return Ok(new List<AsignacionResumenDto>());
+    }
+
+    /// <summary>
+    /// Obtiene las últimas tareas completadas del operario autenticado.
+    /// Útil para mostrar el historial reciente al lado de las pendientes
+    /// (en lugar de hacerlas desaparecer al completar).
+    /// </summary>
+    [HttpGet("mis-completadas")]
+    [ProducesResponseType(typeof(List<AsignacionResumenDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<AsignacionResumenDto>>> ObtenerMisCompletadas([FromQuery] int max = 50)
+    {
+        if (EsRolOficina())
+        {
+            var operarioOficina = await ObtenerOperarioOficinaActual();
+            if (operarioOficina != null)
+                return Ok(await _asignacionService.ObtenerTareasCompletadasOficina(operarioOficina.Id, max));
+            return Ok(new List<AsignacionResumenDto>());
+        }
+
+        var operario = await ObtenerOperarioActual();
+        if (operario != null)
+            return Ok(await _asignacionService.ObtenerTareasCompletadas(operario.Id, max));
+
+        return Ok(new List<AsignacionResumenDto>());
     }
 
     /// <summary>
@@ -102,12 +151,27 @@ public class AsignacionesController : ControllerBase
         if (string.IsNullOrWhiteSpace(codigo))
             return BadRequest(new { message = "Código requerido" });
 
-        var operario = await ObtenerOperarioActual();
-        if (operario == null) return Forbid();
+        if (EsRolOficina())
+        {
+            var operarioOficina = await ObtenerOperarioOficinaActual();
+            if (operarioOficina != null)
+            {
+                var resultado = await _asignacionService.BuscarEnMisTareasOficinaAsync(operarioOficina.Id, codigo);
+                if (resultado == null) return NotFound(new { message = "Paquete fuera de tus tareas" });
+                return Ok(resultado);
+            }
+            return Forbid();
+        }
 
-        var resultado = await _asignacionService.BuscarEnMisTareasAsync(operario.Id, codigo);
-        if (resultado == null) return NotFound(new { message = "Paquete fuera de tus tareas" });
-        return Ok(resultado);
+        var operario = await ObtenerOperarioActual();
+        if (operario != null)
+        {
+            var resultado = await _asignacionService.BuscarEnMisTareasAsync(operario.Id, codigo);
+            if (resultado == null) return NotFound(new { message = "Paquete fuera de tus tareas" });
+            return Ok(resultado);
+        }
+
+        return Forbid();
     }
 
     /// <summary>
@@ -214,6 +278,36 @@ public class AsignacionesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Reasigna una tarea (Pendiente o EnProgreso) a otro OperarioCTA del mismo CTA.
+    /// El estado se restablece a Pendiente para que el nuevo operario inicie de cero.
+    /// </summary>
+    [HttpPut("{id:int}/reasignar")]
+    [Authorize(Roles = "Admin,Supervisor")]
+    [ProducesResponseType(typeof(AsignacionDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AsignacionDetalleDto>> Reasignar(int id, [FromBody] ReasignarTareaDto dto)
+    {
+        var operario = await ObtenerOperarioActual();
+        if (operario == null) return Forbid();
+
+        try
+        {
+            var resultado = await _asignacionService.ReasignarTarea(id, dto.NuevoOperarioId, operario.Id);
+            if (resultado == null) return NotFound(new { message = "Asignación no encontrada" });
+            return Ok(resultado);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     // === Helper privado ===
 
     private async Task<OperarioCta?> ObtenerOperarioActual()
@@ -222,4 +316,19 @@ public class AsignacionesController : ControllerBase
         if (string.IsNullOrEmpty(userId)) return null;
         return await _operarioService.ObtenerPorIdentityUserId(userId);
     }
+
+    private async Task<OperarioOficina?> ObtenerOperarioOficinaActual()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return null;
+        return await _operarioOficinaRepo.GetByIdentityUserIdAsync(userId);
+    }
+
+    /// <summary>
+    /// Determina si el usuario autenticado tiene rol de operario de oficina.
+    /// Se usa para bifurcar los endpoints "mis-*" antes de consultar las
+    /// tablas de operarios y evitar colisiones cuando un mismo IdentityUserId
+    /// aparece en ambas (caso de filas históricas/seed antiguas).
+    /// </summary>
+    private bool EsRolOficina() => User.IsInRole("OperarioOficina");
 }

@@ -1,0 +1,187 @@
+<div class="page-container">
+  <app-driver-navbar icon="badge" title="Mis repartidores" (backClick)="volver()">
+    <button class="nav-action-btn" (click)="cargar()" title="Refrescar">
+      <span class="material-symbols-outlined">refresh</span>
+    </button>
+  </app-driver-navbar>
+
+  @if (mensaje()) {
+    <div class="banner banner-ok">
+      <span class="material-symbols-outlined">check_circle</span>
+      {{ mensaje() }}
+    </div>
+  }
+  @if (error()) {
+    <div class="banner banner-error">
+      <span class="material-symbols-outlined">error</span>
+      {{ error() }}
+    </div>
+  }
+
+  <div class="toolbar">
+    <div class="toolbar-info">
+      <strong>{{ totalActivos() }}</strong> activos
+      <span class="muted">· {{ totalInactivos() }} inactivos</span>
+    </div>
+    <div class="toolbar-actions">
+      <input
+        type="search"
+        class="search-input"
+        placeholder="Buscar por nombre, código o teléfono…"
+        [ngModel]="busqueda()"
+        (ngModelChange)="busqueda.set($event)" />
+      <label class="toggle-inactivos">
+        <input
+          type="checkbox"
+          [checked]="incluirInactivos()"
+          (change)="toggleInactivos()" />
+        Mostrar inactivos
+      </label>
+    </div>
+  </div>
+
+  @if (cargando()) {
+    <div class="loading">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+      Cargando repartidores...
+    </div>
+  } @else if (filtrados().length === 0) {
+    <div class="empty">
+      <span class="material-symbols-outlined">person_off</span>
+      <div>No hay repartidores que coincidan con el filtro.</div>
+      <small>Las altas las realiza el administrador desde la intranet.</small>
+    </div>
+  } @else {
+    <div class="lista-grid">
+      @for (r of filtrados(); track r.id) {
+        <article class="repartidor-card" [class.inactivo]="!r.activo">
+          <header class="card-header">
+            <div class="card-title">
+              <div class="nombre">{{ r.nombreCompleto }}</div>
+              <div class="codigo">{{ r.codigoEmpleado }}</div>
+            </div>
+            <div class="chip-grupo">
+              @if (esJefe(r)) {
+                <span class="chip chip-warning">
+                  <span class="material-symbols-outlined">shield_person</span>
+                  Jefe
+                </span>
+              } @else {
+                <span class="chip chip-info">
+                  <span class="material-symbols-outlined">local_shipping</span>
+                  Repartidor
+                </span>
+              }
+              @if (!r.activo) {
+                <span class="chip chip-muted">Inactivo</span>
+              }
+            </div>
+          </header>
+
+          <div class="card-body">
+            <div class="info-row">
+              <span class="material-symbols-outlined">apartment</span>
+              <span>{{ r.oficinaNombre }}</span>
+            </div>
+            @if (r.telefono) {
+              <div class="info-row">
+                <span class="material-symbols-outlined">call</span>
+                <a href="tel:{{ r.telefono }}">{{ r.telefono }}</a>
+              </div>
+            }
+            <div class="info-row">
+              <span class="material-symbols-outlined">directions_car</span>
+              <span>
+                {{ r.tipoVehiculo }}
+                @if (r.matriculaVehiculo) { · <strong>{{ r.matriculaVehiculo }}</strong> }
+              </span>
+            </div>
+            <div class="info-row meta">
+              <span class="material-symbols-outlined">route</span>
+              <span>{{ r.rutasHoy }} ruta(s) hoy</span>
+            </div>
+          </div>
+
+          <footer class="card-actions">
+            <button class="btn btn-secondary" (click)="abrirEdicion(r)" [disabled]="procesando()">
+              <span class="material-symbols-outlined">edit</span>
+              Editar
+            </button>
+            @if (r.activo) {
+              <button class="btn btn-danger" (click)="desactivar(r)" [disabled]="procesando()">
+                <span class="material-symbols-outlined">person_off</span>
+                Desactivar
+              </button>
+            } @else {
+              <button class="btn btn-success" (click)="reactivar(r)" [disabled]="procesando()">
+                <span class="material-symbols-outlined">person_check</span>
+                Reactivar
+              </button>
+            }
+          </footer>
+        </article>
+      }
+    </div>
+  }
+
+  @if (mostrarModal() && enEdicion(); as edit) {
+    <div class="modal-backdrop" (click)="cerrarModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h3>Editar repartidor</h3>
+        <p class="modal-sub">{{ edit.codigoEmpleado }} · oficina fijada a la tuya</p>
+
+        <label>
+          Nombre completo
+          <input
+            type="text"
+            [ngModel]="form().nombreCompleto"
+            (ngModelChange)="actualizarCampo('nombreCompleto', $event)" />
+        </label>
+
+        <label>
+          Teléfono
+          <input
+            type="tel"
+            [ngModel]="form().telefono"
+            (ngModelChange)="actualizarCampo('telefono', $event)" />
+        </label>
+
+        <label>
+          Tipo de vehículo
+          <select
+            [ngModel]="form().tipoVehiculo"
+            (ngModelChange)="actualizarCampo('tipoVehiculo', $event)">
+            <option value="Furgoneta">Furgoneta</option>
+            <option value="Moto">Moto</option>
+            <option value="Coche">Coche</option>
+            <option value="Bicicleta">Bicicleta</option>
+            <option value="A pie">A pie</option>
+          </select>
+        </label>
+
+        <label>
+          Matrícula
+          <input
+            type="text"
+            [ngModel]="form().matriculaVehiculo"
+            (ngModelChange)="actualizarCampo('matriculaVehiculo', $event)" />
+        </label>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="cerrarModal()" [disabled]="procesando()">
+            Cancelar
+          </button>
+          <button class="btn btn-primary" (click)="guardarEdicion()" [disabled]="procesando()">
+            @if (procesando()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Guardando...
+            } @else {
+              <span class="material-symbols-outlined">save</span>
+              Guardar
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

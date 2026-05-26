@@ -1,36 +1,12 @@
 <div class="ruta-page">
-  <nav class="ruta-nav">
-    <div class="nav-left">
-      <button class="icon-btn" (click)="volverDashboard()">
-        <span class="material-symbols-outlined">arrow_back</span>
-      </button>
-      <span class="material-symbols-outlined brand-icon">route</span>
-      <div>
-        <h1>Ruta de reparto</h1>
-        <p class="sub">{{ userName }} · {{ userRole }}</p>
-      </div>
-    </div>
-
-    <div class="nav-right">
-      <span class="badge" [class.badge-offline]="!online()">
-        {{ online() ? 'Online' : 'Offline' }}
-      </span>
-      @if (gpsActivo()) {
-        <span class="badge badge-gps">GPS activo</span>
-      }
-      @if (gpsActivo() && seguimientoSegundoPlano()) {
-        <span class="badge badge-background">Tracking 2º plano</span>
-      }
-      @if (pendientesCola() > 0) {
-        <button class="badge badge-queue" (click)="sincronizarPendientes()">
-          {{ pendientesCola() }} pendientes
-        </button>
-      }
-      <button class="icon-btn" (click)="logout()">
-        <span class="material-symbols-outlined">logout</span>
-      </button>
-    </div>
-  </nav>
+  <app-driver-navbar icon="route" title="Ruta de reparto" (backClick)="volverDashboard()">
+    <span class="badge" [class.badge-offline]="!online()">{{ online() ? 'Online' : 'Offline' }}</span>
+    @if (gpsActivo()) { <span class="badge badge-gps">GPS activo</span> }
+    @if (gpsActivo() && seguimientoSegundoPlano()) { <span class="badge badge-background">Tracking 2º plano</span> }
+    @if (pendientesCola() > 0) {
+      <button class="badge badge-queue" (click)="sincronizarPendientes()">{{ pendientesCola() }} pendientes</button>
+    }
+  </app-driver-navbar>
 
   <main class="ruta-main">
     @if (error()) {

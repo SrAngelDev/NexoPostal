@@ -2,7 +2,8 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AdminService, RepartidorAdminDto, EditarRepartidorDto, OficinaJsonResumen } from '../../services/admin.service';
+import { AdminService, RepartidorAdminDto, EditarRepartidorDto, CrearRepartidorDto, OficinaJsonResumen, UsuarioAdminDto } from '../../services/admin.service';
+import { forkJoin } from 'rxjs';
 
 const TIPOS_VEHICULO = ['Bicicleta', 'Moto', 'Furgoneta', 'Camion'];
 
@@ -36,6 +37,24 @@ export class GestionRepartidoresComponent implements OnInit {
   edicionError    = signal<string | null>(null);
   formEdicion     = signal<EditarRepartidorDto>({
     nombreCompleto: '',
+    telefono: '',
+    oficinaJsonId: 0,
+    oficinaNombre: '',
+    tipoVehiculo: 'Furgoneta',
+    matriculaVehiculo: ''
+  });
+
+  // Creación (alta de Repartidor/JefeReparto a partir de IdentityUser existente)
+  mostrarModalCrear  = signal(false);
+  cargandoHuerfanos  = signal(false);
+  usuariosHuerfanos  = signal<UsuarioAdminDto[]>([]);
+  savingCreacion     = signal(false);
+  creacionError      = signal<string | null>(null);
+  formCrear          = signal<CrearRepartidorDto>({
+    identityUserId: '',
+    nombreCompleto: '',
+    codigoEmpleado: '',
+    rol: 'Repartidor',
     telefono: '',
     oficinaJsonId: 0,
     oficinaNombre: '',
@@ -198,6 +217,126 @@ export class GestionRepartidoresComponent implements OnInit {
       error: (err) => {
         const msg = err.error?.message ?? 'Error al reactivar.';
         this.actionError.set(msg);
+      }
+    });
+  }
+
+  // ─── Creación (alta operativa de un IdentityUser JefeReparto/Repartidor huérfano) ───
+
+  abrirCrear(): void {
+    this.creacionError.set(null);
+    this.formCrear.set({
+      identityUserId: '',
+      nombreCompleto: '',
+      codigoEmpleado: '',
+      rol: 'Repartidor',
+      telefono: '',
+      oficinaJsonId: 0,
+      oficinaNombre: '',
+      tipoVehiculo: 'Furgoneta',
+      matriculaVehiculo: ''
+    });
+    this.mostrarModalCrear.set(true);
+    this.cargarHuerfanos();
+  }
+
+  cerrarCrear(): void {
+    this.mostrarModalCrear.set(false);
+    this.creacionError.set(null);
+  }
+
+  private cargarHuerfanos(): void {
+    this.cargandoHuerfanos.set(true);
+    forkJoin({
+      jefes:        this.adminService.listarUsuarios('JefeReparto'),
+      repartidores: this.adminService.listarUsuarios('Repartidor'),
+      existentes:   this.adminService.listarRepartidores(undefined, true)
+    }).subscribe({
+      next: ({ jefes, repartidores, existentes }) => {
+        // El DTO actual de repartidor no incluye identityUserId; usamos codigoEmpleado como llave.
+        const codigosUsados = new Set(existentes.map(r => r.codigoEmpleado).filter(Boolean));
+        const todos = [...jefes, ...repartidores]
+          .filter(u => !u.eliminado && !u.bloqueado)
+          .filter(u => !u.codigoEmpleado || !codigosUsados.has(u.codigoEmpleado));
+        this.usuariosHuerfanos.set(todos);
+        this.cargandoHuerfanos.set(false);
+      },
+      error: () => {
+        this.usuariosHuerfanos.set([]);
+        this.cargandoHuerfanos.set(false);
+        this.creacionError.set('No se pudo cargar la lista de usuarios sin perfil operativo.');
+      }
+    });
+  }
+
+  seleccionarUsuarioHuerfano(userId: string): void {
+    const u = this.usuariosHuerfanos().find(x => x.id === userId);
+    if (!u) {
+      this.formCrear.update(f => ({ ...f, identityUserId: '', nombreCompleto: '', codigoEmpleado: '', telefono: '' }));
+      return;
+    }
+    const rolDerivado = u.rol === 'JefeReparto' ? 'JefeReparto' : 'Repartidor';
+    this.formCrear.update(f => ({
+      ...f,
+      identityUserId: u.id,
+      nombreCompleto: u.nombreCompleto,
+      codigoEmpleado: u.codigoEmpleado ?? '',
+      rol: rolDerivado,
+      telefono: u.phoneNumber ?? ''
+    }));
+  }
+
+  cambiarOficinaCrear(oficinaJsonId: number | string | null): void {
+    const id = oficinaJsonId == null ? 0 : Number(oficinaJsonId);
+    const oficina = this.oficinas().find(o => o.id === id);
+    this.formCrear.update(f => ({
+      ...f,
+      oficinaJsonId: id,
+      oficinaNombre: oficina?.nombre ?? ''
+    }));
+  }
+
+  actualizarFormCrear<K extends keyof CrearRepartidorDto>(campo: K, valor: CrearRepartidorDto[K]): void {
+    this.formCrear.update(f => ({ ...f, [campo]: valor }));
+  }
+
+  guardarCrear(): void {
+    const dto = this.formCrear();
+
+    if (!dto.identityUserId) {
+      this.creacionError.set('Selecciona un usuario de la lista.');
+      return;
+    }
+    if (!dto.nombreCompleto.trim()) {
+      this.creacionError.set('El nombre es obligatorio.');
+      return;
+    }
+    if (!dto.codigoEmpleado.trim()) {
+      this.creacionError.set('El código de empleado es obligatorio.');
+      return;
+    }
+    if (!dto.oficinaJsonId || dto.oficinaJsonId <= 0) {
+      this.creacionError.set('Selecciona una oficina.');
+      return;
+    }
+
+    this.savingCreacion.set(true);
+    this.creacionError.set(null);
+
+    this.adminService.crearRepartidor({
+      ...dto,
+      telefono: dto.telefono?.trim() || undefined,
+      matriculaVehiculo: dto.matriculaVehiculo?.trim() || undefined
+    }).subscribe({
+      next: (nuevo) => {
+        this.repartidores.update(list => [nuevo, ...list]);
+        this.savingCreacion.set(false);
+        this.mostrarModalCrear.set(false);
+      },
+      error: (err) => {
+        const msg = err.error?.message ?? 'Error al crear el repartidor.';
+        this.creacionError.set(msg);
+        this.savingCreacion.set(false);
       }
     });
   }

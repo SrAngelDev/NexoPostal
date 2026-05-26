@@ -1,22 +1,6 @@
 <div class="page">
   <!-- ===== NAVBAR ===== -->
-  <nav class="navbar">
-    <div class="nav-brand">
-      <button class="nav-back" (click)="volverDashboard()">
-        <span class="material-symbols-outlined">arrow_back</span>
-      </button>
-      <span class="material-symbols-outlined nav-icon">local_shipping</span>
-      <h1 class="nav-title">Seguimiento Interno</h1>
-    </div>
-    <div class="nav-actions">
-      <span class="nav-user">{{ userName }}</span>
-      <span class="nav-role">{{ userRole }}</span>
-      <button (click)="logout()" class="nav-logout">
-        <span class="material-symbols-outlined">logout</span>
-        Salir
-      </button>
-    </div>
-  </nav>
+  <app-intranet-navbar icon="local_shipping" title="Seguimiento Interno" />
 
   <main class="main-content">
     <!-- ===== TABS ===== -->
@@ -67,6 +51,12 @@
                 </button>
               }
             </div>
+            <button class="btn-scan-camera"
+                    (click)="toggleScanner()"
+                    [class.btn-scan-active]="mostrarScanner()"
+                    title="{{ mostrarScanner() ? 'Cerrar escáner' : 'Escanear con cámara' }}">
+              <span class="material-symbols-outlined">{{ mostrarScanner() ? 'close' : 'qr_code_scanner' }}</span>
+            </button>
             <button class="btn-search" (click)="buscar()" [disabled]="searchLoading()">
               @if (searchLoading()) {
                 <span class="spinner"></span>
@@ -76,6 +66,21 @@
               Buscar
             </button>
           </div>
+
+          <!-- ===== ESCÁNER DE CÁMARA ===== -->
+          @if (mostrarScanner()) {
+            <div class="scanner-panel animate-in">
+              <div class="scanner-hint">
+                <span class="material-symbols-outlined">photo_camera</span>
+                Apunta la cámara al código de barras del paquete
+              </div>
+              <app-barcode-scanner
+                [alturaScanner]="240"
+                [continuoMode]="false"
+                (codigoDetectado)="onCodigoEscaneado($event)">
+              </app-barcode-scanner>
+            </div>
+          }
 
           @if (searchError()) {
             <div class="alert alert-error">

@@ -1,17 +1,18 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { SignalrService } from '../../services/signalr.service';
+import { IntranetNavbarComponent } from '../../components/intranet-navbar/intranet-navbar.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, IntranetNavbarComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnInit {
   userName = '';
   userRole = '';
   userRoleLabel = '';
@@ -44,7 +45,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.signalrService.conectar();
     if (this.isAdmin) {
       this.router.navigate(['/admin']);
       return;
@@ -61,12 +61,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnDestroy(): void {
-    this.signalrService.desconectar();
+  toggleNotificaciones(): void {
+    const abrir = !this.showNotificaciones();
+    this.showNotificaciones.set(abrir);
+    // Al abrir el panel, todas las notificaciones se consideran leídas.
+    if (abrir) this.signalrService.marcarComoLeidas();
   }
 
-  toggleNotificaciones(): void {
-    this.showNotificaciones.update(v => !v);
+  limpiarNotificaciones(): void {
+    this.signalrService.limpiarNotificaciones();
   }
 
   navigateTo(path: string): void {

@@ -1,23 +1,17 @@
 <div class="page-container">
-  <nav class="page-nav">
-    <div class="nav-brand">
-      <span class="material-symbols-outlined">supervisor_account</span>
-      <h2 class="page-title">Panel del Jefe de Reparto</h2>
-    </div>
-    <div class="nav-actions">
-      <span class="nav-user">{{ userName }}</span>
-      <app-notification-bell />
-      <button class="btn-refresh" (click)="cargarDashboard()" title="Refrescar">
-        <span class="material-symbols-outlined">refresh</span>
-      </button>
-      <button class="btn-logout" (click)="logout()" title="Cerrar sesión">
-        <span class="material-symbols-outlined">logout</span>
-      </button>
-    </div>
-  </nav>
+  <app-driver-navbar [showBack]="false" icon="supervisor_account" title="Panel del Jefe de Reparto">
+    <button class="nav-action-btn" (click)="cargarDashboard()" title="Refrescar">
+      <span class="material-symbols-outlined">refresh</span>
+    </button>
+  </app-driver-navbar>
 
   <!-- Accesos rápidos a las herramientas del jefe -->
   <div class="quick-actions">
+    <button class="quick-card quick-purple" (click)="ir('/bandeja-jefe')">
+      <span class="material-symbols-outlined">inbox</span>
+      <div class="quick-title">Bandeja de paquetes</div>
+      <div class="quick-desc">Paquetes disponibles para asignar a una ruta</div>
+    </button>
     <button class="quick-card quick-blue" (click)="ir('/gestion-rutas')">
       <span class="material-symbols-outlined">route</span>
       <div class="quick-title">Gestión de Rutas</div>
@@ -32,6 +26,11 @@
       <span class="material-symbols-outlined">swap_horiz</span>
       <div class="quick-title">Asignar paradas</div>
       <div class="quick-desc">Redistribuye paquetes entre repartidores</div>
+    </button>
+    <button class="quick-card quick-teal" (click)="ir('/mis-repartidores')">
+      <span class="material-symbols-outlined">badge</span>
+      <div class="quick-title">Mis repartidores</div>
+      <div class="quick-desc">Gestiona el equipo de tu oficina</div>
     </button>
   </div>
 

@@ -126,6 +126,9 @@ builder.Services.AddHttpClient<IRepartoOrquestacionService, RepartoOrquestacionS
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+// 4.0.a.bis Cliente para la bandeja del JefeReparto (DisponibleParaReparto -> bandeja).
+// El header X-Service-Key se añade más abajo, después de resolver interServiceKey.
+
 // 4.0.b Cliente inter-servicio hacia Ciudadano (lookup/alta de envíos + notificaciones de estado)
 var ciudadanoBaseUrl = ResolveConfigValue(builder.Configuration["CiudadanoSettings:BaseUrl"]);
 if (string.IsNullOrWhiteSpace(ciudadanoBaseUrl) || ciudadanoBaseUrl.Contains("${"))
@@ -160,14 +163,18 @@ builder.Services.AddHttpClient<ICiudadanoEnvioAltaService, CiudadanoEnvioAltaSer
     client.DefaultRequestHeaders.Add("X-Service-Key", interServiceKey);
 });
 
+builder.Services.AddHttpClient<IRepartoBandejaService, RepartoBandejaService>(client =>
+{
+    client.BaseAddress = new Uri(repartoBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Add("X-Service-Key", interServiceKey);
+});
+
 // 4.1 Servicios de automatización
 builder.Services.AddScoped<IClasificacionAutomaticaService, ClasificacionAutomaticaService>();
 builder.Services.AddScoped<INotificacionAutomaticaService, NotificacionAutomaticaService>();
 builder.Services.AddScoped<IGestionIncidenciasAutomaticaService, GestionIncidenciasAutomaticaService>();
 builder.Services.AddScoped<IInformesAutomaticosService, InformesAutomaticosService>();
-
-// 3.1b. Servicio de simulación de transporte (background)
-builder.Services.AddHostedService<SimulacionTransporteService>();
 
 // Background Services
 builder.Services.AddHostedService<MonitorizacionSaludService>();

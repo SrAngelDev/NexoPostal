@@ -4,11 +4,12 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { AdminService, DashboardAdminDto, DashboardCtaDto } from '../../services/admin.service';
 import { SignalrService } from '../../services/signalr.service';
+import { IntranetNavbarComponent } from '../../components/intranet-navbar/intranet-navbar.component';
 
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, IntranetNavbarComponent],
   templateUrl: './admin-panel.component.html',
   styleUrl: './admin-panel.component.css'
 })
