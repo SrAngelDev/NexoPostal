@@ -5,12 +5,11 @@ using Nexopostal.Shared.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+
 using Nexopostal.Ciudadano.Data;
 using Nexopostal.Ciudadano.Repositories;
 using Nexopostal.Ciudadano.Services;
 using System.Text;
-using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -131,58 +130,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
 
-// 5. Configurar OpenAPI/Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    // A. Metadatos del Proyecto
-    c.SwaggerDoc("v1", new OpenApiInfo
-    { 
-        Title = "NexoPostal - Módulo Ciudadano",
-        Version = "v1",
-        Description = "API de Front-Office para NexoPostal: Admisión de Envíos, Cálculo de Tarifas y Trazabilidad.",
-        Contact = new OpenApiContact
-        {
-            Name = "Ángel Sánchez Gasanz",
-            Email = "estudiante@iesluisvives.org"
-        }
-    });
-
-    // B. Definición de Seguridad (Botón "Authorize" con el candado)
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Introduce el token JWT obtenido en el login. Ejemplo: Bearer eyJhbGciOiJIUz..."
-    });
-
-    // C. Requisito de Seguridad (Aplica el candado a los endpoints)
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-
-    // D. Inclusión de comentarios XML (Documentación de código)
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
-});
+// 5. Configurar OpenAPI nativo de ASP.NET Core
+builder.Services.AddOpenApi();
 
 // 6. Configurar CORS (para desarrollo)
 builder.Services.AddCors(options =>
@@ -208,15 +157,10 @@ var app = builder.Build();
 
 // ===== CONFIGURACIÓN DEL PIPELINE HTTP =====
 
-// 1. Swagger UI
+// 1. OpenAPI
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "NexoPostal Ciudadano API v1");
-        c.RoutePrefix = string.Empty;
-    });
+    app.MapOpenApi();
 }
 
 // 2. HTTPS Redirection
@@ -238,8 +182,6 @@ app.MapControllers();
 // 6. Mapear el Hub de SignalR para tracking en tiempo real de envíos
 app.MapHub<TrackingHub>("/hubs/tracking");
 
-// ===== INICIALIZACIÓN DE BASE DE DATOS =====
-
 // Aplicar migraciones automáticamente (incluye producción)
 using (var scope = app.Services.CreateScope())
 {
@@ -247,12 +189,20 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        await dbContext.Database.MigrateAsync();
-        app.Logger.LogInformation("Migraciones aplicadas correctamente");
+        if (dbContext.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            await dbContext.Database.MigrateAsync();
+            app.Logger.LogInformation("Migraciones aplicadas correctamente");
+        }
+        else
+        {
+            await dbContext.Database.EnsureCreatedAsync();
+            app.Logger.LogInformation("Base de datos en memoria inicializada correctamente");
+        }
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Error al aplicar migraciones de base de datos");
+        app.Logger.LogError(ex, "Error al inicializar la base de datos");
     }
 }
 
@@ -274,3 +224,8 @@ if (passwordIndex >= 0)
 app.Logger.LogInformation("Base de datos: {ConnectionString}", logConnectionString);
 
 app.Run();
+
+namespace Nexopostal.Ciudadano
+{
+    public partial class Program { }
+}

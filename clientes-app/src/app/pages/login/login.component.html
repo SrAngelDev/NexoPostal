@@ -19,7 +19,7 @@
       <!-- Form -->
       <form (ngSubmit)="onSubmit()" class="modal-body">
         @if (errorMessage()) {
-          <div class="error-message">
+          <div class="error-message" data-testid="error-message">
             <span class="material-symbols-outlined text-red-500">error</span>
             <span class="text-sm">{{ errorMessage() }}</span>
           </div>
@@ -30,8 +30,10 @@
           <label for="email" class="form-label">Correo Electrónico</label>
           <div class="input-wrapper">
             <span class="material-symbols-outlined input-icon">mail</span>
-            <input type="email" id="email" [ngModel]="email()" (ngModelChange)="email.set($event)"
-              name="email" placeholder="tu@email.com" class="form-input" required />
+            <input type="email" id="email" data-testid="email-input"
+                   [ngModel]="email()" (ngModelChange)="email.set($event)"
+                   name="email" placeholder="tu@email.com"
+                   class="form-input" required autocomplete="email" />
           </div>
         </div>
 
@@ -40,8 +42,10 @@
           <label for="password" class="form-label">Contraseña</label>
           <div class="input-wrapper">
             <span class="material-symbols-outlined input-icon">lock</span>
-            <input type="password" id="password" [ngModel]="password()" (ngModelChange)="password.set($event)"
-              name="password" placeholder="••••••••" class="form-input" required />
+            <input type="password" id="password" data-testid="password-input"
+                   [ngModel]="password()" (ngModelChange)="password.set($event)"
+                   name="password" placeholder="••••••••"
+                   class="form-input" required autocomplete="current-password" />
           </div>
         </div>
 
@@ -53,7 +57,7 @@
         </div>
 
         <!-- Submit -->
-        <button type="submit" [disabled]="isLoading()" class="submit-button">
+        <button type="submit" data-testid="submit-button" [disabled]="isLoading()" class="submit-button">
           @if (isLoading()) {
             <span class="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
             <span>Iniciando sesión...</span>

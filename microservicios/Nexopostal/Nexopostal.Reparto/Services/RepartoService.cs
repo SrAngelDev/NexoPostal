@@ -288,7 +288,8 @@ public class RepartoService : IRepartoService
         _logger.LogInformation("Ruta de reparto creada: {Codigo}", codigo);
 
         // Recargar con includes
-        var detalle = (await ObtenerRutaPorId(ruta.Id))!;
+        var detalle = await ObtenerRutaPorId(ruta.Id)
+            ?? throw new InvalidOperationException($"No se pudo recuperar la ruta recién creada con ID {ruta.Id}.");
 
         // Notificar al repartidor vía SignalR
         var repartidor = await _repartidorRepo.GetByIdAsync(dto.RepartidorId);
@@ -864,14 +865,14 @@ public class RepartoService : IRepartoService
             Codigo = r.Codigo,
             FechaReparto = r.FechaReparto.ToString("yyyy-MM-dd"),
             RepartidorId = r.RepartidorId,
-            RepartidorNombre = r.Repartidor.NombreCompleto,
+            RepartidorNombre = r.Repartidor?.NombreCompleto ?? string.Empty,
             OficinaOrigenJsonId = r.OficinaOrigenJsonId,
             OficinaOrigenNombre = r.OficinaOrigenNombre,
             Estado = r.Estado.ToString(),
             HoraSalida = r.HoraSalida,
             HoraRegreso = r.HoraRegreso,
             Observaciones = r.Observaciones,
-            Entregas = r.Entregas
+            Entregas = (r.Entregas ?? [])
                 .OrderBy(e => e.OrdenEnRuta)
                 .Select(e => new EntregaPaqueteDto
                 {

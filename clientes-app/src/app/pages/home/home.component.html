@@ -54,6 +54,7 @@
             <span class="material-symbols-outlined">search</span>
             <input
               type="text"
+              data-testid="tracking-input"
               [(ngModel)]="trackingCode"
               name="trackingCode"
               placeholder="Introduce tu código (Ej: NX55064591117ES)"
@@ -61,7 +62,7 @@
               autocomplete="off"
             />
           </div>
-          <button type="submit" class="btn btn-accent btn-lg hero-search-btn" [disabled]="isSearching()">
+          <button type="submit" data-testid="tracking-submit" class="btn btn-accent btn-lg hero-search-btn" [disabled]="isSearching()">
             <span>{{ isSearching() ? 'Buscando…' : 'Localizar' }}</span>
             @if (!isSearching()) {
               <span class="material-symbols-outlined">arrow_forward</span>
@@ -129,7 +130,7 @@
         }
 
         @if (trackingError()) {
-          <div class="tracking-alert fade-in">
+          <div class="tracking-alert fade-in" data-testid="tracking-error">
             <span class="material-symbols-outlined">error</span>
             <span>{{ trackingError() }}</span>
           </div>

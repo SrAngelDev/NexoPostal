@@ -1,13 +1,13 @@
-<div class="dashboard-page">
+<div class="dashboard-page" data-testid="driver-dashboard">
   <app-driver-navbar [showBack]="false" icon="local_shipping" title="NexoPostal — Repartidores" />
   <main class="dashboard-main">
-    <h2 class="dashboard-title">Panel de Reparto</h2>
+    <h2 class="dashboard-title" data-testid="dashboard-title">Panel de Reparto</h2>
     <p class="dashboard-subtitle">
       Bienvenido al sistema de gestión de repartos de NexoPostal.
     </p>
 
     <div class="dashboard-cards">
-      <button class="dashboard-card" (click)="navigateTo('/ruta')">
+      <button class="dashboard-card" data-testid="card-ruta" (click)="navigateTo('/ruta')">
         <div class="card-icon-wrapper card-icon-route">
           <span class="material-symbols-outlined">route</span>
         </div>
@@ -18,7 +18,7 @@
         <span class="material-symbols-outlined card-arrow">arrow_forward</span>
       </button>
 
-      <button class="dashboard-card" (click)="navigateTo('/escaneo')">
+      <button class="dashboard-card" data-testid="card-escaneo" (click)="navigateTo('/escaneo')">
         <div class="card-icon-wrapper card-icon-scan">
           <span class="material-symbols-outlined">qr_code_scanner</span>
         </div>

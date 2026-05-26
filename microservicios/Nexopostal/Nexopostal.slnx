@@ -6,4 +6,5 @@
   <Project Path="Nexopostal.Intranet/Nexopostal.Intranet.csproj" />
   <Project Path="Nexopostal.Reparto/Nexopostal.Reparto.csproj" />
   <Project Path="Nexopostal.Tests/Nexopostal.Tests.csproj" />
+  <Project Path="Nexopostal.Tests.E2E/Nexopostal.Tests.E2E.csproj" />
 </Solution>

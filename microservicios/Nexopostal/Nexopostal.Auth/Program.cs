@@ -27,7 +27,14 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-    await dbContext.Database.MigrateAsync();
+    if (dbContext.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+    else
+    {
+        await dbContext.Database.EnsureCreatedAsync();
+    }
     await SeedData.Initialize(scope.ServiceProvider);
 }
 
@@ -45,7 +52,10 @@ app.UseAuthorization();
 app.MapControllers();
 app.Run();
 
-/// <summary>
-/// Marca pública para que WebApplicationFactory&lt;Program&gt; pueda referenciar este host en los tests.
-/// </summary>
-public partial class Program { }
+namespace NexoPostal.Auth
+{
+    /// <summary>
+    /// Marca pública para que WebApplicationFactory&lt;Program&gt; pueda referenciar este host en los tests.
+    /// </summary>
+    public partial class Program { }
+}

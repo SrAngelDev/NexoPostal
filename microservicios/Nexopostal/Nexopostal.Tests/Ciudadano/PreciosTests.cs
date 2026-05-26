@@ -21,7 +21,7 @@ public class PreciosTests
             40m,
             40m,
             "28001",
-            "28080",
+            "08001", // Origen Madrid, Destino Barcelona -> Península
             "Estandar"));
 
         resultado.PesoFacturable.Should().Be(16m);
@@ -35,16 +35,16 @@ public class PreciosTests
 
         var resultado = service.Calcular(new TarifaCalculoInput(
             1m,
-            100m,
-            80m,
-            40m,
+            202m, // Lado mayor / suma dimensiones > 210
+            5m,
+            5m,
             "28001",
-            "28080",
+            "08001", // Origen Madrid, Destino Barcelona -> Península
             "Estandar"));
 
         resultado.AplicaRecargo.Should().BeTrue();
-        resultado.Recargo.Should().Be(2.08m);
-        resultado.PrecioTotal.Should().Be(8.03m);
+        resultado.Recargo.Should().Be(2.08m); // 35% de 5.95 (1kg band) = 2.08
+        resultado.PrecioTotal.Should().Be(9.72m); // Subtotal 8.03 + 21% IVA (1.69) = 9.72
     }
 
     [Fact]
@@ -61,7 +61,8 @@ public class PreciosTests
             "35000"));
 
         resultado.Zona.Should().Be("Canarias");
-        resultado.Tarifas[0].PrecioTotal.Should().Be(8.63m);
+        resultado.Tarifas[0].PrecioBase.Should().Be(8.63m); // 5.95 * 1.45 multiplier = 8.63
+        resultado.Tarifas[0].PrecioTotal.Should().Be(10.44m); // 8.63 + 21% IVA = 10.44
     }
 
     [Fact]

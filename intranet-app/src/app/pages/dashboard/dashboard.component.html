@@ -1,8 +1,8 @@
-<div class="dashboard-page">
+<div class="dashboard-page" data-testid="intranet-dashboard">
   <app-intranet-navbar [showBack]="false" icon="local_post_office" title="NexoPostal — Intranet" />
 
   <main class="dashboard-main">
-    <h2 class="dashboard-title">Panel de Gestión</h2>
+    <h2 class="dashboard-title" data-testid="dashboard-title">Panel de Gestión</h2>
     <p class="dashboard-subtitle">
       @if (isSupervisor) {
         Supervisa y gestiona todas las operaciones del centro.

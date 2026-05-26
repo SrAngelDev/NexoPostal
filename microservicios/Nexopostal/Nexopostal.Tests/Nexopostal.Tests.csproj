@@ -30,6 +30,7 @@
     <ProjectReference Include="..\Nexopostal.Intranet\Nexopostal.Intranet.csproj" />
     <ProjectReference Include="..\Nexopostal.Reparto\Nexopostal.Reparto.csproj" />
     <ProjectReference Include="..\Nexopostal.Auth\Nexopostal.Auth.csproj" />
+    <ProjectReference Include="..\Nexopostal.Gateway\Nexopostal.Gateway.csproj" />
   </ItemGroup>
 
 </Project>

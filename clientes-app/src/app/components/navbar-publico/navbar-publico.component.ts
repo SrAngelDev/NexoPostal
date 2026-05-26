@@ -95,8 +95,8 @@ export type NavbarActiveLink =
             } @else {
               <!-- Usuario anónimo (sólo escritorio) -->
               <div class="auth-buttons">
-                <button class="btn-link" type="button" (click)="onLoginClick()">Iniciar sesión</button>
-                <button class="btn-accent btn-sm" type="button" (click)="onRegisterClick()">Registrarse</button>
+                <button class="btn-link" type="button" data-testid="navbar-login-btn" (click)="onLoginClick()">Iniciar sesión</button>
+                <button class="btn-accent btn-sm" type="button" data-testid="navbar-register-btn" (click)="onRegisterClick()">Registrarse</button>
               </div>
             }
           }

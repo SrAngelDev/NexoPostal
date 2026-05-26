@@ -4,7 +4,7 @@ using Nexopostal.Shared.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+
 using Nexopostal.Intranet.Data;
 using Nexopostal.Intranet.Hubs;
 using Nexopostal.Intranet.Repositories;
@@ -195,54 +195,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
 
-// 5. Configurar OpenAPI/Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "NexoPostal - Módulo Intranet (Logística)",
-        Version = "v1",
-        Description = "API de Back-Office para NexoPostal: Gestión de CTAs, Operarios, Clasificación, Movimientos Troncales e Incidencias.",
-        Contact = new OpenApiContact
-        {
-            Name = "Ángel Sánchez Gasanz",
-            Email = "estudiante@iesluisvives.org"
-        }
-    });
-
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Introduce el token JWT obtenido en el login. Ejemplo: Bearer eyJhbGciOiJIUz..."
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
-});
+// 5. Configurar OpenAPI nativo de ASP.NET Core
+builder.Services.AddOpenApi();
 
 // 6. Configurar CORS
 builder.Services.AddCors(options =>
@@ -270,12 +224,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "NexoPostal Intranet API v1");
-        c.RoutePrefix = string.Empty;
-    });
+    app.MapOpenApi();
 }
 
 app.UseHttpsRedirection();
@@ -316,3 +265,6 @@ app.Logger.LogInformation("NexoPostal.Intranet API iniciada correctamente");
 app.Logger.LogInformation("Environment: {Env}", app.Environment.EnvironmentName);
 
 app.Run();
+
+// Expone la clase Program a Nexopostal.Tests (WebApplicationFactory)
+public partial class Program { }

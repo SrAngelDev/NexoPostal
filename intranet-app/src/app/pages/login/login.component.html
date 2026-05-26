@@ -56,7 +56,7 @@
       <form (ngSubmit)="onSubmit()" class="login-form">
         <!-- Error Message -->
         @if (errorMessage()) {
-          <div class="error-message">
+          <div class="error-message" data-testid="error-message">
             <span class="material-symbols-outlined">error</span>
             <span>{{ errorMessage() }}</span>
           </div>
@@ -70,6 +70,7 @@
             <input 
               type="email" 
               id="email"
+              data-testid="email-input"
               [(ngModel)]="email"
               name="email"
               placeholder="usuario@nexopostal.es"
@@ -88,6 +89,7 @@
             <input 
               [type]="showPassword() ? 'text' : 'password'"
               id="password"
+              data-testid="password-input"
               [(ngModel)]="password"
               name="password"
               placeholder="••••••••"
@@ -111,6 +113,7 @@
         <!-- Submit Button -->
         <button 
           type="submit"
+          data-testid="submit-button"
           [disabled]="isLoading()"
           class="submit-button"
         >
