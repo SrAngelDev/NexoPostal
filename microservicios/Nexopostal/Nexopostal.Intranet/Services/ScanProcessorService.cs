@@ -33,6 +33,7 @@ public class ScanProcessorService : IScanProcessorService
     private readonly IAsignacionPaqueteRepository _asignacionRepo;
     private readonly IOperarioCtaRepository _operarioRepo;
     private readonly IOperarioOficinaRepository _operarioOficinaRepo;
+    private readonly IOficinaPostalService _oficinaService;
     private readonly ILogger<ScanProcessorService> _logger;
 
     // Mapeo modo → descripción legible
@@ -75,6 +76,7 @@ public class ScanProcessorService : IScanProcessorService
         IAsignacionPaqueteRepository asignacionRepo,
         IOperarioCtaRepository operarioRepo,
         IOperarioOficinaRepository operarioOficinaRepo,
+        IOficinaPostalService oficinaService,
         ILogger<ScanProcessorService> logger)
     {
         _movimientoRepo = movimientoRepo;
@@ -88,6 +90,7 @@ public class ScanProcessorService : IScanProcessorService
         _asignacionRepo = asignacionRepo;
         _operarioRepo = operarioRepo;
         _operarioOficinaRepo = operarioOficinaRepo;
+        _oficinaService = oficinaService;
         _logger = logger;
     }
 
@@ -414,19 +417,34 @@ public class ScanProcessorService : IScanProcessorService
         var movimientoRecibido = await _movimientoRepo.GetRecibidoByExpedicionAndCtaDestinoAsync(expedicion, req.CtaId.Value);
         var esUltimaMilla = movimientoRecibido != null;
 
+        // Resolver TipoEntrega para bifurcar el flujo de última milla:
+        //   - Domicilio → DisponibleParaReparto + bandeja del JefeReparto
+        //   - Oficina   → EntregaCtaAOficinaDestino en la oficina destino (NO pasa por reparto)
+        var (esEntregaEnOficina, envioLookup) = esUltimaMilla
+            ? await ResolverTipoEntregaAsync(expedicion)
+            : (false, null);
+
         string estadoNuevo;
         string descripcion;
 
         if (esUltimaMilla)
         {
-            estadoNuevo = "AsignadoARuta";
-            descripcion = $"Paquete clasificado para última milla en {req.CtaCodigo} — listo para reparto";
+            if (esEntregaEnOficina)
+            {
+                estadoNuevo = "PreparadoParaOficinaDestino";
+                descripcion = $"Paquete clasificado en {req.CtaCodigo} — preparado para envío a la oficina destino";
+            }
+            else
+            {
+                estadoNuevo = "AsignadoARuta";
+                descripcion = $"Paquete clasificado para última milla en {req.CtaCodigo} — listo para reparto";
 
-            // Notificar al CTA que el paquete está disponible para reparto
-            await _notificacionService.NotificarGeneralCta(
-                req.CtaId.Value, req.CtaCodigo ?? "",
-                "📦 Paquete listo para reparto",
-                $"El paquete {expedicion} ha sido clasificado en {req.CtaCodigo} y está disponible para asignar a ruta de reparto.");
+                // Notificar al CTA que el paquete está disponible para reparto
+                await _notificacionService.NotificarGeneralCta(
+                    req.CtaId.Value, req.CtaCodigo ?? "",
+                    "📦 Paquete listo para reparto",
+                    $"El paquete {expedicion} ha sido clasificado en {req.CtaCodigo} y está disponible para asignar a ruta de reparto.");
+            }
         }
         else
         {
@@ -451,7 +469,9 @@ public class ScanProcessorService : IScanProcessorService
         await _ciudadanoNotifier.NotificarEstadoAsync(
             expedicion, expedicion, estadoNuevo,
             esUltimaMilla
-                ? $"Paquete listo para reparto en {req.CtaCodigo}"
+                ? (esEntregaEnOficina
+                    ? $"Paquete preparado en {req.CtaCodigo} para entrega en oficina destino"
+                    : $"Paquete listo para reparto en {req.CtaCodigo}")
                 : $"Clasificado para expedición en {req.CtaCodigo}");
 
         var result = Exito(req, expedicion, estadoNuevo, descripcion, req.CtaCodigo);
@@ -462,12 +482,42 @@ public class ScanProcessorService : IScanProcessorService
 
         if (esUltimaMilla)
         {
-            // CTA destino → generar tarea DisponibleParaReparto para cerrar el ciclo CTA
-            var siguiente = await AutoAsignarTareaEnCtaAsync(
-                TipoTarea.DisponibleParaReparto,
-                expedicion, req.CtaId.Value, req.CtaCodigo ?? "", req.EsUrgente,
-                "Listo para marcar como disponible para reparto");
-            result.Detalles = string.IsNullOrEmpty(result.Detalles) ? siguiente.Message : $"{result.Detalles}. {siguiente.Message}";
+            if (esEntregaEnOficina)
+            {
+                // CTA destino → envío de oficina: NO pasa por reparto.
+                // Crear tarea EntregaCtaAOficinaDestino en la oficina destino para
+                // que el OperarioOficina la reciba físicamente.
+                var oficinaDestinoId = envioLookup?.OficinaDestinoId;
+                if (oficinaDestinoId is int oficId)
+                {
+                    var oficina = _oficinaService.ObtenerPorId(oficId);
+                    var siguiente = await AutoAsignarTareaEnOficinaAsync(
+                        TipoTarea.EntregaCtaAOficinaDestino,
+                        expedicion, oficId, oficina?.Nombre, req.EsUrgente,
+                        $"Paquete clasificado en {req.CtaCodigo}; pendiente de recepción en oficina destino");
+                    result.Detalles = string.IsNullOrEmpty(result.Detalles)
+                        ? siguiente.Message
+                        : $"{result.Detalles}. {siguiente.Message}";
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "{Expedicion} es entrega en oficina pero no se pudo resolver OficinaDestinoId desde Ciudadano; no se crea la tarea de oficina destino.",
+                        expedicion);
+                    result.Detalles = string.IsNullOrEmpty(result.Detalles)
+                        ? "Envío de oficina sin oficina destino resuelta."
+                        : $"{result.Detalles}. Envío de oficina sin oficina destino resuelta.";
+                }
+            }
+            else
+            {
+                // CTA destino → generar tarea DisponibleParaReparto para cerrar el ciclo CTA
+                var siguiente = await AutoAsignarTareaEnCtaAsync(
+                    TipoTarea.DisponibleParaReparto,
+                    expedicion, req.CtaId.Value, req.CtaCodigo ?? "", req.EsUrgente,
+                    "Listo para marcar como disponible para reparto");
+                result.Detalles = string.IsNullOrEmpty(result.Detalles) ? siguiente.Message : $"{result.Detalles}. {siguiente.Message}";
+            }
         }
         else
         {
@@ -636,6 +686,17 @@ public class ScanProcessorService : IScanProcessorService
     {
         if (!req.CtaId.HasValue)
             return Error(req, "Se requiere el CTA para marcar el paquete como disponible para reparto");
+
+        // Defensa en profundidad: los envíos con entrega en oficina nunca deben pasar
+        // por el flujo de reparto. Si llegan aquí, rechazar el escaneo y dirigir al
+        // operario al flujo correcto (EntregaOficinaDestino en la oficina destino).
+        var (esEntregaEnOficina, _) = await ResolverTipoEntregaAsync(expedicion);
+        if (esEntregaEnOficina)
+        {
+            return Error(req,
+                "Este envío es de entrega en oficina y no debe liberarse a reparto. " +
+                "Debe entregarse directamente a la oficina destino para recogida del destinatario.");
+        }
 
         await RegistrarHistorial(expedicion, new CrearHistorialEventoDto
         {
