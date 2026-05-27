@@ -11,7 +11,7 @@ import { NotificacionService, Notificacion } from '../../services/notificacion.s
     <div class="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none max-w-md w-full">
       @for (n of notificacionService.notificaciones(); track n.id) {
         <div 
-          class="pointer-events-auto rounded-xl shadow-2xl border-l-4 backdrop-blur-sm animate-slide-in"
+          class="notif-card pointer-events-auto rounded-xl shadow-2xl border-l-4 animate-slide-in"
           [ngClass]="getClases(n)"
           role="alert"
         >
@@ -81,6 +81,13 @@ import { NotificacionService, Notificacion } from '../../services/notificacion.s
 
     .animate-slide-in {
       animation: slide-in 0.3s ease-out;
+    }
+    /* Cada tarjeta de notificaci\u00f3n aislada como capa propia para que la barra de
+       progreso (animaci\u00f3n de width) no obligue a repintar fuera del aviso. */
+    .notif-card {
+      contain: layout paint style;
+      transform: translateZ(0);
+      will-change: transform, opacity;
     }
   `]
 })

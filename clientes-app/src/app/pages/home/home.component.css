@@ -17,9 +17,11 @@
   transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 .home.scrolled .home-nav {
-  background: color-mix(in srgb, var(--brand-primary-strong) 80%, transparent);
-  backdrop-filter: saturate(150%) blur(14px);
-  -webkit-backdrop-filter: saturate(150%) blur(14px);
+  background: color-mix(in srgb, var(--brand-primary-strong) 92%, transparent);
+  /* Blur reducido: 14px en navbar fixed obliga al navegador a repintar la franja superior
+     en cada scroll/animaci\u00f3n del modal subyacente. 6px conserva el efecto visual a coste asequible. */
+  backdrop-filter: saturate(140%) blur(6px);
+  -webkit-backdrop-filter: saturate(140%) blur(6px);
   box-shadow: 0 8px 24px -16px rgba(0,0,0,0.55);
 }
 .home-nav-inner {

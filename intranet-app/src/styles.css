@@ -625,14 +625,18 @@ html, body {
 /* Modal */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(15,23,42,0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(15,23,42,0.6);
+  /* Blur ligero + capa GPU propia + contain para evitar repintar todo el viewport en cada interacción */
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
   z-index: 100;
+  will-change: opacity;
+  transform: translateZ(0);
+  contain: strict;
 }
 .modal-card {
   width: 100%;
@@ -643,6 +647,9 @@ html, body {
   border-radius: var(--radius-xl) !important;
   display: flex;
   flex-direction: column;
+  /* Aísla el modal: keystroke / cambios internos no fuerzan repaint global */
+  contain: layout paint style;
+  transform: translateZ(0);
 }
 .modal-card.modal-small { max-width: 460px; }
 .modal-card.modal-large { max-width: 880px; }

@@ -43,8 +43,8 @@
 .btn-reactivar:hover { background: #c8e6c9; }
 
 /* Modal */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
-.modal-card { background: #fff; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; transform: translateZ(0); will-change: opacity; contain: strict; }
+.modal-card { background: #fff; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,.2); contain: layout paint style; transform: translateZ(0); }
 .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; border-bottom: 1px solid #eee; }
 .modal-title { margin: 0; font-size: 1rem; font-weight: 700; }
 .modal-close { background: none; border: none; cursor: pointer; padding: 4px; display: flex; color: #666; border-radius: 50%; }

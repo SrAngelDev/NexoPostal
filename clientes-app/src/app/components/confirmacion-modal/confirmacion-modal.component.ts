@@ -10,12 +10,12 @@ import { ConfirmacionService } from '../../services/confirmacion.service';
     @if (confirmacion.visible()) {
       <!-- Overlay -->
       <div 
-        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998] flex items-center justify-center p-4 animate-fade-in"
+        class="confirm-overlay fixed inset-0 z-[9998] flex items-center justify-center p-4 animate-fade-in"
         (click)="confirmacion.resolver(false)"
       >
         <!-- Modal -->
         <div 
-          class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-scale-in"
+          class="confirm-card bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-scale-in"
           (click)="$event.stopPropagation()"
         >
           <!-- Icono + Título -->
@@ -59,14 +59,26 @@ import { ConfirmacionService } from '../../services/confirmacion.service';
       to { opacity: 1; }
     }
     @keyframes scale-in {
-      from { opacity: 0; transform: scale(0.9); }
+      from { opacity: 0; transform: scale(0.94); }
       to { opacity: 1; transform: scale(1); }
     }
+    /* Overlay con capa GPU propia + contain estricto: evita repintar el viewport
+       cada vez que cambia el contenido subyacente. Sin backdrop-filter (costoso). */
+    .confirm-overlay {
+      background: rgba(15, 23, 42, 0.55);
+      transform: translateZ(0);
+      will-change: opacity;
+      contain: strict;
+    }
+    .confirm-card {
+      contain: layout paint style;
+      transform: translateZ(0);
+    }
     .animate-fade-in {
-      animation: fade-in 0.2s ease-out;
+      animation: fade-in 0.18s ease-out;
     }
     .animate-scale-in {
-      animation: scale-in 0.25s ease-out;
+      animation: scale-in 0.2s ease-out;
     }
   `]
 })

@@ -800,12 +800,17 @@
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
+  /* Blur ligero + capa GPU + contain estricto evitan repintar el viewport entero en cada keystroke */
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
   padding: 1rem;
+  transform: translateZ(0);
+  will-change: opacity;
+  contain: strict;
 }
 
 .modal {
@@ -814,7 +819,9 @@
   width: 100%;
   max-width: 32rem;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
-  animation: modal-in 0.25s ease-out;
+  animation: modal-in 0.22s ease-out;
+  contain: layout paint style;
+  transform: translateZ(0);
 }
 
 @keyframes modal-in {

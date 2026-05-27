@@ -471,11 +471,14 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  transform: translateZ(0);
+  will-change: opacity;
+  contain: strict;
 }
 
 .modal-card {
@@ -488,7 +491,9 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
-  animation: fade-up 0.25s ease-out;
+  animation: fade-up 0.22s ease-out;
+  contain: layout paint style;
+  transform: translateZ(0);
 }
 
 .modal-header {
