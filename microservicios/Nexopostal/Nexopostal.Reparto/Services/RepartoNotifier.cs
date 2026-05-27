@@ -3,11 +3,18 @@ using Nexopostal.Reparto.Hubs;
 
 namespace Nexopostal.Reparto.Services;
 
+/// <summary>
+/// Contrato de notificación en tiempo real para la app de reparto.
+/// </summary>
 public interface IRepartoNotifier
 {
+    /// <summary>Envía un evento SignalR al usuario repartidor identificado por su cuenta de Identity.</summary>
     Task NotificarRepartidorAsync(string identityUserId, string evento, object payload);
 }
 
+/// <summary>
+/// Implementación SignalR usada para avisar al repartidor de cambios en rutas, entregas o reasignaciones.
+/// </summary>
 public class RepartoNotifier : IRepartoNotifier
 {
     private readonly IHubContext<RepartoHub> _hub;
@@ -19,6 +26,9 @@ public class RepartoNotifier : IRepartoNotifier
         _logger = logger;
     }
 
+    /// <summary>
+    /// Intenta entregar un evento en tiempo real al repartidor. Si falla, lo deja trazado en logs.
+    /// </summary>
     public async Task NotificarRepartidorAsync(string identityUserId, string evento, object payload)
     {
         if (string.IsNullOrWhiteSpace(identityUserId)) return;

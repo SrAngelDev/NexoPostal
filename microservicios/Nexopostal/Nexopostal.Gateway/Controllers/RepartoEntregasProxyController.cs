@@ -22,6 +22,7 @@ public class RepartoEntregasProxyController : ControllerBase
         _repartoUrl = config["Microservices:Reparto"] ?? "http://modulo-reparto:80";
     }
 
+    /// <summary>Lista las entregas de una ruta conservando la query string que necesita Reparto.</summary>
     [HttpGet("entregas")]
     public async Task<IActionResult> GetEntregas()
     {

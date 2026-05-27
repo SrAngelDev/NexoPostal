@@ -25,6 +25,11 @@ public class TarifasController : ControllerBase
     /// </summary>
     /// <param name="tipoServicio">Tipo de servicio: estandar, express, urgente</param>
     /// <param name="peso">Peso del paquete en kg (opcional)</param>
+    /// <param name="largo">Largo del paquete en centímetros, si se conoce.</param>
+    /// <param name="ancho">Ancho del paquete en centímetros, si se conoce.</param>
+    /// <param name="alto">Alto del paquete en centímetros, si se conoce.</param>
+    /// <param name="codigoPostalOrigen">Código postal de origen para resolver la zona tarifaria.</param>
+    /// <param name="codigoPostalDestino">Código postal de destino para resolver la zona tarifaria.</param>
     /// <returns>Tarifas disponibles</returns>
     [HttpGet("consultar")]
     [ProducesResponseType(typeof(TarifasResponseDto), StatusCodes.Status200OK)]
@@ -46,7 +51,6 @@ public class TarifasController : ControllerBase
                 alto,
                 codigoPostalOrigen,
                 codigoPostalDestino));
-
             var tarifas = new TarifasResponseDto
             {
                 TipoServicio = tipoServicio ?? "todos",

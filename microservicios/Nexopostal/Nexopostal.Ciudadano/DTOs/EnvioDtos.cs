@@ -24,13 +24,21 @@ public class CotizarEnvioDto
 }
 
 /// <summary>
-/// Resultado de la cotización
+/// Resultado de la cotización previa al alta del envío.
+/// Resume precio, plazo y observaciones para que el cliente decida si continúa.
 /// </summary>
 public class CotizacionResultadoDto
 {
+    /// <summary>Precio final estimado para el envío.</summary>
     public decimal Precio { get; set; }
+
+    /// <summary>Moneda en la que se expresa la cotización.</summary>
     public string Moneda { get; set; } = "EUR";
+
+    /// <summary>Tiempo estimado de entrega expresado en días.</summary>
     public int TiempoEstimadoDias { get; set; }
+
+    /// <summary>Aclaraciones adicionales sobre la tarifa o la cobertura.</summary>
     public string Observaciones { get; set; } = string.Empty;
 }
 
@@ -39,7 +47,7 @@ public class CotizacionResultadoDto
 /// </summary>
 public class CrearEnvioDto
 {
-    // Datos del paquete
+    // Datos básicos del paquete.
     [Required]
     [Range(0.1, 30)]
     public decimal Peso { get; set; }
@@ -48,7 +56,7 @@ public class CrearEnvioDto
     [MaxLength(50)]
     public string Dimensiones { get; set; } = string.Empty;
 
-    // Datos del remitente
+    // Datos del remitente.
     [Required]
     [MaxLength(200)]
     public string NombreRemitente { get; set; } = string.Empty;
@@ -64,7 +72,7 @@ public class CrearEnvioDto
     [MaxLength(20)]
     public string? TelefonoRemitente { get; set; }
 
-    // Datos del destinatario
+    // Datos del destinatario.
     [Required]
     [MaxLength(200)]
     public string NombreDestinatario { get; set; } = string.Empty;
@@ -80,7 +88,7 @@ public class CrearEnvioDto
     [MaxLength(20)]
     public string? TelefonoDestinatario { get; set; }
 
-    // Modalidad de entrega y oficinas (origen siempre obligatoria; destino solo si TipoEntrega == Oficina)
+    // Modalidad de entrega y oficinas implicadas.
     /// <summary>
     /// Oficina postal donde el remitente entregará el paquete (OficinaJsonId de oficinas.json).
     /// </summary>
@@ -99,25 +107,44 @@ public class CrearEnvioDto
     /// </summary>
     public int? OficinaDestinoId { get; set; }
 
-    // Observaciones
+    // Observaciones opcionales para la operativa.
     [MaxLength(1000)]
     public string? Observaciones { get; set; }
 }
 
 /// <summary>
-/// DTO de respuesta al crear un envío
+/// Respuesta generada al dar de alta un envío antes de pasar por el pago o la impresión.
 /// </summary>
 public class EnvioCreadoDto
 {
+    /// <summary>Número público que se mostrará al cliente para el seguimiento.</summary>
     public string NumeroSeguimiento { get; set; } = string.Empty;
+
+    /// <summary>Número interno que usa la red logística.</summary>
     public string NumeroExpedicion { get; set; } = string.Empty;
+
+    /// <summary>Precio calculado para ese envío.</summary>
     public decimal CosteCalculado { get; set; }
+
+    /// <summary>Estado público inicial del envío.</summary>
     public string EstadoActual { get; set; } = string.Empty;
+
+    /// <summary>Modalidad de entrega elegida: domicilio u oficina.</summary>
     public string TipoEntrega { get; set; } = string.Empty;
+
+    /// <summary>Oficina de origen asociada a la admisión.</summary>
     public int? OficinaOrigenId { get; set; }
+
+    /// <summary>Oficina destino, solo cuando aplica recogida en oficina.</summary>
     public int? OficinaDestinoId { get; set; }
+
+    /// <summary>Fecha de creación de la expedición.</summary>
     public DateTime FechaCreacion { get; set; }
+
+    /// <summary>Ruta de la etiqueta generada para imprimir el envío.</summary>
     public string UrlEtiqueta { get; set; } = string.Empty;
+
+    /// <summary>Ruta de la factura, si ya ha sido emitida.</summary>
     public string? UrlFactura { get; set; }
 }
 
@@ -265,12 +292,25 @@ public class ActualizarEstadoInternoDto
 /// </summary>
 public class EnvioResumenDto
 {
+    /// <summary>Número de seguimiento visible para el cliente.</summary>
     public string NumeroSeguimiento { get; set; } = string.Empty;
+
+    /// <summary>Estado público simplificado del envío.</summary>
     public string Estado { get; set; } = string.Empty;
+
+    /// <summary>Fecha en la que se registró el envío.</summary>
     public DateTime FechaCreacion { get; set; }
+
+    /// <summary>Dirección o destino resumido mostrado en el listado.</summary>
     public string Destino { get; set; } = string.Empty;
+
+    /// <summary>Importe final asociado al envío.</summary>
     public decimal Precio { get; set; }
+
+    /// <summary>Indica si el envío ya consta como pagado.</summary>
     public bool Pagado { get; set; }
+
+    /// <summary>Tarifa comercial aplicada.</summary>
     public string TipoTarifa { get; set; } = string.Empty;
 }
 
@@ -279,19 +319,46 @@ public class EnvioResumenDto
 /// </summary>
 public class EnvioResumenInternoDto
 {
+    /// <summary>Número de seguimiento público.</summary>
     public string NumeroSeguimiento { get; set; } = string.Empty;
+
+    /// <summary>Número de expedición interno.</summary>
     public string NumeroExpedicion { get; set; } = string.Empty;
+
+    /// <summary>Estado público visible para el cliente.</summary>
     public string EstadoPublico { get; set; } = string.Empty;
+
+    /// <summary>Estado operativo interno del envío.</summary>
     public string EstadoInterno { get; set; } = string.Empty;
+
+    /// <summary>Fecha de creación del envío.</summary>
     public DateTime FechaCreacion { get; set; }
+
+    /// <summary>Origen resumido para contexto operativo.</summary>
     public string Origen { get; set; } = string.Empty;
+
+    /// <summary>Destino resumido para contexto operativo.</summary>
     public string Destino { get; set; } = string.Empty;
+
+    /// <summary>Código postal de destino.</summary>
     public string CodigoPostalDestino { get; set; } = string.Empty;
+
+    /// <summary>Peso del paquete en kilogramos.</summary>
     public decimal PesoKg { get; set; }
+
+    /// <summary>Tarifa comercial aplicada.</summary>
     public string TipoTarifa { get; set; } = string.Empty;
+
+    /// <summary>Marca si el envío consta como pagado.</summary>
     public bool Pagado { get; set; }
+
+    /// <summary>Modalidad de entrega final.</summary>
     public string TipoEntrega { get; set; } = "Domicilio";
+
+    /// <summary>Oficina de origen que admitió el paquete.</summary>
     public int? OficinaOrigenId { get; set; }
+
+    /// <summary>Oficina destino, cuando la entrega termina en recogida.</summary>
     public int? OficinaDestinoId { get; set; }
 }
 
@@ -327,38 +394,49 @@ public class TrackingUbicacionRepartoDto
 /// </summary>
 public class TrackingEventoEntregaDto
 {
+    /// <summary>Número de seguimiento del envío afectado.</summary>
     [Required]
     [MaxLength(20)]
     public string NumeroSeguimiento { get; set; } = string.Empty;
 
+    /// <summary>Número interno de expedición, si el emisor lo conoce.</summary>
     [MaxLength(20)]
     public string? NumeroExpedicion { get; set; }
 
+    /// <summary>Estado de entrega notificado por el módulo de reparto.</summary>
     [Required]
     [MaxLength(40)]
     public string EstadoEntrega { get; set; } = string.Empty;
 
+    /// <summary>Número de intento de entrega asociado al evento.</summary>
     [Range(1, 10)]
     public int NumeroIntento { get; set; } = 1;
 
+    /// <summary>Observaciones libres que ayudan a explicar el evento.</summary>
     [MaxLength(500)]
     public string? Observaciones { get; set; }
 
+    /// <summary>Nombre de la persona que recibió el paquete, si se recogió.</summary>
     [MaxLength(200)]
     public string? ReceptorNombre { get; set; }
 
+    /// <summary>DNI de la persona receptora, cuando se ha capturado.</summary>
     [MaxLength(15)]
     public string? ReceptorDni { get; set; }
 
+    /// <summary>Latitud del punto de entrega, si se registró geolocalización.</summary>
     [Range(-90, 90)]
     public double? Latitud { get; set; }
 
+    /// <summary>Longitud del punto de entrega, si se registró geolocalización.</summary>
     [Range(-180, 180)]
     public double? Longitud { get; set; }
 
+    /// <summary>Fotografía de la entrega o del intento, cuando se adjunta evidencia.</summary>
     [MaxLength(500)]
     public string? FotoEntrega { get; set; }
 
+    /// <summary>Firma digital recogida en la entrega, cuando existe.</summary>
     public string? FirmaDigital { get; set; }
 }
 

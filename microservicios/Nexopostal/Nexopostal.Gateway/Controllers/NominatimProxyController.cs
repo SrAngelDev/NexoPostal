@@ -17,12 +17,15 @@ public class NominatimProxyController : ControllerBase
     // Nominatim ToS exige un User-Agent descriptivo.
     private const string UserAgent = "NexoPostal/1.0 (nexopostal.local; contact@nexopostal.es)";
 
+    /// <summary>Lanza una búsqueda geográfica textual en Nominatim.</summary>
     [HttpGet("search")]
     public Task<IActionResult> Search() => ProxyGet("search");
 
+    /// <summary>Resuelve coordenadas a una dirección legible usando reverse geocoding.</summary>
     [HttpGet("reverse")]
     public Task<IActionResult> Reverse() => ProxyGet("reverse");
 
+    /// <summary>Reenvía la consulta a Nominatim con el User-Agent exigido por su política de uso.</summary>
     private async Task<IActionResult> ProxyGet(string endpoint)
     {
         var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;

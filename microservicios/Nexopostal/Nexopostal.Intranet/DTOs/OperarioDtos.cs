@@ -2,9 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Nexopostal.Intranet.DTOs;
 
-// ============================================================
-//  DTOs para Operarios de CTA
-// ============================================================
+// DTOs usados por la gestión de operarios y sus asignaciones dentro de los CTA.
 
 /// <summary>
 /// Resumen de un operario para listados.

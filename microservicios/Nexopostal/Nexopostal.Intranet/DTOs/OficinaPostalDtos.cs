@@ -1,8 +1,6 @@
 namespace Nexopostal.Intranet.DTOs;
 
-// ============================================================
-//  DTOs para Oficinas (datos del JSON estático Data/oficinas.json)
-// ============================================================
+// DTOs para trabajar con oficinas postales y con la resolución oficina/CTA por código postal.
 
 /// <summary>
 /// DTO que representa una oficina cargada desde el JSON estático.

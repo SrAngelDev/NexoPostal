@@ -21,10 +21,12 @@ public class NotificacionesProxyController : ControllerBase
         _logisticaUrl = config["Microservices:Logistica"] ?? "http://modulo-logistica:80";
     }
 
+    /// <summary>Reenvía un broadcast administrativo al hub gestionado por Logística.</summary>
     [HttpPost("broadcast")]
     public Task<IActionResult> Broadcast() =>
         Proxy(HttpMethod.Post, $"api/notificaciones/broadcast");
 
+    /// <summary>Puentea la petición conservando el JWT y el cuerpo JSON del broadcast.</summary>
     private async Task<IActionResult> Proxy(HttpMethod method, string path)
     {
         var requestMessage = new HttpRequestMessage(method, $"{_logisticaUrl}/{path}");

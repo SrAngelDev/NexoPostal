@@ -1,11 +1,8 @@
 namespace Nexopostal.Reparto.DTOs;
 
-// ============================================================
-//  DTOs del módulo de Reparto
-// ============================================================
+// DTOs que cubren la operativa diaria de reparto, rutas y entregas.
 
-// ─── Repartidor ───
-
+/// <summary>Resumen de un repartidor para listados de administración y supervisión.</summary>
 public class RepartidorResumenDto
 {
     public int Id { get; set; }
@@ -22,6 +19,7 @@ public class RepartidorResumenDto
     public int RutasHoy { get; set; }
 }
 
+/// <summary>Datos necesarios para dar de alta a un repartidor en una oficina concreta.</summary>
 public class CrearRepartidorDto
 {
     public string IdentityUserId { get; set; } = string.Empty;
@@ -52,8 +50,7 @@ public class EditarRepartidorDto
     public int? VehiculoId { get; set; }
 }
 
-// ─── Ruta de Reparto ───
-
+/// <summary>Resumen de una ruta de reparto para listados del día.</summary>
 public class RutaRepartoResumenDto
 {
     public int Id { get; set; }
@@ -69,6 +66,7 @@ public class RutaRepartoResumenDto
     public int Fallidos { get; set; }
 }
 
+/// <summary>Vista completa de una ruta con sus entregas y tiempos clave.</summary>
 public class RutaRepartoDetalleDto
 {
     public int Id { get; set; }
@@ -85,6 +83,7 @@ public class RutaRepartoDetalleDto
     public List<EntregaPaqueteDto> Entregas { get; set; } = [];
 }
 
+/// <summary>Petición para planificar una nueva ruta sobre una oficina y un repartidor.</summary>
 public class CrearRutaRepartoDto
 {
     public int RepartidorId { get; set; }
@@ -94,8 +93,7 @@ public class CrearRutaRepartoDto
     public string? Observaciones { get; set; }
 }
 
-// ─── Entrega de Paquete ───
-
+/// <summary>Detalle de una parada o entrega incluida dentro de una ruta.</summary>
 public class EntregaPaqueteDto
 {
     public int Id { get; set; }
@@ -119,6 +117,7 @@ public class EntregaPaqueteDto
     public string? FotoEntrega { get; set; }
 }
 
+/// <summary>Datos mínimos para añadir un paquete a una ruta ya planificada.</summary>
 public class AgregarEntregaDto
 {
     public string NumeroExpedicion { get; set; } = string.Empty;
@@ -130,6 +129,7 @@ public class AgregarEntregaDto
     public string? TelefonoDestinatario { get; set; }
 }
 
+/// <summary>Resultado operativo de un intento de entrega realizado por el repartidor.</summary>
 public class RegistrarEntregaDto
 {
     public string Estado { get; set; } = string.Empty;
@@ -142,8 +142,7 @@ public class RegistrarEntregaDto
     public string? FotoEntrega { get; set; }
 }
 
-// ─── Dashboard ───
-
+/// <summary>KPIs de reparto para el panel de control de última milla.</summary>
 public class DashboardRepartoDto
 {
     public int RutasHoy { get; set; }
@@ -155,8 +154,9 @@ public class DashboardRepartoDto
     public double TasaEntregaExitosa { get; set; }
 }
 
-// ─── Orquestación interna (Intranet -> Reparto) ───
-
+/// <summary>
+/// Payload interno que usa Intranet para pedir a Reparto la autoasignación inicial de una entrega.
+/// </summary>
 public class AutoAsignacionEntregaDesdeAdmisionDto
 {
     public string NumeroExpedicion { get; set; } = string.Empty;
@@ -173,6 +173,7 @@ public class AutoAsignacionEntregaDesdeAdmisionDto
     public string? Observaciones { get; set; }
 }
 
+/// <summary>Resultado de la autoasignación disparada desde admisión.</summary>
 public class AutoAsignacionEntregaResultDto
 {
     public bool Success { get; set; }
@@ -185,8 +186,6 @@ public class AutoAsignacionEntregaResultDto
     public int? EntregaId { get; set; }
     public string Message { get; set; } = string.Empty;
 }
-
-// ─── Tracking en tiempo real del JefeReparto ───
 
 /// <summary>
 /// Última ubicación conocida de un repartidor para el mapa en tiempo real.
@@ -206,8 +205,6 @@ public class UbicacionActivaDto
     public string? RutaCodigo { get; set; }
     public string? RutaEstado { get; set; }
 }
-
-// ─── Asignación manual de paradas pendientes (JefeReparto) ───
 
 /// <summary>
 /// Entrega pendiente que el jefe puede reasignar entre repartidores

@@ -3,6 +3,9 @@ using Nexopostal.Reparto.DTOs;
 
 namespace Nexopostal.Reparto.Validators;
 
+/// <summary>
+/// Valida el alta de un repartidor antes de asignarlo a una oficina y a un tipo de vehículo.
+/// </summary>
 public class CrearRepartidorDtoValidator : AbstractValidator<CrearRepartidorDto>
 {
     public CrearRepartidorDtoValidator()
@@ -17,6 +20,9 @@ public class CrearRepartidorDtoValidator : AbstractValidator<CrearRepartidorDto>
     }
 }
 
+/// <summary>
+/// Revisa la edición de la ficha de un repartidor sin tocar su identidad base.
+/// </summary>
 public class EditarRepartidorDtoValidator : AbstractValidator<EditarRepartidorDto>
 {
     public EditarRepartidorDtoValidator()
@@ -29,6 +35,9 @@ public class EditarRepartidorDtoValidator : AbstractValidator<EditarRepartidorDt
     }
 }
 
+/// <summary>
+/// Comprueba que la creación de una ruta lleve repartidor, fecha y oficina de salida válidos.
+/// </summary>
 public class CrearRutaRepartoDtoValidator : AbstractValidator<CrearRutaRepartoDto>
 {
     public CrearRutaRepartoDtoValidator()
@@ -43,6 +52,9 @@ public class CrearRutaRepartoDtoValidator : AbstractValidator<CrearRutaRepartoDt
     }
 }
 
+/// <summary>
+/// Valida el alta de un vehículo de flota antes de persistirlo o asignarlo.
+/// </summary>
 public class CrearVehiculoDtoValidator : AbstractValidator<CrearVehiculoDto>
 {
     public CrearVehiculoDtoValidator()

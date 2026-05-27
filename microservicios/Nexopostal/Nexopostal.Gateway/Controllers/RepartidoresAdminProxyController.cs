@@ -54,7 +54,7 @@ public class RepartidoresAdminProxyController : ControllerBase
     public Task<IActionResult> Reactivar(int id) =>
         Proxy(HttpMethod.Post, $"api/reparto/repartidores/{id}/reactivar");
 
-    // ─── Helper ───
+    // Método común para reenviar las operaciones administrativas al microservicio Reparto.
     private async Task<IActionResult> Proxy(HttpMethod method, string path)
     {
         var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;

@@ -21,21 +21,27 @@ public class TarifasAdminProxyController : ControllerBase
         _ciudadanoUrl = config["Microservices:Ciudadano"] ?? "http://modulo-ciudadano:80";
     }
 
+    /// <summary>Lista las tarifas editables del panel de administración.</summary>
     [HttpGet]
     public Task<IActionResult> Listar() => Proxy(HttpMethod.Get, "api/admin-tarifas");
 
+    /// <summary>Obtiene el detalle de una tarifa concreta.</summary>
     [HttpGet("{id:int}")]
     public Task<IActionResult> Obtener(int id) => Proxy(HttpMethod.Get, $"api/admin-tarifas/{id}");
 
+    /// <summary>Actualiza una tarifa específica.</summary>
     [HttpPut("{id:int}")]
     public Task<IActionResult> Editar(int id) => Proxy(HttpMethod.Put, $"api/admin-tarifas/{id}");
 
+    /// <summary>Permite editar varias tarifas de una sola vez.</summary>
     [HttpPut("bulk")]
     public Task<IActionResult> EditarBulk() => Proxy(HttpMethod.Put, "api/admin-tarifas/bulk");
 
+    /// <summary>Restaura las tarifas por defecto definidas por el sistema.</summary>
     [HttpPost("reset-defaults")]
     public Task<IActionResult> Reset() => Proxy(HttpMethod.Post, "api/admin-tarifas/reset-defaults");
 
+    /// <summary>Reenvía la petición administrativa a Ciudadano manteniendo autenticación y cuerpo.</summary>
     private async Task<IActionResult> Proxy(HttpMethod method, string path)
     {
         var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;

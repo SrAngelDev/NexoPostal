@@ -2,7 +2,7 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { catchError, forkJoin, of, throwError } from 'rxjs';
+import { catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
 import {
   AdminService,
   UsuarioAdminDto,
@@ -130,14 +130,21 @@ export class UsuarioDetalleComponent implements OnInit {
 
     forkJoin({
       usuario: this.adminService.obtenerDetalleUsuario(this.userId),
-      ctas: this.adminService.obtenerCtas(),
-      operativo: this.adminService.obtenerDetalleOperativoUsuario(this.userId).pipe(
-        catchError((err) => {
-          if (err.status === 404) return of(null);
-          return throwError(() => err);
-        })
-      )
-    }).subscribe({
+      ctas: this.adminService.obtenerCtas()
+    }).pipe(
+      switchMap(({ usuario, ctas }) => {
+        const operativo$ = ROLES_CON_CONFIG_CTA.includes(usuario.rol)
+          ? this.adminService.obtenerDetalleOperativoUsuario(this.userId).pipe(
+              catchError((err) => {
+                if (err.status === 404) return of(null);
+                return throwError(() => err);
+              })
+            )
+          : of(null);
+
+        return operativo$.pipe(map(operativo => ({ usuario, ctas, operativo })));
+      })
+    ).subscribe({
       next: ({ usuario, ctas, operativo }) => {
         this.usuario.set(usuario);
         this.ctas.set(ctas);

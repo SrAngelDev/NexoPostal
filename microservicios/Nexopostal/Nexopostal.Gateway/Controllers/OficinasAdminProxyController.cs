@@ -23,24 +23,31 @@ public class OficinasAdminProxyController : ControllerBase
             ?? "http://modulo-intranet:80";
     }
 
+    /// <summary>Lista las oficinas postales gestionables desde administración.</summary>
     [HttpGet]
     public Task<IActionResult> Listar() => Proxy(HttpMethod.Get, "api/admin-oficinas");
 
+    /// <summary>Obtiene una oficina postal por id.</summary>
     [HttpGet("{id:int}")]
     public Task<IActionResult> Obtener(int id) => Proxy(HttpMethod.Get, $"api/admin-oficinas/{id}");
 
+    /// <summary>Crea una nueva oficina postal.</summary>
     [HttpPost]
     public Task<IActionResult> Crear() => Proxy(HttpMethod.Post, "api/admin-oficinas");
 
+    /// <summary>Actualiza una oficina postal existente.</summary>
     [HttpPut("{id:int}")]
     public Task<IActionResult> Editar(int id) => Proxy(HttpMethod.Put, $"api/admin-oficinas/{id}");
 
+    /// <summary>Desactiva una oficina sin eliminar su histórico.</summary>
     [HttpDelete("{id:int}")]
     public Task<IActionResult> Desactivar(int id) => Proxy(HttpMethod.Delete, $"api/admin-oficinas/{id}");
 
+    /// <summary>Reactiva una oficina deshabilitada previamente.</summary>
     [HttpPost("{id:int}/reactivar")]
     public Task<IActionResult> Reactivar(int id) => Proxy(HttpMethod.Post, $"api/admin-oficinas/{id}/reactivar");
 
+    /// <summary>Puentea la petición hacia Intranet manteniendo JWT, query y cuerpo JSON.</summary>
     private async Task<IActionResult> Proxy(HttpMethod method, string path)
     {
         var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;

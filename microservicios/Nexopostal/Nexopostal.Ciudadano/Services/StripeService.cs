@@ -6,22 +6,27 @@ using System.Text.RegularExpressions;
 namespace Nexopostal.Ciudadano.Services;
 
 /// <summary>
-/// Servicio para integración con Stripe Checkout (modo test)
+/// Contrato del flujo de cobro con Stripe Checkout.
+/// Aísla al resto del módulo de los detalles concretos del proveedor de pago.
 /// </summary>
 public interface IStripeService
 {
     /// <summary>
-    /// Crea una sesión de Stripe Checkout para pagar un envío
+    /// Prepara una sesión de pago para un envío y devuelve la URL a la que debe ir el cliente.
     /// </summary>
     Task<(string SessionUrl, string SessionId)> CrearSesionCheckout(
         Envio envio, string successUrl, string cancelUrl);
 
     /// <summary>
-    /// Verifica el estado de pago de una sesión de Stripe
+    /// Consulta en Stripe si una sesión concreta ya quedó pagada.
     /// </summary>
     Task<bool> VerificarPagoSesion(string sessionId);
 }
 
+/// <summary>
+/// Implementación del cobro con Stripe Checkout.
+/// Se encarga de construir la sesión de pago y de consultar su estado cuando el frontend vuelve del checkout.
+/// </summary>
 public class StripeService : IStripeService
 {
     private readonly IConfiguration _configuration;
@@ -32,7 +37,7 @@ public class StripeService : IStripeService
         _configuration = configuration;
         _logger = logger;
 
-        // Configurar la API key de Stripe
+        // Cargamos la clave una sola vez para fallar pronto si el entorno está mal configurado.
         var secretKey = ResolveConfigValue(_configuration["Stripe:SecretKey"]);
         if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Contains("${", StringComparison.Ordinal))
         {
@@ -43,6 +48,9 @@ public class StripeService : IStripeService
         StripeConfiguration.ApiKey = secretKey;
     }
 
+    /// <summary>
+    /// Resuelve secretos definidos como variables de entorno cuando la configuración usa el formato ${NOMBRE}.
+    /// </summary>
     private static string ResolveConfigValue(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
@@ -50,6 +58,9 @@ public class StripeService : IStripeService
             Environment.GetEnvironmentVariable(match.Groups[1].Value) ?? match.Value);
     }
 
+    /// <summary>
+    /// Normaliza el texto de dimensiones para que la descripción enviada a Stripe sea legible y consistente.
+    /// </summary>
     private static string FormatearDimensiones(string? dimensiones)
     {
         if (string.IsNullOrWhiteSpace(dimensiones))
@@ -57,7 +68,7 @@ public class StripeService : IStripeService
             return "Dimensiones no informadas";
         }
 
-        // Eliminar todos los sufijos "cm" consecutivos (con espacios opcionales) que pueda tener la cadena
+        // Eliminamos repeticiones accidentales de "cm" para no generar descripciones raras en el checkout.
         var s = dimensiones.Trim();
         while (s.EndsWith("cm", StringComparison.OrdinalIgnoreCase))
             s = s[..^2].TrimEnd();
@@ -65,6 +76,9 @@ public class StripeService : IStripeService
         return $"{s} cm";
     }
 
+    /// <summary>
+    /// Crea la sesión de Stripe con el importe calculado por el backend y la información esencial del envío.
+    /// </summary>
     public async Task<(string SessionUrl, string SessionId)> CrearSesionCheckout(
         Envio envio, string successUrl, string cancelUrl)
     {
@@ -113,6 +127,9 @@ public class StripeService : IStripeService
         return (session.Url, session.Id);
     }
 
+    /// <summary>
+    /// Consulta a Stripe si la sesión ya está pagada y registra cualquier incidencia de comunicación.
+    /// </summary>
     public async Task<bool> VerificarPagoSesion(string sessionId)
     {
         try

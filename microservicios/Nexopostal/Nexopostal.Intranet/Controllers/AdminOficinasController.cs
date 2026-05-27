@@ -9,7 +9,7 @@ using Nexopostal.Intranet.Services;
 namespace Nexopostal.Intranet.Controllers;
 
 /// <summary>
-/// Gestión administrativa de oficinas postales (Admin only).
+/// Gestión administrativa de oficinas postales solo para administradores.
 ///
 /// Las oficinas son nodos físicos de atención y referencia lógica desde
 /// <c>OperariosOficina.OficinaJsonId</c> y <c>Repartidor.OficinaJsonId</c>.

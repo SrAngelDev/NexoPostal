@@ -2,9 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Nexopostal.Intranet.DTOs;
 
-// ============================================================
-//  DTOs para Asignaciones de paquetes a operarios
-// ============================================================
+// DTOs de asignaciones de trabajo entre operarios de CTA y oficina.
 
 /// <summary>
 /// DTO para que el OperarioLogistico cree una asignación de tarea.

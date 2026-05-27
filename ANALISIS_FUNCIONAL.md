@@ -58,7 +58,7 @@ Nota: este documento no incluye credenciales ni secretos.
 - Dashboard de reparto.
 - Ubicacion: endpoint operativo e integrado con Ciudadano para tracking realtime (por numero de seguimiento o por ruta).
 - Sincronizacion operacional: confirmaciones de entrega/fallo/devolucion notifican a Ciudadano para consolidar estado publico + realtime.
-- Endpoint interno para auto-asignacion desde admision: crea/reutiliza ruta planificada diaria y agrega entrega con idempotencia por expedicion.
+- Bandeja persistente del `JefeReparto`: Intranet registra el paquete al escanear `DisponibleParaReparto`, Reparto lo lista y el jefe lo asigna manualmente a una ruta planificada.
 
 ### Driver app (repartidores)
 - Login y dashboard operativo.
@@ -91,11 +91,11 @@ Nota: este documento no incluye credenciales ni secretos.
 - Hecho: endpoint refresh token real con rotacion y expiracion; autorizacion inter-servicio mediante X-Service-Key en endpoints internos de tracking.
 - Pendiente: hardening adicional (mTLS o JWT entre servicios), observabilidad basica y mas tests de integracion.
 
-### Prioridad 5: Orquestacion operativa admision -> reparto
-- Estado: implementada (MVP operativo).
-- Hecho: admision en Intranet invoca automaticamente a Reparto para auto-asignar entrega de ultima milla; Reparto selecciona repartidor activo, reutiliza/crea ruta del dia y agrega la entrega.
-- Hecho: flujo con idempotencia basica por numero de expedicion para evitar duplicados en reintentos.
-- Pendiente: evolucionar a outbox/inbox y reglas avanzadas de balanceo/asignacion por capacidad y geografia.
+### Prioridad 5: Orquestacion operativa CTA destino -> reparto
+- Estado: implementada (MVP operativo) con bandeja persistente.
+- Hecho: la admision registra el paquete y la ultima milla se materializa cuando el CTA destino marca `DisponibleParaReparto`; en ese punto Intranet registra el paquete en la bandeja del `JefeReparto`.
+- Hecho: el `JefeReparto` crea o reutiliza una ruta planificada y asigna manualmente el pendiente desde `driver-app`, con idempotencia basica en el registro de bandeja.
+- Pendiente: evolucionar a outbox/inbox, push directo a la bandeja y reglas avanzadas de balanceo/asignacion por capacidad y geografia.
 
 ## Faltantes y brechas actuales
 
@@ -115,7 +115,7 @@ Nota: este documento no incluye credenciales ni secretos.
 - Pendiente ampliar el modelo de seguridad entre servicios a un esquema mas fuerte (mTLS/JWT de servicio).
 
 ### Orquestacion operativa
-- Implementada la generacion automatica de entrega/ruta desde admision (Intranet -> Reparto) cuando existen datos minimos de ultima milla.
+- Implementado el traspaso operativo desde `DisponibleParaReparto` a la bandeja persistente de Reparto para asignacion manual del `JefeReparto`.
 - Pendiente robustecer la fiabilidad con patrones de mensajeria idempotente (outbox/inbox) y telemetria operacional de reintentos.
 
 ## Detalle funcional por dominio
@@ -126,14 +126,14 @@ Nota: este documento no incluye credenciales ni secretos.
 
 ### Intranet / Logistica
 - Implementado: admision, asignaciones, movimientos troncales, incidencias.
-- Implementado: automatizacion de traspaso operativo hacia reparto al admitir paquetes con datos de entrega (seguimiento, direccion, destinatario, telefono).
+- Implementado: encadenamiento por escaneo hasta `DisponibleParaReparto`; en ese punto registra el paquete en la bandeja persistente de Reparto para el `JefeReparto`.
 - Implementado: gestion de usuarios empleados reservada al rol Admin (listado, bloqueo/desbloqueo, cambio de rol, reset de contrasena, alta de empleados).
 - Falta: reglas de asignacion mas avanzadas (SLA, carga, zona) y politicas de reintento transaccional.
 
 ### Reparto
 - Implementado: API de rutas y entregas, evidencia, inicio/fin de ruta y ubicacion integrada con tracking cliente.
 - Implementado: sincronizacion de resultados de entrega con estado interno/publico y realtime de Ciudadano.
-- Implementado: endpoint interno de auto-asignacion de admision con reutilizacion/creacion de ruta diaria e idempotencia basica por expedicion.
+- Implementado: bandeja persistente del `JefeReparto`, alta idempotente del pendiente desde Intranet y asignacion manual a ruta planificada.
 - Falta: robustecer mensajeria inter-servicio ante fallos de red (outbox/inbox, deduplicacion por event-id y observabilidad de colas).
 
 ### Driver app

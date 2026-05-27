@@ -1,8 +1,6 @@
 namespace Nexopostal.Intranet.DTOs;
 
-// ============================================================
-//  DTOs para el procesador de escaneo de códigos de barras
-// ============================================================
+// DTOs del flujo de escaneo que guía a operarios de oficina y CTA.
 
 /// <summary>
 /// Modos de escaneo disponibles para operarios en la intranet.
@@ -37,6 +35,7 @@ public static class ModosEscaneo
     /// <summary>Paquete clasificado de última milla, liberado al equipo de reparto</summary>
     public const string DisponibleParaReparto = "DisponibleParaReparto";
 
+    /// <summary>Todos los modos soportados por el motor de escaneo.</summary>
     public static readonly string[] Todos =
     [
         RecepcionOficina,
@@ -69,6 +68,7 @@ public static class ModosEscaneo
         DisponibleParaReparto
     ];
 
+    /// <summary>Comprueba si el modo recibido está soportado por la operativa actual.</summary>
     public static bool EsValido(string modo) => Todos.Contains(modo);
 }
 

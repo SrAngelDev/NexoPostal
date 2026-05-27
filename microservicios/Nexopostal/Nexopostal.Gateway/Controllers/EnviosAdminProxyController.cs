@@ -20,21 +20,27 @@ public class EnviosAdminProxyController : ControllerBase
         _ciudadanoUrl = config["Microservices:Ciudadano"] ?? "http://modulo-ciudadano:80";
     }
 
+    /// <summary>Lista envíos desde el panel global de administración.</summary>
     [HttpGet]
     public Task<IActionResult> Listar() => Proxy(HttpMethod.Get, "api/admin-envios");
 
+    /// <summary>Obtiene el detalle administrativo de un envío concreto.</summary>
     [HttpGet("{numero}")]
     public Task<IActionResult> Obtener(string numero) => Proxy(HttpMethod.Get, $"api/admin-envios/{numero}");
 
+    /// <summary>Ajusta manualmente el estado del envío desde administración.</summary>
     [HttpPut("{numero}/estado")]
     public Task<IActionResult> CambiarEstado(string numero) => Proxy(HttpMethod.Put, $"api/admin-envios/{numero}/estado");
 
+    /// <summary>Anula un envío manteniendo la lógica del microservicio Ciudadano.</summary>
     [HttpPost("{numero}/anular")]
     public Task<IActionResult> Anular(string numero) => Proxy(HttpMethod.Post, $"api/admin-envios/{numero}/anular");
 
+    /// <summary>Reabre un envío cuando administración necesita reactivar su flujo.</summary>
     [HttpPost("{numero}/reabrir")]
     public Task<IActionResult> Reabrir(string numero) => Proxy(HttpMethod.Post, $"api/admin-envios/{numero}/reabrir");
 
+    /// <summary>Reenvía la operación a Ciudadano preservando autenticación, query y cuerpo.</summary>
     private async Task<IActionResult> Proxy(HttpMethod method, string path)
     {
         var qs = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;

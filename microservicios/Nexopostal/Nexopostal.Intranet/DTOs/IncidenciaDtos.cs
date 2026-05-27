@@ -2,9 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Nexopostal.Intranet.DTOs;
 
-// ============================================================
-//  DTOs para Incidencias del CTA
-// ============================================================
+// DTOs para registrar y seguir incidencias detectadas en la operativa del CTA.
 
 /// <summary>
 /// DTO para que el OperarioJefe reporte una nueva incidencia.

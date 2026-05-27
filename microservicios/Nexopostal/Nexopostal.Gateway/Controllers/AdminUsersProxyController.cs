@@ -95,8 +95,7 @@ public class AdminUsersProxyController : ControllerBase
     public Task<IActionResult> ActualizarOficina(string id) =>
         Proxy(HttpMethod.Put, _logisticaUrl, $"api/operarios/admin/identity/{id}/oficina");
 
-    // ─── Helper ───
-
+    /// <summary>Reenvía la petición al microservicio adecuado manteniendo JWT, query string y body JSON.</summary>
     private async Task<IActionResult> Proxy(HttpMethod method, string baseUrl, string path)
     {
         var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;

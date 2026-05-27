@@ -25,6 +25,7 @@ public class OficinasController : ControllerBase
     /// Busca oficinas por código postal
     /// </summary>
     /// <param name="codigoPostal">Código postal (completo o parcial)</param>
+    /// <param name="query">Texto libre para buscar por nombre, dirección o ciudad.</param>
     /// <returns>Lista de oficinas encontradas</returns>
     [HttpGet("buscar")]
     [ProducesResponseType(typeof(List<OficinaDto>), StatusCodes.Status200OK)]

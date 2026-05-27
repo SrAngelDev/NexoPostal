@@ -18,6 +18,9 @@ public class MonitorizacionSaludService : BackgroundService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Ejecuta el chequeo periódico de salud mientras la aplicación siga en marcha.
+    /// </summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("MonitorizacionSaludService iniciado");
@@ -37,11 +40,14 @@ public class MonitorizacionSaludService : BackgroundService
         }
     }
 
+    /// <summary>
+    /// Revisa conectividad básica y dependencias críticas para dejar trazado si algo esencial falla.
+    /// </summary>
     private async Task VerificarSalud(CancellationToken ct)
     {
         var resultados = new Dictionary<string, bool>();
 
-        // 1. Verify database connectivity
+        // 1. Verificar conectividad con la base de datos.
         try
         {
             using var scope = _scopeFactory.CreateScope();
@@ -53,7 +59,7 @@ public class MonitorizacionSaludService : BackgroundService
             resultados["BaseDatos"] = false;
         }
 
-        // 2. Check services are registered
+        // 2. Comprobar que los servicios clave siguen resolviéndose en el contenedor.
         try
         {
             using var scope = _scopeFactory.CreateScope();
@@ -65,7 +71,7 @@ public class MonitorizacionSaludService : BackgroundService
             resultados["ServicioClasificacion"] = false;
         }
 
-        // Log results
+        // Registrar el resultado agregado de la comprobación.
         var saludables = resultados.Count(r => r.Value);
         var total = resultados.Count;
 

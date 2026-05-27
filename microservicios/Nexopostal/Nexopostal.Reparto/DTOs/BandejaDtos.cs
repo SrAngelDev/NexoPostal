@@ -74,6 +74,7 @@ public class PaqueteBandejaDto
 /// <summary>Petición para añadir un pendiente a una ruta planificada.</summary>
 public class AsignarPendienteARutaDto
 {
+    /// <summary>Ruta planificada que recibirá el paquete pendiente.</summary>
     [Required]
     public int RutaRepartoId { get; set; }
 

@@ -1,8 +1,6 @@
 namespace Nexopostal.Intranet.DTOs;
 
-// ============================================================
-//  DTOs para Centros de Tratamiento Automatizado (CTAs)
-// ============================================================
+// DTOs de administración y consulta para la red de CTAs.
 
 /// <summary>
 /// Datos requeridos para crear un nuevo CTA.

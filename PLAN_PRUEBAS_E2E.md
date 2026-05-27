@@ -2,7 +2,7 @@
 
 Plan paso a paso para validar el flujo completo de NexoPostal con un paquete real desde una **CTA de Madrid** hasta una **CTA de Barcelona** y entrega final al destinatario.
 
-> Asume despliegue ya activo en `https://nexopostal.com` (o el dominio que uses) y que el último commit (`1aa26b5`) ha pasado por GitHub Actions sin errores.
+> Asume despliegue ya activo en `https://nexopostal.com` (o el dominio que uses) y que el commit actual (`da69629`, `arreglo bugs en driver e intranet y test terminados`) ha pasado por GitHub Actions sin errores.
 
 ---
 
@@ -67,44 +67,46 @@ App: **clientes-app** (`https://nexopostal.com/`).
 App: **intranet-app**, usuario **OperarioOficina (Madrid)**.
 
 - [ ] Login. Ir a recepción / entrada de paquetes.
-- [ ] Escanear / introducir `numeroExpedicion`.
-- [ ] Confirmar recogida en oficina origen.
+- [ ] Escanear / introducir `numeroExpedicion` en modo `RecepcionOficina`.
+- [ ] Verificar que se cierra la tarea `RecepcionOficina` y aparece `SalidaOficinaACta`.
+- [ ] Escanear el mismo paquete en modo `SalidaOficinaACta`.
 
 **Comprobaciones:**
-- [ ] El tracking público muestra evento `Recogido en oficina origen` con fecha/hora.
-- [ ] El paquete aparece como "pendiente de envío a CTA".
+- [ ] El tracking público muestra `RecogidoEnOrigen` y después `EnTransitoACentroOrigen`.
+- [ ] En el CTA Madrid aparece la tarea `Recepcion` para ese paquete.
 
 ---
 
-## 4. CTA origen (Madrid) — Salida a CTA destino
+## 4. CTA origen (Madrid) — Recepción, clasificación y despacho troncal
 
 App: **intranet-app**, usuario **OperarioCTA (CTA Madrid)**.
 
 - [ ] Login. Ir a flujo de CTA.
-- [ ] Marcar **recepción en CTA Madrid** del paquete.
-- [ ] Generar / asociar a **envío inter-CTA Madrid → Barcelona**.
-- [ ] Marcar el envío inter-CTA como `EnTransito`.
+- [ ] Escanear `RecepcionCta`.
+- [ ] Escanear `Clasificacion`.
+- [ ] Si el sistema crea tarea troncal, escanear `DespachoTroncal`.
 
 **Comprobaciones:**
-- [ ] Tracking público: aparecen eventos `En CTA origen` y `En tránsito a CTA destino`.
+- [ ] Tracking público: aparecen `RecibidoEnCentroOrigen`, `ClasificadoParaExpedicion` y `EnTransitoHaciaCentroDestino`.
 
 ---
 
-## 5. CTA destino (Barcelona) — Recepción
+## 5. CTA destino (Barcelona) — Recepción, clasificación y liberación a reparto
 
 App: **intranet-app**, usuario **OperarioCTA (CTA Barcelona)**.
 
 - [ ] Login. Ir a recepciones.
-- [ ] Confirmar **recepción del envío inter-CTA** en Barcelona.
-- [ ] Verificar que el paquete queda en estado `EnCTADestino` / `PendienteAsignacion`.
+- [ ] Escanear `RecepcionTroncal`.
+- [ ] Escanear `Clasificacion`.
+- [ ] Escanear `DisponibleParaReparto`.
 
 **Comprobaciones:**
-- [ ] Tracking público: evento `Llegado a CTA destino`.
-- [ ] En el microservicio Reparto, el paquete debería estar disponible para ser asignado a una ruta de reparto:
+- [ ] Tracking público: aparecen `RecibidoEnCentroDestino`, `AsignadoARuta` o `DisponibleParaReparto`, según el punto exacto de consulta.
+- [ ] En el microservicio Reparto, el paquete debe quedar en la bandeja del `JefeReparto`:
   ```bash
-  curl -H "Authorization: Bearer $JEFE_TOKEN" https://nexopostal.com/api/nexopostal/reparto/entregas/pendientes-asignacion
+  curl -H "Authorization: Bearer $JEFE_TOKEN" https://nexopostal.com/api/nexopostal/reparto/bandeja
   ```
-  El paquete aparece si **ya está en una ruta** Planificada que quieras reorganizar. Para que el JefeReparto lo asigne por primera vez, normalmente al recibirlo en la CTA se crea la entrega asociada a una ruta del día.
+  El paquete debe aparecer como pendiente de asignación manual a una ruta planificada.
 
 ---
 
@@ -116,19 +118,25 @@ App: **driver-app** (`https://nexopostal.com/driver/` o el subdominio que uses).
 
 - [ ] Login como **JefeReparto**.
 - [ ] Debe redirigir automáticamente a **`/dashboard-jefe`** (no a `/`).
-- [ ] Ver las 3 cards rápidas: **Gestión de Rutas**, **Mapa en tiempo real**, **Asignar paradas**.
+- [ ] Ver las 5 cards rápidas: **Bandeja de paquetes**, **Gestión de Rutas**, **Mapa en tiempo real**, **Asignar paradas** y **Mis repartidores**.
 - [ ] Ver las métricas del día (rutas hoy, repartidores activos, etc.).
 
-### 6.2 Gestión de Rutas
+### 6.2 Bandeja y asignación inicial
+
+- [ ] Ir a **Bandeja de paquetes** (`/bandeja-jefe`).
+- [ ] Verificar que el paquete de Madrid aparece en la lista.
+- [ ] Seleccionarlo y usar una de las dos acciones soportadas por la UI:
+  - **Crear ruta**: elegir repartidor, fecha y observaciones opcionales.
+  - **Añadir a ruta**: escoger una ruta planificada existente.
+- [ ] Confirmar que el paquete desaparece de la bandeja pendiente y queda asociado a una ruta `Planificada`.
+
+### 6.3 Gestión de Rutas
 
 - [ ] Ir a **Gestión de Rutas**.
-- [ ] Crear una ruta nueva para hoy:
-  - Asignar **Repartidor (Barcelona)**.
-  - Estado inicial: `Planificada`.
-  - Añadir la entrega correspondiente al paquete de Madrid.
+- [ ] Verificar que la ruta creada o reutilizada contiene la entrega correspondiente.
 - [ ] Confirmar que la ruta queda en estado `Planificada`.
 
-### 6.3 Asignar paradas (opcional, si quieres mover entregas entre rutas)
+### 6.4 Asignar paradas (opcional, si quieres mover entregas entre rutas)
 
 - [ ] Ir a **Asignar paradas**.
 - [ ] Si tu paquete aparece, seleccionar otra ruta planificada del día y pulsar **Asignar**.
@@ -216,7 +224,7 @@ App: **driver-app**, usuario **Repartidor**.
 - [ ] **Operario intenta cambio manual de estado**: con `OperarioCTA`/`OperarioOficina`, llamar `PUT /api/asignaciones/{id}/iniciar` o `/completar` o `/cancelar` → `403 Forbidden` (solo Admin/Supervisor).
 - [ ] **Buscador encuentra tarea propia**: en intranet-app, panel "Confirmar paso" con código de una tarea Pendiente del operario → `GET /api/asignaciones/buscar` devuelve la tarea con `modoSugerido` y la UI dispara `POST /api/scan/procesar` automáticamente.
 - [ ] **Paquete fuera de tus tareas**: el operario teclea/escanea un código que no aparece en sus tareas → `GET /api/asignaciones/buscar` responde `404 { message: "Paquete fuera de tus tareas" }`. La UI abre modal bloqueante; al rellenar motivo y enviar, `POST /api/incidencias/reportar-fuera-tareas` crea incidencia tipo `PaqueteFueraDeTareas` visible para el Supervisor.
-- [ ] **Encadenamiento por escaneo**: tras escanear `RecepcionOficina` se debe crear automáticamente la tarea `SalidaOficinaACta`; al escanearla, `Recepcion` en CTA; y así hasta `DisponibleParaReparto` (que NO crea siguiente tarea, sólo emite SignalR `PaqueteDisponibleParaReparto`).
+- [ ] **Encadenamiento por escaneo**: tras escanear `RecepcionOficina` se debe crear automáticamente la tarea `SalidaOficinaACta`; al escanearla, `Recepcion` en CTA; y así hasta `DisponibleParaReparto`, que no crea una nueva tarea de CTA pero sí registra el paquete en la bandeja persistente de Reparto y emite la notificación operativa.
 
 ---
 
@@ -235,10 +243,17 @@ curl -H "Authorization: Bearer $TOKEN" \
   https://nexopostal.com/api/nexopostal/reparto/ubicaciones-activas
 ```
 
-Entregas pendientes de asignación:
+Bandeja del jefe:
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  https://nexopostal.com/api/nexopostal/reparto/entregas/pendientes-asignacion
+  https://nexopostal.com/api/nexopostal/reparto/bandeja
+```
+
+Asignar pendiente a ruta:
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"rutaRepartoId": 42}' \
+  https://nexopostal.com/api/nexopostal/reparto/bandeja/123/asignar-a-ruta
 ```
 
 Reasignar entrega:

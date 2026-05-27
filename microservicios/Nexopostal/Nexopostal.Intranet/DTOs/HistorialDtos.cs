@@ -1,8 +1,6 @@
 namespace Nexopostal.Intranet.DTOs;
 
-// ============================================================
-//  DTOs para el Historial de Estados (trazabilidad completa)
-// ============================================================
+// DTOs que representan la trazabilidad pública e interna de un envío.
 
 /// <summary>
 /// Evento de trazabilidad visible para el cliente (tracking público).

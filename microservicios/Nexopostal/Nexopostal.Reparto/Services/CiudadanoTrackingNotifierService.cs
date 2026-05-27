@@ -2,6 +2,9 @@ using System.Net.Http.Json;
 
 namespace Nexopostal.Reparto.Services;
 
+/// <summary>
+/// Payload interno con el detalle de un evento de entrega que debe reflejarse en el tracking del ciudadano.
+/// </summary>
 public record TrackingEventoEntregaPayload(
     string NumeroSeguimiento,
     string NumeroExpedicion,
@@ -15,8 +18,12 @@ public record TrackingEventoEntregaPayload(
     string? FirmaDigital,
     string? FotoEntrega);
 
+/// <summary>
+/// Contrato para enviar a Ciudadano cambios de ubicación y eventos de entrega generados en Reparto.
+/// </summary>
 public interface ICiudadanoTrackingNotifierService
 {
+    /// <summary>Notifica una actualización de ubicación relevante para el tracking público.</summary>
     Task NotificarUbicacionAsync(
         string numeroSeguimiento,
         double latitud,
@@ -25,11 +32,15 @@ public interface ICiudadanoTrackingNotifierService
         string? descripcion = null,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Notifica un evento de entrega completo para sincronizar estado y timeline.</summary>
     Task NotificarEventoEntregaAsync(
         TrackingEventoEntregaPayload payload,
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Implementación HTTP hacia el microservicio Ciudadano para mantener su tracking en tiempo real actualizado.
+/// </summary>
 public class CiudadanoTrackingNotifierService : ICiudadanoTrackingNotifierService
 {
     private readonly HttpClient _httpClient;
@@ -47,6 +58,9 @@ public class CiudadanoTrackingNotifierService : ICiudadanoTrackingNotifierServic
         _logger = logger;
     }
 
+    /// <summary>
+    /// Envía a Ciudadano la última ubicación útil del repartidor asociada a un envío concreto.
+    /// </summary>
     public async Task NotificarUbicacionAsync(
         string numeroSeguimiento,
         double latitud,
@@ -88,6 +102,9 @@ public class CiudadanoTrackingNotifierService : ICiudadanoTrackingNotifierServic
         }
     }
 
+    /// <summary>
+    /// Publica en Ciudadano el resultado de un intento de entrega con todos los metadatos disponibles.
+    /// </summary>
     public async Task NotificarEventoEntregaAsync(
         TrackingEventoEntregaPayload payload,
         CancellationToken cancellationToken = default)
@@ -116,6 +133,9 @@ public class CiudadanoTrackingNotifierService : ICiudadanoTrackingNotifierServic
         }
     }
 
+    /// <summary>
+    /// Construye una petición interna autenticada con X-Service-Key para el endpoint de Ciudadano.
+    /// </summary>
     private HttpRequestMessage CrearRequestInterna<TPayload>(string path, TPayload payload)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, path)

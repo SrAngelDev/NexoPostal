@@ -3,6 +3,9 @@ using NexoPostal.Auth.DTOs;
 
 namespace NexoPostal.Auth.Validators;
 
+/// <summary>
+/// Reglas mínimas para iniciar sesión sin dejar campos esenciales vacíos.
+/// </summary>
 public class LoginDtoValidator : AbstractValidator<LoginDto>
 {
     public LoginDtoValidator()
@@ -16,6 +19,9 @@ public class LoginDtoValidator : AbstractValidator<LoginDto>
     }
 }
 
+/// <summary>
+/// Valida el alta pública de clientes antes de crear una nueva cuenta.
+/// </summary>
 public class RegisterDtoValidator : AbstractValidator<RegisterDto>
 {
     public RegisterDtoValidator()
@@ -34,6 +40,9 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
     }
 }
 
+/// <summary>
+/// Revisa los datos que un usuario autenticado puede modificar en su perfil.
+/// </summary>
 public class ActualizarUsuarioDtoValidator : AbstractValidator<ActualizarUsuarioDto>
 {
     public ActualizarUsuarioDtoValidator()
@@ -45,6 +54,9 @@ public class ActualizarUsuarioDtoValidator : AbstractValidator<ActualizarUsuario
     }
 }
 
+/// <summary>
+/// Controla el cambio de contraseña para que siempre llegue la clave actual y la nueva.
+/// </summary>
 public class CambiarPasswordDtoValidator : AbstractValidator<CambiarPasswordDto>
 {
     public CambiarPasswordDtoValidator()
@@ -56,6 +68,9 @@ public class CambiarPasswordDtoValidator : AbstractValidator<CambiarPasswordDto>
     }
 }
 
+/// <summary>
+/// Garantiza que la petición de refresco incluya el token emitido previamente.
+/// </summary>
 public class RefreshTokenRequestDtoValidator : AbstractValidator<RefreshTokenRequestDto>
 {
     public RefreshTokenRequestDtoValidator()
@@ -64,6 +79,9 @@ public class RefreshTokenRequestDtoValidator : AbstractValidator<RefreshTokenReq
     }
 }
 
+/// <summary>
+/// Comprueba que la solicitud de recuperación incluya un email válido.
+/// </summary>
 public class SolicitarResetPasswordDtoValidator : AbstractValidator<SolicitarResetPasswordDto>
 {
     public SolicitarResetPasswordDtoValidator()
@@ -74,6 +92,9 @@ public class SolicitarResetPasswordDtoValidator : AbstractValidator<SolicitarRes
     }
 }
 
+/// <summary>
+/// Verifica el payload usado para restablecer una contraseña desde el enlace del correo.
+/// </summary>
 public class ResetPasswordDtoValidator : AbstractValidator<ResetPasswordDto>
 {
     public ResetPasswordDtoValidator()

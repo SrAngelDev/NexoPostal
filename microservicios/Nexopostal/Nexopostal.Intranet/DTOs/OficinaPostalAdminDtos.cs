@@ -24,6 +24,9 @@ public class OficinaPostalAdminDto
     public int OperariosActivos { get; set; }
 }
 
+/// <summary>
+/// Datos necesarios para dar de alta una oficina postal desde administración.
+/// </summary>
 public class CrearOficinaPostalDto
 {
     [Required, MaxLength(250)]
@@ -54,6 +57,9 @@ public class CrearOficinaPostalDto
     public double? Longitud { get; set; }
 }
 
+/// <summary>
+/// Mismo payload que la creación, reutilizado para actualizar una oficina existente.
+/// </summary>
 public class ActualizarOficinaPostalDto : CrearOficinaPostalDto
 {
 }

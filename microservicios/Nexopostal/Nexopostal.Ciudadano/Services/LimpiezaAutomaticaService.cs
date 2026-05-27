@@ -20,6 +20,9 @@ public class LimpiezaAutomaticaService : BackgroundService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Mantiene el ciclo periódico de limpieza mientras el servicio siga activo.
+    /// </summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("LimpiezaAutomaticaService iniciado");
@@ -39,12 +42,15 @@ public class LimpiezaAutomaticaService : BackgroundService
         }
     }
 
+    /// <summary>
+    /// Marca como expirados los envíos que llevan demasiado tiempo pendientes de pago.
+    /// </summary>
     private async Task EjecutarLimpieza(CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
         var envioRepo = scope.ServiceProvider.GetRequiredService<IEnvioRepository>();
 
-        // 1. Find and clean abandoned payment sessions (>24h in PendientePago without StripeSessionId)
+        // Localizamos sesiones abandonadas para que no sigan vivas indefinidamente en el panel del cliente.
         var enviosPendientes = await envioRepo.GetByEstadoInternoAsync(
             Models.EstadoInterno.PendientePago, null);
 

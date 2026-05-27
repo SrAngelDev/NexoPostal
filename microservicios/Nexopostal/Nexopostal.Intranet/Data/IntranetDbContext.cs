@@ -239,7 +239,7 @@ public class IntranetDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
 
-            // Identity BY DEFAULT (permite insertar IDs explícitos en el seed)
+            // Identity por defecto: permite insertar IDs explícitos durante el seed inicial.
             entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
             entity.HasIndex(e => e.CodigoPostal)

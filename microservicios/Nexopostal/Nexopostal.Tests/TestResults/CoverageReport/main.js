@@ -215,58 +215,58 @@ var assemblies = [
     "classes": [
       { "name": "NexoPostal.Auth.Controllers.AdminUsersController", "rp": "Nexopostal.Auth_AdminUsersController.html", "cl": 0, "ucl": 2, "cal": 2, "tl": 79, "cb": 0, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "NexoPostal.Auth.Controllers.AuthController", "rp": "Nexopostal.Auth_AuthController.html", "cl": 1, "ucl": 1, "cal": 2, "tl": 100, "cb": 0, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Controllers.InternalSessionController", "rp": "Nexopostal.Auth_InternalSessionController.html", "cl": 0, "ucl": 30, "cal": 30, "tl": 88, "cb": 0, "tb": 12, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Data.AuthDbContext", "rp": "Nexopostal.Auth_AuthDbContext.html", "cl": 20, "ucl": 0, "cal": 20, "tl": 33, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Errors.AuthError", "rp": "Nexopostal.Auth_AuthError.html", "cl": 1, "ucl": 23, "cal": 24, "tl": 58, "cb": 0, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Controllers.InternalSessionController", "rp": "Nexopostal.Auth_InternalSessionController.html", "cl": 0, "ucl": 30, "cal": 30, "tl": 108, "cb": 0, "tb": 12, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Data.AuthDbContext", "rp": "Nexopostal.Auth_AuthDbContext.html", "cl": 20, "ucl": 0, "cal": 20, "tl": 41, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Errors.AuthError", "rp": "Nexopostal.Auth_AuthError.html", "cl": 13, "ucl": 11, "cal": 24, "tl": 58, "cb": 2, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "NexoPostal.Auth.Infrastructures.AuthServiceCollectionExtensions", "rp": "Nexopostal.Auth_AuthServiceCollectionExtensions.html", "cl": 32, "ucl": 0, "cal": 32, "tl": 65, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Mappers.AdminUsuarioMapper", "rp": "Nexopostal.Auth_AdminUsuarioMapper.html", "cl": 0, "ucl": 14, "cal": 14, "tl": 27, "cb": 0, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Mappers.UsuarioMapper", "rp": "Nexopostal.Auth_UsuarioMapper.html", "cl": 9, "ucl": 9, "cal": 18, "tl": 36, "cb": 0, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Mappers.AdminUsuarioMapper", "rp": "Nexopostal.Auth_AdminUsuarioMapper.html", "cl": 14, "ucl": 0, "cal": 14, "tl": 27, "cb": 5, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Mappers.UsuarioMapper", "rp": "Nexopostal.Auth_UsuarioMapper.html", "cl": 18, "ucl": 0, "cal": 18, "tl": 36, "cb": 2, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "NexoPostal.Auth.Repositories.UserRepository", "rp": "Nexopostal.Auth_UserRepository.html", "cl": 3, "ucl": 1, "cal": 4, "tl": 151, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "NexoPostal.Auth.Services.SmtpEmailService", "rp": "Nexopostal.Auth_SmtpEmailService.html", "cl": 4, "ucl": 54, "cal": 58, "tl": 154, "cb": 0, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Services.TokenService", "rp": "Nexopostal.Auth_TokenService.html", "cl": 62, "ucl": 24, "cal": 86, "tl": 139, "cb": 8, "tb": 28, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Validators.ActualizarUsuarioDtoValidator", "rp": "Nexopostal.Auth_ActualizarUsuarioDtoValidator.html", "cl": 0, "ucl": 7, "cal": 7, "tl": 87, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Validators.CambiarPasswordDtoValidator", "rp": "Nexopostal.Auth_CambiarPasswordDtoValidator.html", "cl": 0, "ucl": 7, "cal": 7, "tl": 87, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Validators.LoginDtoValidator", "rp": "Nexopostal.Auth_LoginDtoValidator.html", "cl": 8, "ucl": 0, "cal": 8, "tl": 87, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Validators.RefreshTokenRequestDtoValidator", "rp": "Nexopostal.Auth_RefreshTokenRequestDtoValidator.html", "cl": 0, "ucl": 4, "cal": 4, "tl": 87, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Validators.RegisterDtoValidator", "rp": "Nexopostal.Auth_RegisterDtoValidator.html", "cl": 12, "ucl": 0, "cal": 12, "tl": 87, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Validators.ResetPasswordDtoValidator", "rp": "Nexopostal.Auth_ResetPasswordDtoValidator.html", "cl": 0, "ucl": 8, "cal": 8, "tl": 87, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "NexoPostal.Auth.Validators.SolicitarResetPasswordDtoValidator", "rp": "Nexopostal.Auth_SolicitarResetPasswordDtoValidator.html", "cl": 6, "ucl": 0, "cal": 6, "tl": 87, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Services.TokenService", "rp": "Nexopostal.Auth_TokenService.html", "cl": 72, "ucl": 14, "cal": 86, "tl": 175, "cb": 12, "tb": 28, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Validators.ActualizarUsuarioDtoValidator", "rp": "Nexopostal.Auth_ActualizarUsuarioDtoValidator.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 108, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Validators.CambiarPasswordDtoValidator", "rp": "Nexopostal.Auth_CambiarPasswordDtoValidator.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 108, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Validators.LoginDtoValidator", "rp": "Nexopostal.Auth_LoginDtoValidator.html", "cl": 8, "ucl": 0, "cal": 8, "tl": 108, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Validators.RefreshTokenRequestDtoValidator", "rp": "Nexopostal.Auth_RefreshTokenRequestDtoValidator.html", "cl": 4, "ucl": 0, "cal": 4, "tl": 108, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Validators.RegisterDtoValidator", "rp": "Nexopostal.Auth_RegisterDtoValidator.html", "cl": 12, "ucl": 0, "cal": 12, "tl": 108, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Validators.ResetPasswordDtoValidator", "rp": "Nexopostal.Auth_ResetPasswordDtoValidator.html", "cl": 8, "ucl": 0, "cal": 8, "tl": 108, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "NexoPostal.Auth.Validators.SolicitarResetPasswordDtoValidator", "rp": "Nexopostal.Auth_SolicitarResetPasswordDtoValidator.html", "cl": 6, "ucl": 0, "cal": 6, "tl": 108, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
     ]},
   {
     "name": "Nexopostal.Ciudadano",
     "classes": [
-      { "name": "Nexopostal.Ciudadano.Controllers.AdminClientesController", "rp": "Nexopostal.Ciudadano_AdminClientesController.html", "cl": 5, "ucl": 0, "cal": 5, "tl": 84, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Controllers.AdminEnviosController", "rp": "Nexopostal.Ciudadano_AdminEnviosController.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 80, "cb": 3, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Controllers.AdminTarifasController", "rp": "Nexopostal.Ciudadano_AdminTarifasController.html", "cl": 16, "ucl": 0, "cal": 16, "tl": 177, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Controllers.EnviosController", "rp": "Nexopostal.Ciudadano_EnviosController.html", "cl": 166, "ucl": 49, "cal": 215, "tl": 1021, "cb": 104, "tb": 183, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Controllers.EtiquetasController", "rp": "Nexopostal.Ciudadano_EtiquetasController.html", "cl": 9, "ucl": 0, "cal": 9, "tl": 52, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Controllers.OficinasController", "rp": "Nexopostal.Ciudadano_OficinasController.html", "cl": 35, "ucl": 0, "cal": 35, "tl": 82, "cb": 4, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Controllers.PagosController", "rp": "Nexopostal.Ciudadano_PagosController.html", "cl": 42, "ucl": 0, "cal": 42, "tl": 393, "cb": 8, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Controllers.PerfilController", "rp": "Nexopostal.Ciudadano_PerfilController.html", "cl": 10, "ucl": 0, "cal": 10, "tl": 322, "cb": 8, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Controllers.TarifasController", "rp": "Nexopostal.Ciudadano_TarifasController.html", "cl": 96, "ucl": 0, "cal": 96, "tl": 220, "cb": 6, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Controllers.AdminClientesController", "rp": "Nexopostal.Ciudadano_AdminClientesController.html", "cl": 0, "ucl": 5, "cal": 5, "tl": 84, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Controllers.AdminEnviosController", "rp": "Nexopostal.Ciudadano_AdminEnviosController.html", "cl": 0, "ucl": 7, "cal": 7, "tl": 80, "cb": 0, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Controllers.AdminTarifasController", "rp": "Nexopostal.Ciudadano_AdminTarifasController.html", "cl": 0, "ucl": 16, "cal": 16, "tl": 177, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Controllers.EnviosController", "rp": "Nexopostal.Ciudadano_EnviosController.html", "cl": 23, "ucl": 192, "cal": 215, "tl": 1021, "cb": 1, "tb": 183, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Controllers.EtiquetasController", "rp": "Nexopostal.Ciudadano_EtiquetasController.html", "cl": 0, "ucl": 9, "cal": 9, "tl": 52, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Controllers.OficinasController", "rp": "Nexopostal.Ciudadano_OficinasController.html", "cl": 0, "ucl": 35, "cal": 35, "tl": 82, "cb": 0, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Controllers.PagosController", "rp": "Nexopostal.Ciudadano_PagosController.html", "cl": 0, "ucl": 42, "cal": 42, "tl": 393, "cb": 0, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Controllers.PerfilController", "rp": "Nexopostal.Ciudadano_PerfilController.html", "cl": 0, "ucl": 10, "cal": 10, "tl": 322, "cb": 0, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Controllers.TarifasController", "rp": "Nexopostal.Ciudadano_TarifasController.html", "cl": 82, "ucl": 14, "cal": 96, "tl": 220, "cb": 4, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Ciudadano.Data.CiudadanoDbContext", "rp": "Nexopostal.Ciudadano_CiudadanoDbContext.html", "cl": 98, "ucl": 0, "cal": 98, "tl": 128, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Errors.CiudadanoError", "rp": "Nexopostal.Ciudadano_CiudadanoError.html", "cl": 16, "ucl": 2, "cal": 18, "tl": 68, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Errors.CiudadanoError", "rp": "Nexopostal.Ciudadano_CiudadanoError.html", "cl": 0, "ucl": 18, "cal": 18, "tl": 68, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Ciudadano.Infrastructures.CiudadanoServiceCollectionExtensions", "rp": "Nexopostal.Ciudadano_CiudadanoServiceCollectionExtensions.html", "cl": 0, "ucl": 11, "cal": 11, "tl": 32, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Repositories.ClientePerfilRepository", "rp": "Nexopostal.Ciudadano_ClientePerfilRepository.html", "cl": 3, "ucl": 0, "cal": 3, "tl": 82, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Repositories.EnvioRepository", "rp": "Nexopostal.Ciudadano_EnvioRepository.html", "cl": 4, "ucl": 0, "cal": 4, "tl": 133, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.AdminEnviosService", "rp": "Nexopostal.Ciudadano_AdminEnviosService.html", "cl": 61, "ucl": 0, "cal": 61, "tl": 210, "cb": 6, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.EmailService", "rp": "Nexopostal.Ciudadano_EmailService.html", "cl": 91, "ucl": 0, "cal": 91, "tl": 209, "cb": 4, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.EtiquetaPdfService", "rp": "Nexopostal.Ciudadano_EtiquetaPdfService.html", "cl": 322, "ucl": 1, "cal": 323, "tl": 416, "cb": 34, "tb": 40, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.FacturaPdfService", "rp": "Nexopostal.Ciudadano_FacturaPdfService.html", "cl": 168, "ucl": 0, "cal": 168, "tl": 191, "cb": 2, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.LimpiezaAutomaticaService", "rp": "Nexopostal.Ciudadano_LimpiezaAutomaticaService.html", "cl": 8, "ucl": 0, "cal": 8, "tl": 68, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.LogisticaNotifierService", "rp": "Nexopostal.Ciudadano_LogisticaNotifierService.html", "cl": 5, "ucl": 0, "cal": 5, "tl": 146, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.NotificacionClienteService", "rp": "Nexopostal.Ciudadano_NotificacionClienteService.html", "cl": 5, "ucl": 0, "cal": 5, "tl": 180, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.OficinasJsonService", "rp": "Nexopostal.Ciudadano_OficinasJsonService.html", "cl": 75, "ucl": 0, "cal": 75, "tl": 129, "cb": 21, "tb": 28, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Repositories.ClientePerfilRepository", "rp": "Nexopostal.Ciudadano_ClientePerfilRepository.html", "cl": 0, "ucl": 3, "cal": 3, "tl": 82, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Repositories.EnvioRepository", "rp": "Nexopostal.Ciudadano_EnvioRepository.html", "cl": 3, "ucl": 1, "cal": 4, "tl": 133, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.AdminEnviosService", "rp": "Nexopostal.Ciudadano_AdminEnviosService.html", "cl": 0, "ucl": 61, "cal": 61, "tl": 210, "cb": 0, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.EmailService", "rp": "Nexopostal.Ciudadano_EmailService.html", "cl": 0, "ucl": 91, "cal": 91, "tl": 209, "cb": 0, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.EtiquetaPdfService", "rp": "Nexopostal.Ciudadano_EtiquetaPdfService.html", "cl": 3, "ucl": 320, "cal": 323, "tl": 416, "cb": 0, "tb": 40, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.FacturaPdfService", "rp": "Nexopostal.Ciudadano_FacturaPdfService.html", "cl": 3, "ucl": 165, "cal": 168, "tl": 191, "cb": 0, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.LimpiezaAutomaticaService", "rp": "Nexopostal.Ciudadano_LimpiezaAutomaticaService.html", "cl": 8, "ucl": 0, "cal": 8, "tl": 74, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.LogisticaNotifierService", "rp": "Nexopostal.Ciudadano_LogisticaNotifierService.html", "cl": 0, "ucl": 5, "cal": 5, "tl": 146, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.NotificacionClienteService", "rp": "Nexopostal.Ciudadano_NotificacionClienteService.html", "cl": 0, "ucl": 5, "cal": 5, "tl": 180, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.OficinasJsonService", "rp": "Nexopostal.Ciudadano_OficinasJsonService.html", "cl": 0, "ucl": 75, "cal": 75, "tl": 129, "cb": 0, "tb": 28, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Ciudadano.Services.ProcesadorPagosService", "rp": "Nexopostal.Ciudadano_ProcesadorPagosService.html", "cl": 8, "ucl": 0, "cal": 8, "tl": 86, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.ProcesoDevolucionService", "rp": "Nexopostal.Ciudadano_ProcesoDevolucionService.html", "cl": 21, "ucl": 6, "cal": 27, "tl": 271, "cb": 5, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.StripeService", "rp": "Nexopostal.Ciudadano_StripeService.html", "cl": 0, "ucl": 24, "cal": 24, "tl": 135, "cb": 0, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Services.TarifasService", "rp": "Nexopostal.Ciudadano_TarifasService.html", "cl": 229, "ucl": 6, "cal": 235, "tl": 406, "cb": 74, "tb": 82, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.ProcesoDevolucionService", "rp": "Nexopostal.Ciudadano_ProcesoDevolucionService.html", "cl": 0, "ucl": 27, "cal": 27, "tl": 271, "cb": 0, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.StripeService", "rp": "Nexopostal.Ciudadano_StripeService.html", "cl": 0, "ucl": 24, "cal": 24, "tl": 152, "cb": 0, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Services.TarifasService", "rp": "Nexopostal.Ciudadano_TarifasService.html", "cl": 201, "ucl": 34, "cal": 235, "tl": 406, "cb": 58, "tb": 82, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Ciudadano.Services.TrackingNotificacionService", "rp": "Nexopostal.Ciudadano_TrackingNotificacionService.html", "cl": 4, "ucl": 0, "cal": 4, "tl": 148, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Ciudadano.Services.TrackingNumberGenerator", "rp": "Nexopostal.Ciudadano_TrackingNumberGenerator.html", "cl": 20, "ucl": 0, "cal": 20, "tl": 61, "cb": 2, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Validators.ActualizarPerfilDtoValidator", "rp": "Nexopostal.Ciudadano_ActualizarPerfilDtoValidator.html", "cl": 6, "ucl": 0, "cal": 6, "tl": 82, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Validators.CotizarEnvioDtoValidator", "rp": "Nexopostal.Ciudadano_CotizarEnvioDtoValidator.html", "cl": 13, "ucl": 0, "cal": 13, "tl": 82, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Validators.CrearDireccionFavoritaDtoValidator", "rp": "Nexopostal.Ciudadano_CrearDireccionFavoritaDtoValidator.html", "cl": 9, "ucl": 0, "cal": 9, "tl": 82, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Ciudadano.Validators.CrearEnvioDtoValidator", "rp": "Nexopostal.Ciudadano_CrearEnvioDtoValidator.html", "cl": 24, "ucl": 0, "cal": 24, "tl": 82, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Validators.ActualizarPerfilDtoValidator", "rp": "Nexopostal.Ciudadano_ActualizarPerfilDtoValidator.html", "cl": 0, "ucl": 6, "cal": 6, "tl": 94, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Validators.CotizarEnvioDtoValidator", "rp": "Nexopostal.Ciudadano_CotizarEnvioDtoValidator.html", "cl": 0, "ucl": 13, "cal": 13, "tl": 94, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Validators.CrearDireccionFavoritaDtoValidator", "rp": "Nexopostal.Ciudadano_CrearDireccionFavoritaDtoValidator.html", "cl": 0, "ucl": 9, "cal": 9, "tl": 94, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Ciudadano.Validators.CrearEnvioDtoValidator", "rp": "Nexopostal.Ciudadano_CrearEnvioDtoValidator.html", "cl": 0, "ucl": 24, "cal": 24, "tl": 94, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
     ]},
   {
     "name": "Nexopostal.Gateway",
@@ -381,7 +381,7 @@ var assemblies = [
   {
     "name": "Nexopostal.Shared",
     "classes": [
-      { "name": "Nexopostal.Shared.Dtos.Common.PagedResult<T>", "rp": "Nexopostal.Shared_PagedResult_1.html", "cl": 4, "ucl": 0, "cal": 4, "tl": 20, "cb": 2, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Shared.Dtos.Common.PagedResult<T>", "rp": "Nexopostal.Shared_PagedResult_1.html", "cl": 4, "ucl": 0, "cal": 4, "tl": 37, "cb": 2, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Shared.Errors.BusinessRuleError", "rp": "Nexopostal.Shared_BusinessRuleError.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 65, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Shared.Errors.ConflictError", "rp": "Nexopostal.Shared_ConflictError.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 65, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Shared.Errors.ForbiddenError", "rp": "Nexopostal.Shared_ForbiddenError.html", "cl": 1, "ucl": 1, "cal": 2, "tl": 65, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
@@ -415,14 +415,68 @@ var riskHotspots = [
   {
     "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.EnviosController", "reportPath": "Nexopostal.Ciudadano_EnviosController.html", "methodName": "ObtenerDescripcionEstadoInterno(Nexopostal.Ciudadano.Models.EstadoInterno)", "methodShortName": "ObtenerDescripcionEstadoInterno(...)", "fileIndex": 0, "line": 904,
     "metrics": [
-      { "value": 678, "exceeded": true },
+      { "value": 2070, "exceeded": true },
       { "value": 45, "exceeded": true },
     ]},
   {
     "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.EnviosController", "reportPath": "Nexopostal.Ciudadano_EnviosController.html", "methodName": "DeducirEstadoPublico(Nexopostal.Ciudadano.Models.EstadoInterno)", "methodShortName": "DeducirEstadoPublico(...)", "fileIndex": 0, "line": 937,
     "metrics": [
-      { "value": 423, "exceeded": true },
+      { "value": 2070, "exceeded": true },
       { "value": 45, "exceeded": true },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.EnviosController", "reportPath": "Nexopostal.Ciudadano_EnviosController.html", "methodName": "TryMapearEstadoInternoDesdeEntrega(Nexopostal.Ciudadano.DTOs.TrackingEventoEntregaDto,Nexopostal.Ciudadano.Models.EstadoInterno&)", "methodShortName": "TryMapearEstadoInternoDesdeEntrega(...)", "fileIndex": 0, "line": 828,
+    "metrics": [
+      { "value": 1980, "exceeded": true },
+      { "value": 44, "exceeded": true },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.EnviosController", "reportPath": "Nexopostal.Ciudadano_EnviosController.html", "methodName": "ConstruirDescripcionEventoEntrega(Nexopostal.Ciudadano.DTOs.TrackingEventoEntregaDto,Nexopostal.Ciudadano.Models.EstadoInterno)", "methodShortName": "ConstruirDescripcionEventoEntrega(...)", "fileIndex": 0, "line": 852,
+    "metrics": [
+      { "value": 342, "exceeded": true },
+      { "value": 18, "exceeded": true },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.OficinasJsonService", "reportPath": "Nexopostal.Ciudadano_OficinasJsonService.html", "methodName": "TransformarOficina(System.Text.Json.JsonElement)", "methodShortName": "TransformarOficina(...)", "fileIndex": 0, "line": 96,
+    "metrics": [
+      { "value": 342, "exceeded": true },
+      { "value": 18, "exceeded": true },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.EtiquetaPdfService", "reportPath": "Nexopostal.Ciudadano_EtiquetaPdfService.html", "methodName": "RenderizarCodigoBarrasBmp(System.Collections.Generic.List`1<System.Int32>,System.Int32,System.Int32)", "methodShortName": "RenderizarCodigoBarrasBmp(...)", "fileIndex": 0, "line": 326,
+    "metrics": [
+      { "value": 272, "exceeded": true },
+      { "value": 16, "exceeded": true },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.EtiquetaPdfService", "reportPath": "Nexopostal.Ciudadano_EtiquetaPdfService.html", "methodName": "ObtenerNombreServicio(System.String)", "methodShortName": "ObtenerNombreServicio(...)", "fileIndex": 0, "line": 245,
+    "metrics": [
+      { "value": 156, "exceeded": true },
+      { "value": 12, "exceeded": false },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.EtiquetaPdfService", "reportPath": "Nexopostal.Ciudadano_EtiquetaPdfService.html", "methodName": "CodificarCode128B(System.String)", "methodShortName": "CodificarCode128B(...)", "fileIndex": 0, "line": 267,
+    "metrics": [
+      { "value": 156, "exceeded": true },
+      { "value": 12, "exceeded": false },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.AdminEnviosController", "reportPath": "Nexopostal.Ciudadano_AdminEnviosController.html", "methodName": "GetUserId()", "methodShortName": "GetUserId()", "fileIndex": 0, "line": 77,
+    "metrics": [
+      { "value": 110, "exceeded": true },
+      { "value": 10, "exceeded": false },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.PagosController", "reportPath": "Nexopostal.Ciudadano_PagosController.html", "methodName": "ObtenerUserId()", "methodShortName": "ObtenerUserId()", "fileIndex": 0, "line": 388,
+    "metrics": [
+      { "value": 110, "exceeded": true },
+      { "value": 10, "exceeded": false },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.PerfilController", "reportPath": "Nexopostal.Ciudadano_PerfilController.html", "methodName": "GetUserIdFromToken()", "methodShortName": "GetUserIdFromToken()", "fileIndex": 0, "line": 317,
+    "metrics": [
+      { "value": 110, "exceeded": true },
+      { "value": 10, "exceeded": false },
     ]},
   {
     "assembly": "Nexopostal.Intranet", "class": "Nexopostal.Intranet.Controllers.AdminOficinasController", "reportPath": "Nexopostal.Intranet_AdminOficinasController.html", "methodName": "GetUserId()", "methodShortName": "GetUserId()", "fileIndex": 0, "line": 191,
@@ -431,37 +485,43 @@ var riskHotspots = [
       { "value": 10, "exceeded": false },
     ]},
   {
-    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.EnviosController", "reportPath": "Nexopostal.Ciudadano_EnviosController.html", "methodName": "TryMapearEstadoInternoDesdeEntrega(Nexopostal.Ciudadano.DTOs.TrackingEventoEntregaDto,Nexopostal.Ciudadano.Models.EstadoInterno&)", "methodShortName": "TryMapearEstadoInternoDesdeEntrega(...)", "fileIndex": 0, "line": 828,
-    "metrics": [
-      { "value": 44, "exceeded": true },
-      { "value": 44, "exceeded": true },
-    ]},
-  {
-    "assembly": "Nexopostal.Auth", "class": "NexoPostal.Auth.Controllers.InternalSessionController", "reportPath": "Nexopostal.Auth_InternalSessionController.html", "methodName": "SecureEquals(System.String,System.String)", "methodShortName": "SecureEquals(...)", "fileIndex": 0, "line": 79,
+    "assembly": "Nexopostal.Auth", "class": "NexoPostal.Auth.Controllers.InternalSessionController", "reportPath": "Nexopostal.Auth_InternalSessionController.html", "methodName": "SecureEquals(System.String,System.String)", "methodShortName": "SecureEquals(...)", "fileIndex": 0, "line": 99,
     "metrics": [
       { "value": 42, "exceeded": true },
       { "value": 6, "exceeded": false },
     ]},
   {
-    "assembly": "Nexopostal.Auth", "class": "NexoPostal.Auth.Mappers.AdminUsuarioMapper", "reportPath": "Nexopostal.Auth_AdminUsuarioMapper.html", "methodName": "ToListItemDto(NexoPostal.Auth.Models.ApplicationUser,System.DateTimeOffset)", "methodShortName": "ToListItemDto(...)", "fileIndex": 0, "line": 11,
+    "assembly": "Nexopostal.Auth", "class": "NexoPostal.Auth.Services.TokenService", "reportPath": "Nexopostal.Auth_TokenService.html", "methodName": "SecureEquals(System.String,System.String)", "methodShortName": "SecureEquals(...)", "fileIndex": 0, "line": 163,
     "metrics": [
       { "value": 42, "exceeded": true },
       { "value": 6, "exceeded": false },
     ]},
   {
-    "assembly": "Nexopostal.Auth", "class": "NexoPostal.Auth.Services.TokenService", "reportPath": "Nexopostal.Auth_TokenService.html", "methodName": "TryExtractUserId(System.String,System.String&)", "methodShortName": "TryExtractUserId(...)", "fileIndex": 0, "line": 107,
-    "metrics": [
-      { "value": 42, "exceeded": true },
-      { "value": 6, "exceeded": false },
-    ]},
-  {
-    "assembly": "Nexopostal.Auth", "class": "NexoPostal.Auth.Services.TokenService", "reportPath": "Nexopostal.Auth_TokenService.html", "methodName": "SecureEquals(System.String,System.String)", "methodShortName": "SecureEquals(...)", "fileIndex": 0, "line": 127,
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.EnviosController", "reportPath": "Nexopostal.Ciudadano_EnviosController.html", "methodName": "SecureEquals(System.String,System.String)", "methodShortName": "SecureEquals(...)", "fileIndex": 0, "line": 815,
     "metrics": [
       { "value": 42, "exceeded": true },
       { "value": 6, "exceeded": false },
     ]},
   {
     "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.EnviosController", "reportPath": "Nexopostal.Ciudadano_EnviosController.html", "methodName": "CalcularTiempoEstimado(System.String,System.String)", "methodShortName": "CalcularTiempoEstimado(...)", "fileIndex": 0, "line": 1009,
+    "metrics": [
+      { "value": 42, "exceeded": true },
+      { "value": 6, "exceeded": false },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.AdminEnviosService", "reportPath": "Nexopostal.Ciudadano_AdminEnviosService.html", "methodName": "AppendObservacionAdmin(Nexopostal.Ciudadano.Models.Envio,System.String,System.String)", "methodShortName": "AppendObservacionAdmin(...)", "fileIndex": 0, "line": 135,
+    "metrics": [
+      { "value": 42, "exceeded": true },
+      { "value": 6, "exceeded": false },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.OficinasJsonService", "reportPath": "Nexopostal.Ciudadano_OficinasJsonService.html", "methodName": "ObtenerTodas()", "methodShortName": "ObtenerTodas()", "fileIndex": 0, "line": 27,
+    "metrics": [
+      { "value": 42, "exceeded": true },
+      { "value": 6, "exceeded": false },
+    ]},
+  {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.ProcesoDevolucionService", "reportPath": "Nexopostal.Ciudadano_ProcesoDevolucionService.html", "methodName": "ExtraerMotivoDevolucion(System.String)", "methodShortName": "ExtraerMotivoDevolucion(...)", "fileIndex": 0, "line": 253,
     "metrics": [
       { "value": 42, "exceeded": true },
       { "value": 6, "exceeded": false },
@@ -485,34 +545,22 @@ var riskHotspots = [
       { "value": 40, "exceeded": true },
     ]},
   {
+    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.EnviosController", "reportPath": "Nexopostal.Ciudadano_EnviosController.html", "methodName": "ObtenerDescripcionEstado(Nexopostal.Ciudadano.Models.EstadoEnvio)", "methodShortName": "ObtenerDescripcionEstado(...)", "fileIndex": 0, "line": 888,
+    "metrics": [
+      { "value": 33, "exceeded": true },
+      { "value": 9, "exceeded": false },
+    ]},
+  {
     "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.TarifasService", "reportPath": "Nexopostal.Ciudadano_TarifasService.html", "methodName": "ResolverZona(System.String,System.String)", "methodShortName": "ResolverZona(...)", "fileIndex": 0, "line": 312,
     "metrics": [
       { "value": 22, "exceeded": false },
       { "value": 22, "exceeded": true },
     ]},
   {
-    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Controllers.EnviosController", "reportPath": "Nexopostal.Ciudadano_EnviosController.html", "methodName": "ConstruirDescripcionEventoEntrega(Nexopostal.Ciudadano.DTOs.TrackingEventoEntregaDto,Nexopostal.Ciudadano.Models.EstadoInterno)", "methodShortName": "ConstruirDescripcionEventoEntrega(...)", "fileIndex": 0, "line": 852,
-    "metrics": [
-      { "value": 18, "exceeded": false },
-      { "value": 18, "exceeded": true },
-    ]},
-  {
-    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.OficinasJsonService", "reportPath": "Nexopostal.Ciudadano_OficinasJsonService.html", "methodName": "TransformarOficina(System.Text.Json.JsonElement)", "methodShortName": "TransformarOficina(...)", "fileIndex": 0, "line": 96,
-    "metrics": [
-      { "value": 18, "exceeded": false },
-      { "value": 18, "exceeded": true },
-    ]},
-  {
     "assembly": "Nexopostal.Intranet", "class": "Nexopostal.Intranet.Services.OficinasJsonService", "reportPath": "Nexopostal.Intranet_OficinasJsonService.html", "methodName": "TransformarOficina(System.Text.Json.JsonElement)", "methodShortName": "TransformarOficina(...)", "fileIndex": 0, "line": 260,
     "metrics": [
       { "value": 18, "exceeded": false },
       { "value": 18, "exceeded": true },
-    ]},
-  {
-    "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.EtiquetaPdfService", "reportPath": "Nexopostal.Ciudadano_EtiquetaPdfService.html", "methodName": "RenderizarCodigoBarrasBmp(System.Collections.Generic.List`1<System.Int32>,System.Int32,System.Int32)", "methodShortName": "RenderizarCodigoBarrasBmp(...)", "fileIndex": 0, "line": 326,
-    "metrics": [
-      { "value": 16, "exceeded": false },
-      { "value": 16, "exceeded": true },
     ]},
   {
     "assembly": "Nexopostal.Ciudadano", "class": "Nexopostal.Ciudadano.Services.TarifasService", "reportPath": "Nexopostal.Ciudadano_TarifasService.html", "methodName": "CalcularOpcion(Nexopostal.Ciudadano.Services.TarifasService/BaseCalculo,System.String)", "methodShortName": "CalcularOpcion(...)", "fileIndex": 0, "line": 346,

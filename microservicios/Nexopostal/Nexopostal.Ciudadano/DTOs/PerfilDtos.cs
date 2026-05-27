@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Nexopostal.Ciudadano.DTOs;
 
 /// <summary>
-/// DTO para crear o actualizar el perfil del ciudadano
+/// Datos editables del perfil de un ciudadano dentro de su área privada.
 /// </summary>
 public class ActualizarPerfilDto
 {
@@ -19,19 +19,28 @@ public class ActualizarPerfilDto
 }
 
 /// <summary>
-/// DTO de respuesta con datos del perfil
+/// Respuesta con la información persistida del perfil del ciudadano.
 /// </summary>
 public class PerfilDto
 {
+    /// <summary>Identificador del usuario en el módulo de autenticación.</summary>
     public string IdentityUserId { get; set; } = string.Empty;
+
+    /// <summary>DNI asociado al perfil, cuando el cliente lo ha facilitado.</summary>
     public string? DNI { get; set; }
+
+    /// <summary>Teléfono habitual de contacto.</summary>
     public string? Telefono { get; set; }
+
+    /// <summary>Dirección que se propone por defecto al crear un envío.</summary>
     public string? DireccionPredeterminada { get; set; }
+
+    /// <summary>Fecha en la que se creó el perfil de ciudadano.</summary>
     public DateTime FechaCreacion { get; set; }
 }
 
 /// <summary>
-/// DTO para agregar una dirección favorita a la agenda
+/// Datos necesarios para guardar una dirección frecuente en la agenda del cliente.
 /// </summary>
 public class CrearDireccionFavoritaDto
 {
@@ -66,16 +75,31 @@ public class CrearDireccionFavoritaDto
 }
 
 /// <summary>
-/// DTO de respuesta con datos de una dirección favorita
+/// Dirección favorita ya guardada y lista para mostrarse en la agenda.
 /// </summary>
 public class DireccionFavoritaDto
 {
+    /// <summary>Identificador interno de la dirección guardada.</summary>
     public int Id { get; set; }
+
+    /// <summary>Nombre corto que ayuda al cliente a reconocer la dirección.</summary>
     public string Alias { get; set; } = string.Empty;
+
+    /// <summary>Persona destinataria asociada a esa dirección.</summary>
     public string NombreDestinatario { get; set; } = string.Empty;
+
+    /// <summary>Dirección postal completa.</summary>
     public string Direccion { get; set; } = string.Empty;
+
+    /// <summary>Código postal del destino.</summary>
     public string CodigoPostal { get; set; } = string.Empty;
+
+    /// <summary>Ciudad del destinatario.</summary>
     public string Ciudad { get; set; } = string.Empty;
+
+    /// <summary>Provincia del destinatario.</summary>
     public string Provincia { get; set; } = string.Empty;
+
+    /// <summary>Teléfono opcional vinculado a la entrega.</summary>
     public string? Telefono { get; set; }
 }

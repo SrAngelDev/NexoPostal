@@ -8,7 +8,7 @@ using Nexopostal.Reparto.Services;
 namespace Nexopostal.Reparto.Controllers;
 
 /// <summary>
-/// Gestión administrativa de la flota de vehículos (Admin only).
+/// Gestión administrativa de la flota de vehículos solo para administradores.
 /// </summary>
 [ApiController]
 [Route("api/admin-vehiculos")]
@@ -22,6 +22,9 @@ public class AdminVehiculosController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Devuelve la flota con filtros opcionales de actividad, oficina o repartidor asignado.
+    /// </summary>
     [HttpGet]
     public async Task<ActionResult<List<VehiculoDto>>> Listar(
         [FromQuery] bool incluirInactivos = false,
@@ -32,6 +35,7 @@ public class AdminVehiculosController : ControllerBase
         return Ok(lista.Select(ToDto).ToList());
     }
 
+    /// <summary>Recupera un vehículo concreto por su identificador.</summary>
     [HttpGet("{id:int}")]
     public async Task<ActionResult<VehiculoDto>> Obtener(int id)
     {
@@ -40,6 +44,7 @@ public class AdminVehiculosController : ControllerBase
         return Ok(ToDto(v));
     }
 
+    /// <summary>Crea un nuevo vehículo dentro de la flota administrada.</summary>
     [HttpPost]
     public async Task<ActionResult<VehiculoDto>> Crear([FromBody] CrearVehiculoDto dto)
     {
@@ -49,6 +54,7 @@ public class AdminVehiculosController : ControllerBase
         return CreatedAtAction(nameof(Obtener), new { id = v!.Id }, ToDto(v));
     }
 
+    /// <summary>Actualiza la ficha de un vehículo ya existente.</summary>
     [HttpPut("{id:int}")]
     public async Task<ActionResult<VehiculoDto>> Actualizar(int id, [FromBody] ActualizarVehiculoDto dto)
     {
@@ -59,6 +65,7 @@ public class AdminVehiculosController : ControllerBase
         return Ok(ToDto(v!));
     }
 
+    /// <summary>Desactiva un vehículo sin borrarlo físicamente para conservar histórico.</summary>
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Desactivar(int id)
     {
@@ -68,6 +75,7 @@ public class AdminVehiculosController : ControllerBase
         return Ok(new { mensaje = "Vehículo desactivado", id });
     }
 
+    /// <summary>Recupera un vehículo desactivado cuando vuelve a estar disponible.</summary>
     [HttpPost("{id:int}/reactivar")]
     public async Task<IActionResult> Reactivar(int id)
     {
@@ -77,6 +85,7 @@ public class AdminVehiculosController : ControllerBase
         return Ok(new { mensaje = "Vehículo reactivado", id });
     }
 
+    /// <summary>Asigna un vehículo de flota a un repartidor concreto.</summary>
     [HttpPost("{id:int}/asignar")]
     public async Task<ActionResult<VehiculoDto>> Asignar(int id, [FromBody] AsignarVehiculoDto dto)
     {
@@ -87,6 +96,9 @@ public class AdminVehiculosController : ControllerBase
         return Ok(ToDto(v!));
     }
 
+    /// <summary>
+    /// Sincroniza la flota inicial a partir de los datos históricos de repartidores ya existentes.
+    /// </summary>
     [HttpPost("importar-desde-repartidores")]
     public async Task<ActionResult<ImportarDesdeRepartidoresResultDto>> Importar()
     {
@@ -94,6 +106,7 @@ public class AdminVehiculosController : ControllerBase
         return Ok(resultado);
     }
 
+    /// <summary>Transforma la entidad en el DTO que consume la API administrativa.</summary>
     private static VehiculoDto ToDto(Vehiculo v) => new()
     {
         Id = v.Id,
@@ -112,6 +125,7 @@ public class AdminVehiculosController : ControllerBase
         FechaModificacion = v.FechaModificacion
     };
 
+    /// <summary>Obtiene el identificador del usuario autenticado desde las claims habituales del JWT.</summary>
     private string? GetUserId() =>
         User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value

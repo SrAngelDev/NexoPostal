@@ -3,6 +3,9 @@ using Nexopostal.Intranet.DTOs;
 
 namespace Nexopostal.Intranet.Validators;
 
+/// <summary>
+/// Valida una petición de escaneo antes de que el motor operativo decida el siguiente paso.
+/// </summary>
 public class ScanRequestDtoValidator : AbstractValidator<ScanRequestDto>
 {
     public ScanRequestDtoValidator()
@@ -17,6 +20,9 @@ public class ScanRequestDtoValidator : AbstractValidator<ScanRequestDto>
     }
 }
 
+/// <summary>
+/// Comprueba que una nueva asignación manual lleve todos los datos necesarios para ejecutarse.
+/// </summary>
 public class CrearAsignacionDtoValidator : AbstractValidator<CrearAsignacionDto>
 {
     private static readonly string[] TiposValidos =

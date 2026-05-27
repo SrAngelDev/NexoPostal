@@ -5,6 +5,9 @@ using System.Text.RegularExpressions;
 
 namespace Nexopostal.Gateway.Services;
 
+/// <summary>
+/// Resultado posible al comprobar si una sesión emitida por Auth sigue siendo válida.
+/// </summary>
 public enum SessionValidationStatus
 {
     Active,
@@ -12,11 +15,18 @@ public enum SessionValidationStatus
     Unknown
 }
 
+/// <summary>
+/// Contrato para preguntar a Auth si un usuario sigue activo o ha quedado bloqueado.
+/// </summary>
 public interface IUserSessionValidationService
 {
+    /// <summary>Valida el estado actual de una cuenta a partir de su identificador.</summary>
     Task<SessionValidationStatus> ValidateAsync(string userId, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Cliente interno del Gateway contra Auth para invalidar sesiones de usuarios bloqueados o eliminados.
+/// </summary>
 public class UserSessionValidationService : IUserSessionValidationService
 {
     private const string DefaultServiceKey = "nexopostal-internal-service-key-2025";
@@ -44,6 +54,9 @@ public class UserSessionValidationService : IUserSessionValidationService
             : configuredServiceKey;
     }
 
+    /// <summary>
+    /// Consulta el endpoint interno de Auth y traduce la respuesta a un estado usable por el Gateway.
+    /// </summary>
     public async Task<SessionValidationStatus> ValidateAsync(string userId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(userId))
@@ -98,6 +111,9 @@ public class UserSessionValidationService : IUserSessionValidationService
         return payload.Activo ? SessionValidationStatus.Active : SessionValidationStatus.Blocked;
     }
 
+    /// <summary>
+    /// Resuelve placeholders de configuración del tipo ${VARIABLE} usando el entorno de ejecución.
+    /// </summary>
     private static string ResolveConfigValue(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -110,6 +126,9 @@ public class UserSessionValidationService : IUserSessionValidationService
         });
     }
 
+    /// <summary>
+    /// DTO privado con el formato mínimo que devuelve Auth para el estado de sesión.
+    /// </summary>
     private sealed class SessionStatusResponse
     {
         public bool Activo { get; set; }

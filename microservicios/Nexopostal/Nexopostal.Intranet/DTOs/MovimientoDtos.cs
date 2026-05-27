@@ -2,9 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Nexopostal.Intranet.DTOs;
 
-// ============================================================
-//  DTOs para Movimientos de paquetes entre CTAs
-// ============================================================
+// DTOs del movimiento troncal entre CTAs.
 
 /// <summary>
 /// DTO para crear un movimiento entre CTAs (ruta troncal).

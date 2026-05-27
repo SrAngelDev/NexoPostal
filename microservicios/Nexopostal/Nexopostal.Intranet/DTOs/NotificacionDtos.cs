@@ -1,8 +1,6 @@
 namespace Nexopostal.Intranet.DTOs;
 
-// ============================================================
-//  DTOs para el sistema de notificaciones en tiempo real (SignalR)
-// ============================================================
+// DTOs del sistema de notificaciones en tiempo real y de la admisión operativa.
 
 /// <summary>
 /// Notificación genérica enviada a través de SignalR.
@@ -77,7 +75,7 @@ public class AdmisionPaqueteDto
     /// <summary>Ciudad de entrega para la ruta de última milla</summary>
     public string? CiudadDestino { get; set; }
 
-    // ===== Modalidad de entrega y oficinas (nuevo flujo) =====
+    // Modalidad de entrega y oficinas implicadas en el nuevo flujo.
 
     /// <summary>Oficina postal de origen (OficinaJsonId) donde el cliente entregó el paquete.</summary>
     public int? OficinaOrigenId { get; set; }
@@ -85,7 +83,7 @@ public class AdmisionPaqueteDto
     /// <summary>Oficina postal de destino (OficinaJsonId) donde el destinatario lo recogerá. Solo si TipoEntrega == "Oficina".</summary>
     public int? OficinaDestinoId { get; set; }
 
-    /// <summary>"Domicilio" (default) o "Oficina".</summary>
+    /// <summary>"Domicilio" por defecto o "Oficina".</summary>
     public string TipoEntrega { get; set; } = "Domicilio";
 
     /// <summary>

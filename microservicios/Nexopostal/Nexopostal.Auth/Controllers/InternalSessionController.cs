@@ -7,6 +7,10 @@ using NexoPostal.Auth.Repositories;
 
 namespace NexoPostal.Auth.Controllers;
 
+/// <summary>
+/// Endpoint interno que permite a otros microservicios comprobar si una cuenta
+/// sigue activa antes de confiar en una sesión ya emitida.
+/// </summary>
 [ApiController]
 [Route("api/internal/auth/session")]
 [AllowAnonymous]
@@ -23,6 +27,10 @@ public class InternalSessionController : ControllerBase
         _configuration = configuration;
     }
 
+    /// <summary>
+    /// Devuelve si el usuario existe y si puede seguir operando con normalidad.
+    /// Solo responde cuando la petición viene firmada con la clave interna del sistema.
+    /// </summary>
     [HttpGet("usuarios/{userId}/estado")]
     public async Task<IActionResult> ObtenerEstadoUsuario(string userId)
     {
@@ -50,6 +58,10 @@ public class InternalSessionController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Comprueba la cabecera X-Service-Key con una comparación segura para evitar
+    /// filtraciones por tiempo de respuesta.
+    /// </summary>
     private bool IsInternalServiceAuthorized()
     {
         var expectedKey = ResolveConfigValue(_configuration["InterServiceSettings:ServiceKey"]);
@@ -63,6 +75,10 @@ public class InternalSessionController : ControllerBase
         return SecureEquals(expectedKey, providedKey);
     }
 
+    /// <summary>
+    /// Sustituye placeholders del estilo ${VARIABLE} por el valor real definido
+    /// en las variables de entorno del despliegue.
+    /// </summary>
     private static string ResolveConfigValue(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -75,6 +91,10 @@ public class InternalSessionController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Compara dos claves con tiempo constante para que el fallo no revele si una
+    /// petición estuvo cerca de acertar la credencial interna.
+    /// </summary>
     private static bool SecureEquals(string expected, string provided)
     {
         var expectedBytes = Encoding.UTF8.GetBytes(expected ?? string.Empty);

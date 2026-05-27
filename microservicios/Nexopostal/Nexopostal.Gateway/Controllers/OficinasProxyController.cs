@@ -18,18 +18,21 @@ public class OficinasProxyController : ControllerBase
         _ciudadanoUrl = config["Microservices:Ciudadano"] ?? "http://modulo-ciudadano:80";
     }
 
+    /// <summary>Lista oficinas públicas sin perder filtros ni parámetros de búsqueda.</summary>
     [HttpGet("listar")]
     public Task<IActionResult> Listar()
     {
         return ProxyGetRequest("api/oficinas");
     }
 
+    /// <summary>Busca oficinas cercanas o filtradas desde el frontend público.</summary>
     [HttpGet("buscar")]
     public Task<IActionResult> Buscar()
     {
         return ProxyGetRequest("api/oficinas/buscar");
     }
 
+    /// <summary>Reenvía la petición GET a Ciudadano manteniendo la query string íntegra.</summary>
     private async Task<IActionResult> ProxyGetRequest(string path)
     {
         var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;

@@ -57,8 +57,9 @@ public class ClientesAdminProxyController : ControllerBase
     public Task<IActionResult> ResetPassword(string id) =>
         Proxy(HttpMethod.Post, _authUrl, $"api/admin-usuarios/{id}/reset-password", includeBody: true);
 
-    // ─── Helpers ───
-
+    /// <summary>
+    /// Añade o sustituye un parámetro de query manteniendo intactos los demás filtros enviados por el frontend.
+    /// </summary>
     private string QueryHelpers(string key, string value)
     {
         var existing = Request.QueryString.HasValue ? Request.QueryString.Value!.TrimStart('?') : string.Empty;
@@ -69,6 +70,7 @@ public class ClientesAdminProxyController : ControllerBase
         return "?" + rebuilt;
     }
 
+    /// <summary>Puentea la petición al microservicio objetivo preservando autorización y, cuando toca, el body.</summary>
     private async Task<IActionResult> Proxy(HttpMethod method, string baseUrl, string pathWithQuery, bool includeBody)
     {
         var url = $"{baseUrl}/{pathWithQuery}";
