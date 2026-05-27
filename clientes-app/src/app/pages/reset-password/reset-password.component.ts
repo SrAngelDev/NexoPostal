@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -23,6 +23,27 @@ export class ResetPasswordComponent implements OnInit {
   confirmarPassword = signal('');
   isLoading = signal(false);
   errorMessage = signal('');
+
+  showPassword = signal(false);
+  showConfirmPassword = signal(false);
+
+  passwordReqs = computed(() => {
+    const p = this.nuevaPassword();
+    return {
+      length:    p.length >= 8,
+      uppercase: /[A-Z]/.test(p),
+      lowercase: /[a-z]/.test(p),
+      number:    /[0-9]/.test(p),
+      special:   /[^A-Za-z0-9]/.test(p)
+    };
+  });
+
+  passwordStrength = computed(() => {
+    const met = Object.values(this.passwordReqs()).filter(Boolean).length;
+    if (met <= 2) return 'weak';
+    if (met <= 3) return 'fair';
+    return 'strong';
+  });
 
   constructor(
     private route: ActivatedRoute,
@@ -53,8 +74,9 @@ export class ResetPasswordComponent implements OnInit {
       return;
     }
 
-    if (nueva.length < 6) {
-      this.errorMessage.set('La contraseña debe tener al menos 6 caracteres');
+    const reqs = this.passwordReqs();
+    if (!reqs.length || !reqs.uppercase || !reqs.lowercase || !reqs.number || !reqs.special) {
+      this.errorMessage.set('La contraseña no cumple los requisitos de seguridad');
       return;
     }
 

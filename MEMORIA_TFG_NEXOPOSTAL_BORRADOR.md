@@ -1,6 +1,6 @@
 # Memoria TFG - NexoPostal
 
-Este documento es un borrador extenso de la memoria del TFG basado en la implementacion real del proyecto NexoPostal. El texto esta pensado para copiarse a Word y adaptarse con datos personales, capturas de pantalla y formato academico final. Sustituye los campos entre corchetes por tu informacion real.
+Este documento constituye la version base de la memoria del TFG del proyecto NexoPostal. Su contenido se apoya en la implementacion real disponible en el repositorio y esta redactado para facilitar su maquetacion posterior en Word con los datos academicos, capturas y ajustes formales que exija el centro.
 
 ---
 
@@ -32,7 +32,7 @@ De manera mas concreta, los objetivos especificos del proyecto han sido los sigu
 - Construir una arquitectura backend basada en microservicios con separacion de responsabilidades entre autenticacion, ciudadano, logistica y reparto.
 - Incorporar mecanismos de comunicacion en tiempo real para que el cliente pueda seguir su envio y para que los operarios reciban notificaciones operativas.
 - Integrar un sistema de pago realista mediante Stripe Checkout, junto con la generacion automatica de factura y etiqueta en PDF.
-- Orquestar la comunicacion interna entre servicios para sincronizar estados y automatizar procesos clave, como el traspaso entre admision y reparto.
+- Coordinar la comunicacion interna entre servicios para sincronizar estados, registrar hitos operativos y materializar el paso desde la clasificacion interna hasta la ultima milla.
 - Preparar el sistema para su despliegue en contenedores Docker, con pipeline de integracion y despliegue continuo.
 
 En definitiva, el objetivo no ha sido unicamente programar una aplicacion funcional, sino demostrar la capacidad de analizar un problema empresarial amplio, proponer una arquitectura adecuada, implementar una solucion mantenible y justificar tecnicamente cada una de las decisiones adoptadas.
@@ -103,9 +103,10 @@ El sistema identifica varios perfiles de usuario, cada uno con objetivos y permi
 - Cliente: es el usuario final que crea envios, paga, consulta tarifas, hace seguimiento del pedido y gestiona su cuenta.
 - Administrador: perfil interno con capacidad de gestion global del sistema y acceso ampliado a la intranet.
 - Operario de oficina: usuario vinculado al tratamiento de paquetes en oficina, especialmente en procesos de recepcion y entrega en punto fisico.
-- Operario logistico: perfil orientado a los CTAs y a tareas de clasificacion, asignaciones y movimientos logísticos.
-- Operario jefe: perfil con funciones de coordinacion y mayor capacidad de gestion sobre tareas internas.
+- Operario CTA: perfil orientado a los CTAs y a tareas de clasificacion, asignaciones y movimientos logísticos.
+- Supervisor: perfil con funciones de coordinacion y mayor capacidad de gestion sobre tareas internas y de equipo.
 - Repartidor: usuario de ultima milla encargado de ejecutar rutas, registrar entregas, reportar incidencias y enviar ubicacion.
+- Jefe de reparto: perfil responsable de la planificacion y supervision de la ultima milla.
 
 La existencia de varios actores con necesidades distintas justifica la separacion de interfaces y servicios. No tiene sentido que un cliente vea los mismos estados o acciones que un repartidor, del mismo modo que un operario de CTA necesita datos internos y no solo informacion publica de tracking.
 
@@ -119,7 +120,7 @@ En el area de cliente, la plataforma debia permitir:
 - Inicio de sesion y recuperacion de contraseña.
 - Consulta publica de tarifas.
 - Creacion de envios con datos completos de remitente, destinatario y paquete.
-- Eleccion entre entrega o recogida en direccion u oficina, segun el caso.
+- Seleccion de oficina de admision y eleccion de entrega final en domicilio u oficina, segun el caso.
 - Pago online mediante una pasarela externa.
 - Generacion de etiqueta y factura.
 - Seguimiento publico por numero de envio.
@@ -172,12 +173,12 @@ Mas alla de los requisitos generales, durante el analisis fue necesario identifi
 - El peso facturable del paquete no depende solo del peso real. El sistema compara el peso real con el peso volumetrico, calculado a partir de las dimensiones, y utiliza el mayor de ambos para la tarificacion.
 - Existen restricciones fisicas y comerciales sobre el paquete. El formulario y la logica de negocio limitan el peso maximo a 30 kg, imponen dimensiones minimas para poder etiquetar el bulto y aplican recargo cuando la suma de dimensiones supera 210 cm o el lado mayor excede 170 cm.
 - La operativa contempla casuisticas territoriales reales. Si el codigo postal de origen o destino corresponde a Canarias, el sistema exige la identificacion fiscal del remitente o del destinatario segun el caso, introduciendo una regla especial que no afecta al resto del territorio.
-- Un envio puede tener origen y destino en direccion particular o en oficina. Esto afecta a la experiencia de usuario, al texto de las direcciones construidas, a la selecccion de oficinas y a la informacion asociada a la expedicion.
+- En la contratacion online, el origen se articula mediante una oficina de admision seleccionada por el remitente, mientras que la entrega final puede resolverse en domicilio u oficina. Esta distincion afecta a la experiencia de usuario, a la construccion de direcciones y a la informacion asociada a la expedicion.
 - Cada envio dispone de dos identificadores distintos. El numero de seguimiento publico se utiliza en la web de clientes y en el tracking externo, mientras que el numero de expedicion interno se utiliza en intranet, escaneo y reparto. Esta dualidad separa la visibilidad publica de la operativa interna.
 - El envio no entra en la red logistica por el mero hecho de rellenar el formulario. Primero se crea en estado pendiente de pago; solo cuando el pago se confirma se marcan estados operativos, se generan documentos y se notifica la admision a logistica.
 - El estado publico del envio no es una variable independiente y arbitraria, sino una proyeccion simplificada del estado interno. Esto permite que el cliente vea una trazabilidad comprensible sin exponer toda la complejidad operativa del circuito logístico.
 - La admision del paquete resuelve automaticamente el CTA de destino a partir del codigo postal. Si origen y destino pertenecen a nodos distintos, se crea ademas un movimiento troncal con el tipo de transporte adecuado.
-- La autoasignacion a reparto no se ejecuta siempre. Solo se intenta cuando la admision dispone de datos minimos de ultima milla, como numero de seguimiento, direccion de entrega y codigo postal de destino.
+- La ultima milla no nace por autoasignacion directa desde la admision. El punto de corte operativo es el estado `DisponibleParaReparto`, que incorpora el paquete a la bandeja persistente de reparto para que el `JefeReparto` lo planifique manualmente.
 - El seguimiento GPS del repartidor no debe estar activo en cualquier contexto. La app movil solo intensifica el tracking cuando la ruta esta realmente en curso, evitando gasto innecesario de bateria y eventos irrelevantes.
 - La falta de conectividad no debe bloquear la operativa de reparto. Por ello, confirmaciones de entrega y ubicaciones se almacenan temporalmente en una cola local para reenviarse cuando el dispositivo recupera conexion.
 
@@ -202,8 +203,8 @@ El modulo de intranet analiza el codigo postal de destino y determina el CTA que
 Proceso 5. Seguimiento interno del paquete  
 La operativa interna trabaja principalmente con el numero de expedicion. Este identificador se usa para escaneo, seguimiento detallado, asignaciones de tareas y actualizacion de estados. A diferencia del tracking publico, el seguimiento interno refleja pasos mas finos del circuito logístico, como clasificacion, movimientos entre centros, intentos fallidos de entrega, incidencias especificas o devoluciones. Gracias a ello, la plataforma distingue entre lo que necesita ver un cliente y lo que necesita gestionar un operario.
 
-Proceso 6. Autoasignacion a reparto  
-Cuando la admision incluye los datos suficientes de ultima milla, la intranet invoca un endpoint interno del modulo de reparto. Este modulo intenta localizar un repartidor adecuado, reutilizar una ruta planificada del dia o crear una nueva si es necesario, y añadir la entrega asociada a la expedicion. El proceso incorpora una idempotencia basica por numero de expedicion, evitando la duplicacion de entregas ante reintentos. Esta automatizacion reduce trabajo manual y conecta la logistica interna con el reparto final.
+Proceso 6. Liberacion a reparto y planificacion de ultima milla  
+Cuando el circuito interno alcanza el estado `DisponibleParaReparto`, la intranet registra el paquete en la bandeja persistente del microservicio de reparto mediante un endpoint interno protegido. A partir de ese momento, el `JefeReparto` visualiza los pendientes de su ambito, decide si crea una ruta nueva o si incorpora el paquete a una ruta existente y asigna la parada correspondiente. Este modelo desacopla la clasificacion de la planificacion de calle y refleja con mayor fidelidad la operativa real.
 
 Proceso 7. Ejecucion de ruta y entrega  
 El repartidor inicia sesion en su aplicacion y consulta la ruta asignada del dia. Cuando comienza la jornada, marca la ruta como iniciada y la app activa el seguimiento GPS, el mapa operativo y la sincronizacion de eventos. Durante la ruta, el repartidor puede seleccionar entregas, navegar hacia la siguiente parada, registrar el resultado de cada intento y adjuntar evidencias como receptor, DNI, firma, foto u observaciones. Al finalizar, cierra la ruta con observaciones de jornada y detiene el seguimiento activo.
@@ -211,7 +212,7 @@ El repartidor inicia sesion en su aplicacion y consulta la ruta asignada del dia
 Proceso 8. Tracking publico en tiempo real  
 Mientras el paquete avanza por la red, el modulo ciudadano proyecta la operativa interna en una traza publica comprensible. El cliente consulta inicialmente el estado por HTTP y, a continuacion, queda suscrito mediante SignalR a futuras actualizaciones del numero de seguimiento. Cuando reparto informa de una nueva ubicacion o de un evento de entrega, ciudadano transforma esa informacion en cambios de estado, incidencias o confirmaciones visibles para el cliente. De este modo, la trazabilidad publica se alimenta de procesos operativos reales y no de mensajes simulados.
 
-Conviene destacar que estos procesos no funcionan de manera aislada. El valor del sistema reside precisamente en que un proceso alimenta al siguiente: la autenticacion permite operar; la cotizacion conduce al pago; el pago dispara la admision; la admision puede generar movimiento y autoasignacion; el reparto actualiza el tracking; y el tracking devuelve informacion al cliente en tiempo real. Esta continuidad operativa es una de las claves de NexoPostal como proyecto.
+Conviene destacar que estos procesos no funcionan de manera aislada. El valor del sistema reside precisamente en que un proceso alimenta al siguiente: la autenticacion permite operar; la cotizacion conduce al pago; el pago dispara la admision; la admision genera movimiento y tareas internas; la clasificacion libera el paquete a reparto; el reparto actualiza el tracking; y el tracking devuelve informacion al cliente en tiempo real. Esta continuidad operativa es una de las claves de NexoPostal como proyecto.
 
 ### 2.1.7 Entidades principales del dominio
 
@@ -769,7 +770,7 @@ La configuracion local incluye:
 - Cuatro microservicios principales.
 - Cuatro bases de datos PostgreSQL.
 
-En la practica, `docker-compose.yml` ofrece un entorno completo de extremo a extremo para desarrollo local. La web de clientes, la intranet y la app de reparto se sirven a traves del proxy local, mientras que gateway, microservicios y bases de datos conviven en una misma red Docker. Esto permite probar flujos completos como registro, contratacion, pago, admision, autoasignacion, tracking y entrega sin necesidad de cambiar manualmente URLs ni levantar componentes uno a uno.
+En la practica, `docker-compose.yml` ofrece un entorno completo de extremo a extremo para desarrollo local. La web de clientes, la intranet y la app de reparto se sirven a traves del proxy local, mientras que gateway, microservicios y bases de datos conviven en una misma red Docker. Esto permite probar flujos completos como registro, contratacion, pago, admision, clasificacion, liberacion a reparto, tracking y entrega sin necesidad de cambiar manualmente URLs ni levantar componentes uno a uno.
 
 Conviene senalar ademas que el flujo local actual usa directamente `docker-compose.yml` como compose por defecto mediante `docker compose up -d --build`. La variante `docker-compose.local.yml` ya no forma parte del circuito operativo vigente, lo que simplifica la puesta en marcha y evita duplicidades de configuracion.
 
@@ -882,7 +883,7 @@ En Reparto:
 
 La propia estructura de las tres aplicaciones funciona como base para un manual de usuario, pero en la version actual se ha considerado mas adecuado separar ese contenido en un anexo especifico de manual de usuario. Ese documento organiza la operativa por perfil y por aplicacion, de modo que cada actor consulte solo la parte que necesita: cliente, operario de oficina, operario CTA, supervisor, administrador, repartidor o jefe de reparto.
 
-De cara a la entrega final en Word, conviene acompanar esta seccion y el anexo con capturas de pantalla. Algunas especialmente recomendables son:
+De cara a la entrega final en Word, esta seccion y el anexo correspondiente deberian acompanarse con capturas de pantalla debidamente numeradas y referenciadas en el texto. Algunas especialmente recomendables son:
 
 - Pantalla de inicio de clientes.
 - Wizard de nuevo envio en sus tres pasos.
@@ -922,7 +923,7 @@ El resultado final del proyecto puede considerarse claramente satisfactorio en r
 
 La evaluacion de los resultados puede hacerse en varios planos.
 
-En el plano funcional, el sistema cubre un ciclo de negocio completo. El cliente puede registrarse, autenticarse, calcular tarifas, contratar un envio, pagar mediante Stripe, consultar su historial, descargar documentos y seguir la evolucion del paquete. Paralelamente, la intranet permite admitir el paquete en la red, resolver CTAs, crear tareas, trabajar con escaneo y gestionar seguimiento interno. Finalmente, el modulo de reparto permite planificar o reutilizar rutas, registrar entregas, emitir ubicaciones y alimentar el tracking visible para el cliente.
+En el plano funcional, el sistema cubre un ciclo de negocio completo. El cliente puede registrarse, autenticarse, calcular tarifas, contratar un envio, pagar mediante Stripe, consultar su historial, descargar documentos y seguir la evolucion del paquete. Paralelamente, la intranet permite admitir el paquete en la red, resolver CTAs, crear tareas, trabajar con escaneo y gestionar seguimiento interno. Finalmente, el modulo de reparto permite gestionar una bandeja de pendientes, planificar o reutilizar rutas, registrar entregas, emitir ubicaciones y alimentar el tracking visible para el cliente.
 
 En el plano arquitectonico, el proyecto demuestra que la separacion por dominios no se ha quedado en una decision superficial. Cada microservicio tiene responsabilidades razonablemente bien delimitadas, cada frontend responde a un perfil de usuario distinto y la integracion entre modulos se apoya en contratos claros. La existencia de dos identificadores por envio, la separacion entre estado interno y estado publico, y la combinacion de HTTP con SignalR son ejemplos concretos de decisiones de diseño que aportan coherencia y valor.
 
@@ -958,7 +959,7 @@ Una cuarta linea de trabajo estaria relacionada con la observabilidad y el contr
 
 Una quinta linea de evolucion tendria un enfoque mas funcional y comercial: notificaciones push al cliente, integracion con almacenes o ERPs, gestion de reembolsos o seguros, programacion de recogidas, soporte para multipaquete y apertura a envios internacionales. Todas estas opciones amplian el alcance del producto sin romper la base ya construida.
 
-Finalmente, seria muy valioso ampliar la cobertura de pruebas, incorporando mas tests de integracion y escenarios end to end que recorran los flujos criticos completos: registro, envio, pago, admision, autoasignacion a reparto, tracking y entrega. Esta linea de mejora tendria un impacto directo en la mantenibilidad futura de la plataforma.
+Finalmente, seria muy valioso ampliar la cobertura de pruebas, incorporando mas tests de integracion y escenarios end to end que recorran los flujos criticos completos: registro, envio, pago, admision, liberacion a reparto, tracking y entrega. Esta linea de mejora tendria un impacto directo en la mantenibilidad futura de la plataforma.
 
 ---
 
@@ -968,7 +969,7 @@ La realizacion del proyecto NexoPostal ha permitido demostrar que es posible dis
 
 Una de las principales conclusiones es que la separacion por dominios ha sido una decision acertada. Dividir el sistema entre cliente, logistica y reparto, y respaldar esa division con microservicios especificos, ha permitido construir una solucion mas clara, mantenible y realista. Al mismo tiempo, esta decision ha obligado a afrontar retos autenticos de sincronizacion, seguridad, orquestacion y despliegue que enriquecen mucho el valor academico del proyecto.
 
-Tambien puede concluirse que la incorporacion de procesos reales, como pagos con Stripe, generacion de documentos, tracking con SignalR, escaneo logístico, autoasignacion a reparto y soporte offline en movilidad, ha elevado significativamente la calidad del trabajo. El resultado final no es una demostracion aislada de funcionalidades inconexas, sino un sistema donde las piezas colaboran para sostener un flujo completo de negocio desde la contratacion hasta la entrega.
+Tambien puede concluirse que la incorporacion de procesos reales, como pagos con Stripe, generacion de documentos, tracking con SignalR, escaneo logístico, liberacion controlada a reparto y soporte offline en movilidad, ha elevado significativamente la calidad del trabajo. El resultado final no es una demostracion aislada de funcionalidades inconexas, sino un sistema donde las piezas colaboran para sostener un flujo completo de negocio desde la contratacion hasta la entrega.
 
 Desde una perspectiva formativa, el proyecto ha servido para consolidar conocimientos de Angular, ASP.NET Core, Entity Framework, PostgreSQL, Docker, Nginx, GitHub Actions, integracion de APIs externas, seguridad con JWT y comunicacion en tiempo real. Pero, mas alla de las tecnologias concretas, tambien ha permitido desarrollar competencias de analisis, toma de decisiones arquitectonicas, organizacion del codigo y razonamiento sobre requisitos funcionales y no funcionales.
 
@@ -978,7 +979,7 @@ La conclusion mas importante es que NexoPostal no solo cumple el objetivo de fun
 
 # 6. Bibliografia
 
-La siguiente bibliografia puede utilizarse como base para la memoria. Conviene revisar el formato que exija tu centro y normalizarlo, por ejemplo en APA o IEEE.
+La bibliografia que se presenta a continuacion puede utilizarse como base para la version final de la memoria. Antes de la entrega conviene normalizarla segun el formato exigido por el centro, por ejemplo APA o IEEE.
 
 1. Angular Team. Angular Documentation. Disponible en: https://angular.dev/  Consultado el 16 de mayo de 2026.
 2. Microsoft. ASP.NET Core documentation. Disponible en: https://learn.microsoft.com/aspnet/core/  Consultado el 16 de mayo de 2026.
@@ -1091,7 +1092,9 @@ La solucion esta formada por los siguientes bloques:
 - GET /api/reparto/entregas
 - POST /api/reparto/confirmar
 - POST /api/reparto/ubicacion
-- POST /api/reparto/interno/admision/auto-asignar
+- GET /api/reparto/bandeja
+- POST /api/reparto/bandeja/{id}/asignar-a-ruta
+- POST /api/reparto/interno/bandeja/registrar
 
 ## Anexo IV. Capturas recomendadas para insertar en Word
 
@@ -1121,4 +1124,4 @@ La solucion esta formada por los siguientes bloques:
 
 ---
 
-Fin del borrador.
+Fin del documento base.

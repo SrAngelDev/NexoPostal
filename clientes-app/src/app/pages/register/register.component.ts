@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService, RegisterRequest } from '../../services/auth.service';
@@ -23,6 +23,32 @@ export class RegisterComponent {
   errorMessage = signal('');
   successMessage = signal('');
 
+  showPassword = signal(false);
+  showConfirmPassword = signal(false);
+
+  // Requisitos de contraseña evaluados en tiempo real
+  passwordReqs = computed(() => {
+    const p = this.password();
+    return {
+      length:    p.length >= 8,
+      uppercase: /[A-Z]/.test(p),
+      lowercase: /[a-z]/.test(p),
+      number:    /[0-9]/.test(p),
+      special:   /[^A-Za-z0-9]/.test(p)
+    };
+  });
+
+  passwordStrength = computed(() => {
+    const met = Object.values(this.passwordReqs()).filter(Boolean).length;
+    if (met <= 2) return 'weak';
+    if (met <= 3) return 'fair';
+    return 'strong';
+  });
+
+  private emailValido(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  }
+
   constructor(
     private authService: AuthService,
     private router: Router
@@ -35,13 +61,40 @@ export class RegisterComponent {
       return;
     }
 
-    if (this.password() !== this.confirmPassword()) {
-      this.errorMessage.set('Las contraseñas no coinciden');
+    if (this.nombreCompleto().trim().length < 2) {
+      this.errorMessage.set('El nombre debe tener al menos 2 caracteres');
       return;
     }
 
-    if (this.password().length < 6) {
-      this.errorMessage.set('La contraseña debe tener al menos 6 caracteres');
+    if (!this.emailValido(this.email())) {
+      this.errorMessage.set('Introduce un correo electrónico válido');
+      return;
+    }
+
+    const reqs = this.passwordReqs();
+    if (!reqs.length) {
+      this.errorMessage.set('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    if (!reqs.uppercase) {
+      this.errorMessage.set('La contraseña debe incluir al menos una letra mayúscula');
+      return;
+    }
+    if (!reqs.lowercase) {
+      this.errorMessage.set('La contraseña debe incluir al menos una letra minúscula');
+      return;
+    }
+    if (!reqs.number) {
+      this.errorMessage.set('La contraseña debe incluir al menos un número');
+      return;
+    }
+    if (!reqs.special) {
+      this.errorMessage.set('La contraseña debe incluir al menos un carácter especial (!@#$%...)');
+      return;
+    }
+
+    if (this.password() !== this.confirmPassword()) {
+      this.errorMessage.set('Las contraseñas no coinciden');
       return;
     }
 

@@ -65,6 +65,9 @@ export class EnvioPaqueteComponent {
   procesandoPago = signal(false);
   /** Sesión de Stripe pendiente de confirmación explícita por el usuario */
   sesionPendiente = signal<SesionPagoCreadaResponse | null>(null);
+
+  // Expuesto al template para mostrar aviso cuando no hay sesión
+  isLoggedIn = computed(() => this.authService.isAuthenticated());
   
   // Datos de remitente — siempre entrega en oficina (no hay recogida a domicilio).
   remitente = signal<DatosPersona>({
@@ -167,6 +170,10 @@ export class EnvioPaqueteComponent {
       if (!this.validarPersona(this.remitente(), 'remitente', this.esCanarias(cpOrigenRemitente))) return;
       if (!this.remitente().email.trim()) {
         this.notificacion.aviso('Campos incompletos', 'Introduce el email del remitente para recibir la etiqueta.');
+        return;
+      }
+      if (!this.validarEmailFormato(this.remitente().email)) {
+        this.notificacion.aviso('Email inválido', 'El correo electrónico del remitente no tiene un formato válido.');
         return;
       }
       this.currentStep.set(step);
@@ -366,6 +373,24 @@ export class EnvioPaqueteComponent {
     return dest.tipoEntrega === 'oficina' ? (dest.oficina?.codigoPostal || '') : dest.codigoPostal;
   }
 
+  private validarDniEspanol(dni: string): boolean {
+    const clean = dni.trim().toUpperCase();
+    if (!/^[0-9]{7,8}[A-Z]$/.test(clean)) return false;
+    const letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
+    const numero = parseInt(clean.slice(0, -1), 10);
+    const letra = clean.slice(-1);
+    return letras.charAt(numero % 23) === letra;
+  }
+
+  private validarTelefonoEspanol(tel: string): boolean {
+    const clean = tel.trim().replace(/\s/g, '');
+    return /^[6789]\d{8}$/.test(clean);
+  }
+
+  private validarEmailFormato(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  }
+
   private validarPersona(persona: DatosPersona, label: string, requireDni = false): boolean {
     if (!persona.nombre.trim()) {
       this.notificacion.aviso('Campos incompletos', `Introduce el nombre del ${label}.`);
@@ -379,6 +404,10 @@ export class EnvioPaqueteComponent {
       this.notificacion.aviso('Campos incompletos', `Introduce el teléfono del ${label}.`);
       return false;
     }
+    if (!this.validarTelefonoEspanol(persona.telefono)) {
+      this.notificacion.aviso('Teléfono inválido', `El teléfono del ${label} no es válido. Debe ser un número español de 9 dígitos (6xx, 7xx, 8xx o 9xx).`);
+      return false;
+    }
 
     if (persona.tipoEntrega === 'oficina') {
       if (!persona.oficina) {
@@ -390,8 +419,8 @@ export class EnvioPaqueteComponent {
         this.notificacion.aviso('Campos incompletos', `Introduce la dirección del ${label}.`);
         return false;
       }
-      if (!persona.codigoPostal.trim() || persona.codigoPostal.length !== 5) {
-        this.notificacion.aviso('Campos incompletos', `Introduce un código postal válido para el ${label}.`);
+      if (!persona.codigoPostal.trim() || !/^\d{5}$/.test(persona.codigoPostal.trim())) {
+        this.notificacion.aviso('Código postal inválido', `El código postal del ${label} debe tener exactamente 5 dígitos.`);
         return false;
       }
       if (!persona.ciudad.trim()) {
@@ -404,8 +433,18 @@ export class EnvioPaqueteComponent {
       }
     }
 
-    if (requireDni && !persona.dni.trim()) {
-      this.notificacion.aviso('DNI requerido', `El DNI/NIF del ${label} es obligatorio para envíos a/desde Canarias.`);
+    if (requireDni) {
+      if (!persona.dni.trim()) {
+        this.notificacion.aviso('DNI requerido', `El DNI/NIF del ${label} es obligatorio para envíos a/desde Canarias.`);
+        return false;
+      }
+      if (!this.validarDniEspanol(persona.dni)) {
+        this.notificacion.aviso('DNI inválido', `El DNI/NIF del ${label} no es válido. Verifica el número y la letra.`);
+        return false;
+      }
+    } else if (persona.dni.trim() && !this.validarDniEspanol(persona.dni)) {
+      // Si se ha rellenado voluntariamente, lo validamos igualmente
+      this.notificacion.aviso('DNI inválido', `El DNI/NIF del ${label} no es válido. Verifica el número y la letra.`);
       return false;
     }
 
@@ -425,6 +464,10 @@ export class EnvioPaqueteComponent {
 
     if (!this.remitente().email.trim()) {
       this.notificacion.aviso('Campos incompletos', 'Introduce el email del remitente para recibir la etiqueta.');
+      return;
+    }
+    if (!this.validarEmailFormato(this.remitente().email)) {
+      this.notificacion.aviso('Email inválido', 'El correo electrónico del remitente no tiene un formato válido.');
       return;
     }
 

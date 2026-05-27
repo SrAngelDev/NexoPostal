@@ -94,6 +94,8 @@
               [ngModel]="searchQuery()"
               (ngModelChange)="onSearchInput($event)"
               [placeholder]="searchType() === 'codigoPostal' ? 'Ej: 28013' : 'Ej: Madrid, Gran Vía'"
+              [attr.inputmode]="searchType() === 'codigoPostal' ? 'numeric' : 'text'"
+              [maxlength]="searchType() === 'codigoPostal' ? 5 : 100"
               (keyup.enter)="buscarOficinas()"
               class="w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-lg text-base text-gray-900 outline-none focus:border-[#1A237E] transition-colors"
               autocomplete="off"

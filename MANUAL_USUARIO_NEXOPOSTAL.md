@@ -2,7 +2,7 @@
 
 ## 1. Objetivo del manual
 
-Este documento explica como utilizar NexoPostal desde el punto de vista de cada tipo de usuario. No describe el codigo ni la arquitectura interna: su funcion es guiar el uso real de la plataforma.
+El presente documento constituye el anexo de uso funcional de NexoPostal. Su finalidad es explicar el manejo de la plataforma desde la perspectiva de cada tipo de usuario, sin descender al detalle de codigo o arquitectura interna.
 
 El manual se divide por perfiles para que cada persona consulte solo la parte que necesita:
 
@@ -16,7 +16,7 @@ El manual se divide por perfiles para que cada persona consulte solo la parte qu
 
 ---
 
-## 2. Conceptos basicos que conviene conocer
+## 2. Conceptos basicos previos
 
 Antes de usar la plataforma, es util distinguir cuatro conceptos:
 
@@ -66,7 +66,7 @@ Accede a la app de reparto. Segun el rol:
 
 ## 4. Manual de cliente
 
-## 4.1 Registro de cuenta
+### 4.1 Registro de cuenta
 
 Pasos recomendados:
 
@@ -80,7 +80,7 @@ Consejo:
 
 - Utiliza un email real si vas a probar reseteo de contrasena o recepcion de documentos por correo.
 
-## 4.2 Inicio de sesion
+### 4.2 Inicio de sesion
 
 Pasos:
 
@@ -94,7 +94,7 @@ Si el acceso falla:
 - Verifica que estas entrando en la aplicacion correcta.
 - Usa la opcion de reseteo si no recuerdas la contrasena.
 
-## 4.3 Recuperar contrasena
+### 4.3 Recuperar contrasena
 
 Pasos:
 
@@ -104,7 +104,7 @@ Pasos:
 4. Abrir el enlace de reseteo.
 5. Establecer una nueva contrasena.
 
-## 4.4 Calcular tarifa de un envio
+### 4.4 Calcular tarifa de un envio
 
 La calculadora permite estimar el coste antes de contratar.
 
@@ -128,7 +128,7 @@ Importante:
 
 - Esta calculadora consulta el backend. No es una simulacion local separada.
 
-## 4.5 Buscar oficinas
+### 4.5 Buscar oficinas
 
 La seccion de oficinas sirve para localizar puntos fisicos de entrega o recogida.
 
@@ -153,7 +153,7 @@ La ficha mostrara, cuando exista informacion disponible:
 - Horario.
 - Servicios.
 
-## 4.6 Crear un envio online
+### 4.6 Crear un envio online
 
 La contratacion del envio se realiza con un asistente por pasos.
 
@@ -215,7 +215,7 @@ El sistema puede mostrar avisos por:
 - Recargo por exceso dimensional.
 - DNI obligatorio en envios que impliquen Canarias.
 
-## 4.7 Pago del envio
+### 4.7 Pago del envio
 
 Una vez confirmado el precio final:
 
@@ -237,7 +237,7 @@ Resultado esperado:
 
 No hace falta rehacer el formulario completo. El envio puede quedar pendiente de pago y reintentarse mas adelante.
 
-## 4.8 Tracking publico
+### 4.8 Tracking publico
 
 El tracking publico muestra el estado del envio mediante:
 
@@ -254,7 +254,7 @@ Pasos:
 
 Si hay conexion en tiempo real disponible, la pantalla puede actualizarse sin recargar.
 
-## 4.9 Panel de usuario
+### 4.9 Panel de usuario
 
 El panel del usuario se divide en tres pestanas principales:
 
@@ -292,7 +292,7 @@ Permite:
 
 ## 5. Manual de intranet
 
-## 5.1 Comportamiento general
+### 5.1 Comportamiento general
 
 Al entrar en la intranet veras opciones distintas segun el rol. No todos los usuarios internos tienen acceso a las mismas pantallas.
 
@@ -303,7 +303,7 @@ Elementos comunes habituales:
 - panel de notificaciones
 - boton de cierre de sesion
 
-## 5.2 Operario de oficina
+### 5.2 Operario de oficina
 
 El `OperarioOficina` trabaja en oficina fisica. Sus tareas mas habituales son:
 
@@ -340,7 +340,7 @@ El operario puede escanear paquetes para registrar eventos de oficina, como rece
 
 Permite consultar expediciones concretas y revisar su estado operativo sin salir de la intranet.
 
-## 5.3 Operario CTA
+### 5.3 Operario CTA
 
 El `OperarioCTA` trabaja sobre la cola de tareas de su centro.
 
@@ -369,7 +369,7 @@ Importante:
 
 - Si aparece un paquete que no corresponde a tus tareas, la intranet puede registrar una incidencia de tipo `PaqueteFueraDeTareas`.
 
-## 5.4 Supervisor
+### 5.4 Supervisor
 
 El `Supervisor` tiene una vista mas amplia del CTA.
 
@@ -391,7 +391,7 @@ Desde esta pantalla puede:
 - revisar tareas pendientes y completadas
 - desactivar operarios cuando proceda
 
-## 5.5 Administrador
+### 5.5 Administrador
 
 El `Admin` dispone del backoffice mas amplio de todo el sistema.
 
@@ -487,7 +487,7 @@ Permite enviar mensajes en tiempo real a:
 
 ## 6. Manual de la app de reparto
 
-## 6.1 Repartidor
+### 6.1 Repartidor
 
 El `Repartidor` usa la app para ejecutar la ruta del dia.
 
@@ -579,7 +579,7 @@ La pantalla de escaneo permite:
 
 Es util cuando necesitas actuar sobre un paquete puntual sin navegar toda la ruta.
 
-## 6.2 Jefe de reparto
+### 6.2 Jefe de reparto
 
 El `JefeReparto` no trabaja sobre la ruta como si fuera un repartidor mas. Su experiencia esta orientada a coordinacion.
 
@@ -671,7 +671,7 @@ Desde esta pantalla puede:
 ### 7.3 Para reparto
 
 - Inicia la ruta antes de comenzar entregas.
-- Mantén el GPS activo cuando la app lo solicite.
+- Manten el GPS activo cuando la app lo solicite.
 - Anade observaciones cuando una incidencia no quede clara con el solo estado.
 - Sincroniza la cola offline antes de cerrar la jornada si ha habido problemas de red.
 
@@ -715,7 +715,7 @@ La app esta preparada para guardar eventos pendientes. Cuando vuelva la conexion
 
 ## 9. Recomendacion para la entrega final del TFG
 
-Este manual funciona mejor si se acompana con capturas de pantalla. Las capturas mas utiles para tribunal o demostracion son:
+Para la version final entregada al tribunal, se recomienda acompanar este manual con capturas de pantalla numeradas y tituladas. Las imagenes mas utiles para documentar el uso real de la plataforma son:
 
 - registro y login del cliente
 - calculadora de tarifas
@@ -734,4 +734,4 @@ Este manual funciona mejor si se acompana con capturas de pantalla. Las capturas
 
 ## 10. Cierre
 
-NexoPostal ha dejado de ser una aplicacion unica con menus distintos para convertirse en un ecosistema de uso por perfiles. Este manual pretende que cada usuario, interno o externo, sepa con claridad donde debe entrar, que puede hacer y como resolver sus tareas habituales sin necesidad de conocer la arquitectura tecnica subyacente.
+NexoPostal ha dejado de ser una aplicacion unica con menus distintos para convertirse en un ecosistema de uso por perfiles. Este manual pretende que cada usuario, interno o externo, identifique con claridad donde debe acceder, que operaciones puede realizar y como resolver sus tareas habituales sin necesidad de conocer la arquitectura tecnica subyacente.

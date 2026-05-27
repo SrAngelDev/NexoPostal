@@ -2,14 +2,14 @@
 
 ## 1. Finalidad del documento
 
-Este documento actua como anexo tecnico de la memoria principal del TFG y tiene cuatro objetivos concretos:
+El presente documento constituye el anexo tecnico de la memoria principal del TFG y persigue cuatro objetivos concretos:
 
 1. Explicar la arquitectura real del sistema NexoPostal en su estado actual.
 2. Servir de guia de instalacion, ejecucion y despliegue.
 3. Documentar los puntos de mantenimiento mas sensibles para futuras evoluciones.
 4. Reducir el tiempo necesario para incorporar a otra persona al proyecto.
 
-No sustituye a la memoria del TFG. La memoria justifica decisiones, alcance y resultados. Este manual tecnico baja al nivel operativo: componentes, dependencias, despliegue, integraciones, seguridad, persistencia y soporte.
+Este anexo no sustituye a la memoria principal. Mientras la memoria justifica decisiones, alcance y resultados, el manual tecnico desciende al plano operativo: componentes, dependencias, despliegue, integraciones, seguridad, persistencia y soporte.
 
 ---
 
@@ -586,7 +586,7 @@ npm run build -- --configuration production
 
 ### 12.3 Tests
 
-En este proyecto conviene ejecutar al menos:
+Como validacion minima del entorno, se recomienda ejecutar al menos:
 
 - build de microservicios.
 - build de frontends.
@@ -789,4 +789,4 @@ Revision:
 
 ## 19. Cierre
 
-NexoPostal ya no debe entenderse como una demo aislada de frontend con API. Su estado actual es el de una plataforma distribuida con separacion clara de dominios, despliegue automatizado, integraciones externas reales y una frontera bien definida entre contratacion, logistica y ultima milla. Este manual tecnico pretende dejar ese estado documentado desde una perspectiva mantenible y operativa.
+NexoPostal ya no debe interpretarse como una demostracion aislada de frontend y API. Su estado actual es el de una plataforma distribuida con separacion clara de dominios, despliegue automatizado, integraciones externas reales y una frontera bien definida entre contratacion, logistica y ultima milla. Este manual tecnico deja documentado ese estado desde una perspectiva mantenible, operativa y transferible a terceros.

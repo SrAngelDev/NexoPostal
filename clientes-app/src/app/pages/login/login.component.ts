@@ -25,6 +25,7 @@ export class LoginComponent {
   password = signal('');
   isLoading = signal(false);
   errorMessage = signal('');
+  showPassword = signal(false);
 
   // Recuperar contraseña
   forgotEmail = signal('');
@@ -39,6 +40,12 @@ export class LoginComponent {
   onSubmit(): void {
     if (!this.email() || !this.password()) {
       this.errorMessage.set('Por favor, completa todos los campos');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.email().trim())) {
+      this.errorMessage.set('Introduce un correo electrónico válido');
       return;
     }
 

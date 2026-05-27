@@ -114,6 +114,10 @@ export class BuscadorOficinaComponent implements AfterViewInit, OnDestroy {
   }
 
   onSearchInput(value: string): void {
+    // En modo código postal solo se permiten dígitos
+    if (this.searchType() === 'codigoPostal') {
+      value = value.replace(/\D/g, '').slice(0, 5);
+    }
     this.searchQuery.set(value);
     this.coordenadasBusqueda = null;
     

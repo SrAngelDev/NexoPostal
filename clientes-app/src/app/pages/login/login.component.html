@@ -42,10 +42,13 @@
           <label for="password" class="form-label">Contraseña</label>
           <div class="input-wrapper">
             <span class="material-symbols-outlined input-icon">lock</span>
-            <input type="password" id="password" data-testid="password-input"
+            <input [type]="showPassword() ? 'text' : 'password'" id="password" data-testid="password-input"
                    [ngModel]="password()" (ngModelChange)="password.set($event)"
                    name="password" placeholder="••••••••"
-                   class="form-input" required autocomplete="current-password" />
+                   class="form-input form-input-pw" required autocomplete="current-password" />
+            <button type="button" class="pw-toggle" (click)="showPassword.set(!showPassword())" tabindex="-1">
+              <span class="material-symbols-outlined">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
+            </button>
           </div>
         </div>
 

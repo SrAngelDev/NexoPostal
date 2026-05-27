@@ -166,6 +166,18 @@
 .dark .switch-link { color: var(--brand-accent); }
 .switch-link:hover { text-decoration: underline; }
 
+/* ---- Contraseña: show/hide toggle ---- */
+.form-input-pw { padding-right: 2.85rem; }
+.pw-toggle {
+  position: absolute; right: 0.75rem;
+  background: none; border: 0; cursor: pointer;
+  color: var(--text-subtle);
+  display: inline-flex; align-items: center;
+  transition: color var(--dur) var(--ease);
+}
+.pw-toggle:hover { color: var(--brand-primary); }
+.dark .pw-toggle:hover { color: var(--brand-accent); }
+
 @media (max-width: 640px) {
   .modal-backdrop { padding: 0.5rem; }
   .modal-body { padding: 1.35rem; }
