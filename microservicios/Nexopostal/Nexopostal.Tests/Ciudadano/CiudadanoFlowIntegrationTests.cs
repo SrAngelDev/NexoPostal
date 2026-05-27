@@ -1,107 +1,20 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Nexopostal.Ciudadano.Data;
 using Nexopostal.Ciudadano.DTOs;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Security.Claims;
-using System.Text.Encodings.Web;
 using Xunit;
 
 namespace Nexopostal.Tests.Ciudadano;
 
 /// <summary>
-/// Mock de autenticación para simular usuario autenticado en las pruebas de integración.
-/// </summary>
-public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
-{
-    public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options,
-        ILoggerFactory logger, UrlEncoder encoder)
-        : base(options, logger, encoder)
-    {
-    }
-
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
-    {
-        var claims = new[] {
-            new Claim(ClaimTypes.NameIdentifier, "test-user-id-123"),
-            new Claim("sub", "test-user-id-123"),
-            new Claim(ClaimTypes.Name, "test@nexopostal.com"),
-            new Claim(ClaimTypes.Role, "Cliente")
-        };
-        var identity = new ClaimsIdentity(claims, "Test");
-        var principal = new ClaimsPrincipal(identity);
-        var ticket = new AuthenticationTicket(principal, "Test");
-
-        return Task.FromResult(AuthenticateResult.Success(ticket));
-    }
-}
-
-/// <summary>
-/// Factoría de servidor web que inyecta el Mock de Autenticación.
-/// </summary>
-public class FlowTestWebApplicationFactory : WebApplicationFactory<Nexopostal.Ciudadano.Program>
-{
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Testing");
-
-        builder.ConfigureTestServices(services =>
-        {
-            // 1. Quitar descriptores de Npgsql
-            var npgsqlDescriptors = services
-                .Where(d =>
-                    (d.ServiceType?.FullName?.Contains("Npgsql") == true) ||
-                    (d.ImplementationType?.FullName?.Contains("Npgsql") == true) ||
-                    (d.ImplementationFactory?.Method.DeclaringType?.FullName?.Contains("Npgsql") == true))
-                .ToList();
-            foreach (var d in npgsqlDescriptors) services.Remove(d);
-
-            var dbDescriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(DbContextOptions<CiudadanoDbContext>));
-            if (dbDescriptor != null) services.Remove(dbDescriptor);
-
-            // IDbContextOptionsConfiguration<CiudadanoDbContext> guarda la lambda UseNpgsql
-            var optionsConfigDescriptors = services
-                .Where(d =>
-                    d.ServiceType.IsGenericType &&
-                    d.ServiceType.Name.StartsWith("IDbContextOptionsConfiguration") &&
-                    d.ServiceType.GenericTypeArguments.Length == 1 &&
-                    d.ServiceType.GenericTypeArguments[0] == typeof(CiudadanoDbContext))
-                .ToList();
-            foreach (var d in optionsConfigDescriptors) services.Remove(d);
-
-            // 2. Agregar base de datos en memoria
-            services.AddDbContext<CiudadanoDbContext>(options =>
-            {
-                options.UseInMemoryDatabase("InMemoryFlowDbForTesting");
-                options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
-            });
-
-            // 3. Registrar el TestAuthHandler
-            services.AddAuthentication(defaultScheme: "Test")
-                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", options => { });
-        });
-    }
-}
-
-/// <summary>
 /// Prueba E2E a nivel de API backend que valida el flujo de creación y trazabilidad de envíos.
 /// </summary>
-public class CiudadanoFlowIntegrationTests : IClassFixture<FlowTestWebApplicationFactory>
+public class CiudadanoFlowIntegrationTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public CiudadanoFlowIntegrationTests(FlowTestWebApplicationFactory factory)
+    public CiudadanoFlowIntegrationTests(CustomWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
         // Configurar cabecera de autenticación por defecto usando el esquema de test

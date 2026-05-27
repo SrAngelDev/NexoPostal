@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -12,6 +13,7 @@ using Nexopostal.Intranet.Data;
 using Nexopostal.Intranet.Hubs;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Nexopostal.Tests.Intranet;
@@ -59,14 +61,15 @@ public class IntranetTestAuthHandler : AuthenticationHandler<AuthenticationSchem
 
 /// <summary>
 /// WebApplicationFactory para tests de integración de Intranet.
-/// Sustituye IntranetDbContext por InMemory y mockea IHubContext&lt;IntranetHub&gt;.
+/// Usa un contenedor PostgreSQL real (TestContainers), mockea IHubContext&lt;IntranetHub&gt;.
 /// </summary>
-public class CustomIntranetWebApplicationFactory : WebApplicationFactory<Nexopostal.Intranet.Data.IntranetDbContext>
+public class CustomIntranetWebApplicationFactory : WebApplicationFactory<Nexopostal.Intranet.Data.IntranetDbContext>, IAsyncLifetime
 {
-    private static readonly IServiceProvider _efInMemoryProvider =
-        new ServiceCollection()
-            .AddEntityFrameworkInMemoryDatabase()
-            .BuildServiceProvider();
+    private readonly PostgreSqlContainer _pgContainer = new PostgreSqlBuilder()
+        .WithImage("postgres:16")
+        .Build();
+
+    public async Task InitializeAsync() => await _pgContainer.StartAsync();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -74,19 +77,31 @@ public class CustomIntranetWebApplicationFactory : WebApplicationFactory<Nexopos
 
         builder.ConfigureTestServices(services =>
         {
-            // 1. Quitar DbContext PostgreSQL real
+            var npgsqlDescriptors = services
+                .Where(d =>
+                    (d.ServiceType?.FullName?.Contains("Npgsql") == true) ||
+                    (d.ImplementationType?.FullName?.Contains("Npgsql") == true) ||
+                    (d.ImplementationFactory?.Method.DeclaringType?.FullName?.Contains("Npgsql") == true))
+                .ToList();
+            foreach (var d in npgsqlDescriptors) services.Remove(d);
+
             var dbDescriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<IntranetDbContext>));
             if (dbDescriptor != null) services.Remove(dbDescriptor);
 
-            // 2. Agregar InMemory DB con proveedor aislado
-            services.AddDbContext<IntranetDbContext>(options =>
-            {
-                options.UseInMemoryDatabase("InMemoryIntranetDbForTesting_" + Guid.NewGuid());
-                options.UseInternalServiceProvider(_efInMemoryProvider);
-            });
+            var optionsConfigDescriptors = services
+                .Where(d =>
+                    d.ServiceType.IsGenericType &&
+                    d.ServiceType.Name.StartsWith("IDbContextOptionsConfiguration") &&
+                    d.ServiceType.GenericTypeArguments.Length == 1 &&
+                    d.ServiceType.GenericTypeArguments[0] == typeof(IntranetDbContext))
+                .ToList();
+            foreach (var d in optionsConfigDescriptors) services.Remove(d);
 
-            // 3. Mockear IHubContext<IntranetHub> para evitar dependencias de SignalR real
+            services.AddDbContext<IntranetDbContext>(options =>
+                options.UseNpgsql(_pgContainer.GetConnectionString()));
+
+            // Mockear IHubContext<IntranetHub> para evitar dependencias de SignalR real
             var mockHub = new Mock<IHubContext<IntranetHub>>();
             var mockClients = new Mock<IHubClients>();
             var mockClientProxy = new Mock<IClientProxy>();
@@ -97,9 +112,19 @@ public class CustomIntranetWebApplicationFactory : WebApplicationFactory<Nexopos
 
             services.AddSingleton(mockHub.Object);
 
-            // 4. Registrar el TestAuthHandler sustituyendo JWT
             services.AddAuthentication(defaultScheme: "Test")
                 .AddScheme<AuthenticationSchemeOptions, IntranetTestAuthHandler>("Test", _ => { });
         });
     }
+
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+        using var scope = host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<IntranetDbContext>();
+        db.Database.EnsureCreated();
+        return host;
+    }
+
+    public new async Task DisposeAsync() => await _pgContainer.DisposeAsync();
 }

@@ -10,11 +10,11 @@ namespace Nexopostal.Tests.Ciudadano;
 /// Pruebas de integración para <see cref="TarifasController"/> utilizando
 /// <see cref="CustomWebApplicationFactory{TProgram}"/>.
 /// </summary>
-public class TarifasIntegrationTests : IClassFixture<CustomWebApplicationFactory<Nexopostal.Ciudadano.Program>>
+public class TarifasIntegrationTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public TarifasIntegrationTests(CustomWebApplicationFactory<Nexopostal.Ciudadano.Program> factory)
+    public TarifasIntegrationTests(CustomWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
     }

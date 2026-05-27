@@ -13,9 +13,11 @@ namespace Nexopostal.Tests.Intranet;
 public class ScanControllerIntegrationTests : IClassFixture<CustomIntranetWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly CustomIntranetWebApplicationFactory _factory;
 
     public ScanControllerIntegrationTests(CustomIntranetWebApplicationFactory factory)
     {
+        _factory = factory;
         IntranetTestAuthHandler.DefaultRole = "OperarioCTA";
         _client = factory.CreateClient();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
@@ -28,8 +30,8 @@ public class ScanControllerIntegrationTests : IClassFixture<CustomIntranetWebApp
     [Fact]
     public async Task ProcesarEscaneo_SinAutenticacion_DeberiaRetornar401()
     {
-        // Cliente sin header de autorización
-        var clientSinAuth = new CustomIntranetWebApplicationFactory().CreateClient();
+        // Cliente sin header de autorización (sin Authorization header = anónimo)
+        var clientSinAuth = _factory.CreateClient();
 
         var request = new ScanRequestDto
         {

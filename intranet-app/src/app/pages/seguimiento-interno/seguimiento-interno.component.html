@@ -1,10 +1,10 @@
-<div class="page">
+<div class="page" data-testid="seguimiento-page">
   <!-- ===== NAVBAR ===== -->
   <app-intranet-navbar icon="local_shipping" title="Seguimiento Interno" />
 
   <main class="main-content">
     <!-- ===== TABS ===== -->
-    <div class="tabs">
+    <div class="tabs" data-testid="tabs-section">
       <button
         class="tab"
         [class.tab-active]="tabActiva() === 'buscar'"
@@ -41,6 +41,7 @@
               <input
                 type="text"
                 class="search-input"
+                data-testid="search-input"
                 [(ngModel)]="searchQuery"
                 placeholder="NXI-A1B2C3D4 o NX123456789ES"
                 (keyup.enter)="buscar()"
@@ -57,7 +58,7 @@
                     title="{{ mostrarScanner() ? 'Cerrar escáner' : 'Escanear con cámara' }}">
               <span class="material-symbols-outlined">{{ mostrarScanner() ? 'close' : 'qr_code_scanner' }}</span>
             </button>
-            <button class="btn-search" (click)="buscar()" [disabled]="searchLoading()">
+            <button class="btn-search" data-testid="buscar-btn" (click)="buscar()" [disabled]="searchLoading()">
               @if (searchLoading()) {
                 <span class="spinner"></span>
               } @else {

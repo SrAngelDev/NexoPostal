@@ -13,7 +13,7 @@ namespace Nexopostal.Gateway.Controllers;
 [Authorize(Roles = "Admin")]
 public class TarifasAdminProxyController : ControllerBase
 {
-    private static readonly HttpClient _httpClient = new();
+    internal static HttpClient _httpClient = new();
     private readonly string _ciudadanoUrl;
 
     public TarifasAdminProxyController(IConfiguration config)

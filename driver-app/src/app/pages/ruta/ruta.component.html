@@ -1,4 +1,4 @@
-<div class="ruta-page">
+<div class="ruta-page" data-testid="ruta-page">
   <app-driver-navbar icon="route" title="Ruta de reparto" (backClick)="volverDashboard()">
     <span class="badge" [class.badge-offline]="!online()">{{ online() ? 'Online' : 'Offline' }}</span>
     @if (gpsActivo()) { <span class="badge badge-gps">GPS activo</span> }
@@ -29,7 +29,7 @@
         Cargando ruta asignada...
       </div>
     } @else if (!ruta()) {
-      <section class="empty-card">
+      <section class="empty-card" data-testid="ruta-empty">
         <span class="material-symbols-outlined">inventory_2</span>
         <h2>Sin ruta asignada para hoy</h2>
         <p>Cuando logística publique una ruta para tu usuario, aparecerá aquí automáticamente.</p>
@@ -39,7 +39,7 @@
         </div>
       </section>
     } @else {
-      <section class="ruta-resumen">
+      <section class="ruta-resumen" data-testid="ruta-detalle">
         <div>
           <h2>{{ ruta()!.codigo }}</h2>
           <p>{{ ruta()!.oficinaOrigenNombre }} · {{ ruta()!.fechaReparto }} · Estado: {{ ruta()!.estado }}</p>

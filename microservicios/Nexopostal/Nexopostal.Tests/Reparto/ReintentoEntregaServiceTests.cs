@@ -8,167 +8,159 @@ using Xunit;
 
 namespace Nexopostal.Tests.Reparto;
 
-/// <summary>
-/// Tests unitarios para ReintentoEntregaService.
-/// </summary>
 public class ReintentoEntregaServiceTests
 {
     private readonly Mock<IEntregaPaqueteRepository> _entregaRepo = new();
     private readonly Mock<IRutaRepartoRepository> _rutaRepo = new();
 
-    private ReintentoEntregaService BuildService() => new ReintentoEntregaService(
-        _entregaRepo.Object,
-        _rutaRepo.Object,
-        NullLogger<ReintentoEntregaService>.Instance);
+    private ReintentoEntregaService Create() =>
+        new(_entregaRepo.Object, _rutaRepo.Object, NullLogger<ReintentoEntregaService>.Instance);
 
-    // ═══════════════════════════════════════════
-    //  ProgramarReintento
-    // ═══════════════════════════════════════════
-
-    [Fact]
-    public async Task ProgramarReintento_EntregaNoExiste_DeberiaRetornarFalse()
-    {
-        _entregaRepo.Setup(r => r.GetByIdAsync(999)).ReturnsAsync((EntregaPaquete?)null);
-
-        var service = BuildService();
-        var result = await service.ProgramarReintento(999, "Motivo test");
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task ProgramarReintento_EntregaEntregada_DeberiaRetornarFalse()
-    {
-        _entregaRepo.Setup(r => r.GetByIdAsync(1))
-            .ReturnsAsync(new EntregaPaquete { Id = 1, Estado = EstadoEntrega.Entregado, NumeroIntento = 1 });
-
-        var service = BuildService();
-        var result = await service.ProgramarReintento(1, "Motivo test");
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task ProgramarReintento_EntregaPendiente_DeberiaRetornarFalse()
-    {
-        _entregaRepo.Setup(r => r.GetByIdAsync(1))
-            .ReturnsAsync(new EntregaPaquete { Id = 1, Estado = EstadoEntrega.Pendiente, NumeroIntento = 1 });
-
-        var service = BuildService();
-        var result = await service.ProgramarReintento(1, "Motivo test");
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task ProgramarReintento_PrimerIntentoFallido_DeberiaCrearNuevoIntentoYRetornarTrue()
-    {
-        var entregaOriginal = new EntregaPaquete
+    private static EntregaPaquete Entrega(int id, EstadoEntrega estado, int intento = 1, int diasAtras = 0)
+        => new()
         {
-            Id = 1,
-            Estado = EstadoEntrega.Ausente,
-            NumeroIntento = 1,
-            RutaRepartoId = 10,
-            NumeroExpedicion = "EXP-TEST-001",
-            NumeroSeguimiento = "NX000TEST001ES",
-            DireccionEntrega = "Calle Test 1",
+            Id = id,
+            RutaRepartoId = 1,
+            NumeroExpedicion = "EXP-1",
+            NumeroSeguimiento = "NP-1",
+            DireccionEntrega = "Calle 1",
             CodigoPostal = "28001",
             Ciudad = "Madrid",
-            NombreDestinatario = "Test Destinatario",
-            FechaCreacion = DateTime.UtcNow.AddDays(-1)
+            NombreDestinatario = "Test",
+            Estado = estado,
+            NumeroIntento = intento,
+            FechaCreacion = DateTime.UtcNow.AddDays(-diasAtras)
         };
 
-        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(entregaOriginal);
-        _entregaRepo.Setup(r => r.GetByExpedicionAsync("EXP-TEST-001"))
-            .ReturnsAsync(new List<EntregaPaquete> { entregaOriginal });
+    [Fact]
+    public async Task DeterminarAccion_EntregaNoExiste_DevuelveDevolver()
+    {
+        _entregaRepo.Setup(r => r.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((EntregaPaquete?)null);
+        (await Create().DeterminarAccion(99)).Should().Be("Devolver");
+    }
+
+    [Fact]
+    public async Task DeterminarAccion_MasDe5Dias_DevuelveDevolver()
+    {
+        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(Entrega(1, EstadoEntrega.Ausente, 1, diasAtras: 7));
+        (await Create().DeterminarAccion(1)).Should().Be("Devolver");
+    }
+
+    [Fact]
+    public async Task DeterminarAccion_Intento1_DevuelveReintentar()
+    {
+        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(Entrega(1, EstadoEntrega.Ausente, 1, diasAtras: 0));
+        (await Create().DeterminarAccion(1)).Should().Be("Reintentar");
+    }
+
+    [Fact]
+    public async Task DeterminarAccion_Intento2_DevuelveDepositarOficina()
+    {
+        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(Entrega(1, EstadoEntrega.Ausente, 2, diasAtras: 1));
+        (await Create().DeterminarAccion(1)).Should().Be("DepositarOficina");
+    }
+
+    [Fact]
+    public async Task DeterminarAccion_Intento3_DevuelveDevolver()
+    {
+        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(Entrega(1, EstadoEntrega.Ausente, 3, diasAtras: 1));
+        (await Create().DeterminarAccion(1)).Should().Be("Devolver");
+    }
+
+    [Fact]
+    public async Task ProgramarReintento_NoExiste_DevuelveFalse()
+    {
+        _entregaRepo.Setup(r => r.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((EntregaPaquete?)null);
+        (await Create().ProgramarReintento(1, "m")).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(EstadoEntrega.Entregado)]
+    [InlineData(EstadoEntrega.Pendiente)]
+    [InlineData(EstadoEntrega.EnCamino)]
+    public async Task ProgramarReintento_EstadoNoFallido_DevuelveFalse(EstadoEntrega estado)
+    {
+        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(Entrega(1, estado));
+        (await Create().ProgramarReintento(1, "m")).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ProgramarReintento_Intento1Ausente_CreaNuevoIntento()
+    {
+        var origen = Entrega(1, EstadoEntrega.Ausente, intento: 1, diasAtras: 0);
+        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(origen);
+        EntregaPaquete? creado = null;
         _entregaRepo.Setup(r => r.CreateAsync(It.IsAny<EntregaPaquete>()))
-            .ReturnsAsync((EntregaPaquete e) => { e.Id = 2; return e; });
+                    .Callback<EntregaPaquete>(e => creado = e)
+                    .ReturnsAsync((EntregaPaquete e) => e);
 
-        var service = BuildService();
-        var result = await service.ProgramarReintento(1, "Cliente ausente");
-
-        result.Should().BeTrue();
-        _entregaRepo.Verify(r => r.CreateAsync(It.Is<EntregaPaquete>(e =>
-            e.NumeroIntento == 2 && e.Estado == EstadoEntrega.Pendiente)), Times.Once);
+        var ok = await Create().ProgramarReintento(1, "Ausente");
+        ok.Should().BeTrue();
+        creado.Should().NotBeNull();
+        creado!.NumeroIntento.Should().Be(2);
+        creado.Estado.Should().Be(EstadoEntrega.Pendiente);
+        creado.Observaciones.Should().Contain("Ausente");
     }
 
     [Fact]
-    public async Task ProgramarReintento_SegundoIntentoFallido_DeberiaRetornarFalse()
+    public async Task ProgramarReintento_Intento2_NoReintenta()
     {
-        // 2 intentos previos → DeterminarAccion → "DepositarOficina" → no crea nuevo intento
-        var entregaOriginal = new EntregaPaquete
+        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(Entrega(1, EstadoEntrega.Ausente, intento: 2, diasAtras: 0));
+        (await Create().ProgramarReintento(1, "m")).Should().BeFalse();
+        _entregaRepo.Verify(r => r.CreateAsync(It.IsAny<EntregaPaquete>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CancelarReintentos_NoExiste_DevuelveFalse()
+    {
+        _entregaRepo.Setup(r => r.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((EntregaPaquete?)null);
+        (await Create().CancelarReintentos(99)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CancelarReintentos_NoPendiente_DevuelveFalse()
+    {
+        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(Entrega(1, EstadoEntrega.Entregado));
+        (await Create().CancelarReintentos(1)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CancelarReintentos_Pendiente_MarcaDevueltoYActualiza()
+    {
+        var entrega = Entrega(1, EstadoEntrega.Pendiente);
+        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(entrega);
+        (await Create().CancelarReintentos(1)).Should().BeTrue();
+        entrega.Estado.Should().Be(EstadoEntrega.DevueltoAOficina);
+        entrega.Observaciones.Should().Contain("cancelado");
+        _entregaRepo.Verify(r => r.UpdateAsync(entrega), Times.Once);
+    }
+
+    [Fact]
+    public async Task ObtenerEntregasParaReintento_SinRutasHoy_DevuelveListaVacia()
+    {
+        _rutaRepo.Setup(r => r.GetByFechaAsync(It.IsAny<DateOnly>(), null)).ReturnsAsync(new List<RutaReparto>());
+        var resultado = await Create().ObtenerEntregasParaReintento();
+        resultado.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ObtenerEntregasParaReintento_FiltraSoloEstadosFallidosYIntentoBajo()
+    {
+        var rutas = new List<RutaReparto> { new() { Id = 10 } };
+        _rutaRepo.Setup(r => r.GetByFechaAsync(It.IsAny<DateOnly>(), null)).ReturnsAsync(rutas);
+
+        var entregas = new List<EntregaPaquete>
         {
-            Id = 1,
-            Estado = EstadoEntrega.Ausente,
-            NumeroIntento = 2,
-            RutaRepartoId = 10,
-            NumeroExpedicion = "EXP-TEST-002",
-            FechaCreacion = DateTime.UtcNow.AddDays(-2)
+            Entrega(1, EstadoEntrega.Ausente, intento: 1),
+            Entrega(2, EstadoEntrega.DireccionIncorrecta, intento: 2),
+            Entrega(3, EstadoEntrega.Rechazado, intento: 3),
+            Entrega(4, EstadoEntrega.Entregado, intento: 1),
+            Entrega(5, EstadoEntrega.Pendiente, intento: 1)
         };
-        var intentosAnteriores = new List<EntregaPaquete>
-        {
-            new() { NumeroIntento = 1, NumeroExpedicion = "EXP-TEST-002", Estado = EstadoEntrega.Ausente, FechaCreacion = DateTime.UtcNow.AddDays(-3) },
-            entregaOriginal
-        };
+        _entregaRepo.Setup(r => r.GetByRutaIdsAsync(It.IsAny<List<int>>())).ReturnsAsync(entregas);
 
-        _entregaRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(entregaOriginal);
-        _entregaRepo.Setup(r => r.GetByExpedicionAsync("EXP-TEST-002"))
-            .ReturnsAsync(intentosAnteriores);
-
-        var service = BuildService();
-        var result = await service.ProgramarReintento(1, "Cliente ausente segunda vez");
-
-        result.Should().BeFalse();
-    }
-
-    // ═══════════════════════════════════════════
-    //  DeterminarAccion
-    // ═══════════════════════════════════════════
-
-    [Fact]
-    public async Task DeterminarAccion_PrimerIntento_DeberiaRetornarReintentar()
-    {
-        _entregaRepo.Setup(r => r.GetByIdAsync(1))
-            .ReturnsAsync(new EntregaPaquete
-            {
-                Id = 1,
-                NumeroExpedicion = "EXP-001",
-                NumeroIntento = 1,
-                FechaCreacion = DateTime.UtcNow.AddDays(-1)
-            });
-        _entregaRepo.Setup(r => r.GetByExpedicionAsync("EXP-001"))
-            .ReturnsAsync(new List<EntregaPaquete>
-            {
-                new() { NumeroIntento = 1, FechaCreacion = DateTime.UtcNow.AddDays(-1) }
-            });
-
-        var service = BuildService();
-        var result = await service.DeterminarAccion(1);
-
-        result.Should().Be("Reintentar");
-    }
-
-    [Fact]
-    public async Task DeterminarAccion_SegundoIntento_DeberiaRetornarDepositarOficina()
-    {
-        _entregaRepo.Setup(r => r.GetByIdAsync(1))
-            .ReturnsAsync(new EntregaPaquete
-            {
-                Id = 1,
-                NumeroExpedicion = "EXP-002",
-                NumeroIntento = 2,
-                FechaCreacion = DateTime.UtcNow.AddDays(-2)
-            });
-        _entregaRepo.Setup(r => r.GetByExpedicionAsync("EXP-002"))
-            .ReturnsAsync(new List<EntregaPaquete>
-            {
-                new() { NumeroIntento = 1, FechaCreacion = DateTime.UtcNow.AddDays(-3) },
-                new() { NumeroIntento = 2, FechaCreacion = DateTime.UtcNow.AddDays(-2) }
-            });
-
-        var service = BuildService();
-        var result = await service.DeterminarAccion(1);
-
-        result.Should().Be("DepositarOficina");
+        var resultado = await Create().ObtenerEntregasParaReintento();
+        resultado.Should().HaveCount(2);
+        resultado.Select(e => e.Id).Should().BeEquivalentTo(new[] { 1, 2 });
     }
 }

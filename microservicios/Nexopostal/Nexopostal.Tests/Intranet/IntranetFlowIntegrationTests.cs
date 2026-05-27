@@ -14,9 +14,11 @@ namespace Nexopostal.Tests.Intranet;
 public class IntranetFlowIntegrationTests : IClassFixture<CustomIntranetWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly CustomIntranetWebApplicationFactory _factory;
 
     public IntranetFlowIntegrationTests(CustomIntranetWebApplicationFactory factory)
     {
+        _factory = factory;
         IntranetTestAuthHandler.DefaultRole = "Admin";
         _client = factory.CreateClient();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
@@ -39,7 +41,7 @@ public class IntranetFlowIntegrationTests : IClassFixture<CustomIntranetWebAppli
     public async Task ObtenerTrackingPublico_SinAutenticacion_DeberiaRetornar200()
     {
         // Endpoint [AllowAnonymous] — debe funcionar sin token
-        var clientSinAuth = new CustomIntranetWebApplicationFactory().CreateClient();
+        var clientSinAuth = _factory.CreateClient();
 
         var response = await clientSinAuth.GetAsync("/api/Historial/tracking/NX000TEST9999ES");
 
@@ -53,7 +55,7 @@ public class IntranetFlowIntegrationTests : IClassFixture<CustomIntranetWebAppli
     [Fact]
     public async Task ObtenerHistorialInterno_SinAutenticacion_DeberiaRetornar401()
     {
-        var clientSinAuth = new CustomIntranetWebApplicationFactory().CreateClient();
+        var clientSinAuth = _factory.CreateClient();
 
         var response = await clientSinAuth.GetAsync("/api/Historial/interno/NXI-TEST-001");
 
@@ -75,7 +77,7 @@ public class IntranetFlowIntegrationTests : IClassFixture<CustomIntranetWebAppli
     [Fact]
     public async Task ObtenerCtas_SinAutenticacion_DeberiaRetornar401()
     {
-        var clientSinAuth = new CustomIntranetWebApplicationFactory().CreateClient();
+        var clientSinAuth = _factory.CreateClient();
 
         var response = await clientSinAuth.GetAsync("/api/Ctas");
 

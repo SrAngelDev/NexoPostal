@@ -25,6 +25,7 @@
             <label class="text-sm font-semibold text-gray-700">Código Postal Origen</label>
             <input 
               type="text" 
+              data-testid="cp-origen-input"
               [ngModel]="cpOrigen()"
               (ngModelChange)="cpOrigen.set($event)"
               placeholder="Ej: 28001" 
@@ -37,6 +38,7 @@
             <label class="text-sm font-semibold text-gray-700">Código Postal Destino</label>
             <input 
               type="text" 
+              data-testid="cp-destino-input"
               [ngModel]="cpDestino()"
               (ngModelChange)="cpDestino.set($event)"
               placeholder="Ej: 08001" 
@@ -56,6 +58,7 @@
             <label class="text-sm font-semibold text-gray-700">Peso (kg)</label>
             <input 
               type="number" 
+              data-testid="peso-input"
               [ngModel]="peso()"
               (ngModelChange)="peso.set($event)"
               step="0.1" 
@@ -70,6 +73,7 @@
             <label class="text-sm font-semibold text-gray-700">Largo (cm)</label>
             <input 
               type="number" 
+              data-testid="largo-input"
               [ngModel]="largo()"
               (ngModelChange)="largo.set($event)"
               min="10"
@@ -83,6 +87,7 @@
             <label class="text-sm font-semibold text-gray-700">Ancho (cm)</label>
             <input 
               type="number" 
+              data-testid="ancho-input"
               [ngModel]="ancho()"
               (ngModelChange)="ancho.set($event)"
               min="10"
@@ -95,6 +100,7 @@
             <label class="text-sm font-semibold text-gray-700">Alto (cm)</label>
             <input 
               type="number" 
+              data-testid="alto-input"
               [ngModel]="alto()"
               (ngModelChange)="alto.set($event)"
               min="10"
@@ -130,6 +136,7 @@
         <!-- Botones -->
         <div class="flex gap-3 mt-8">
           <button 
+            data-testid="calcular-btn"
             (click)="calcularTarifa()"
             [disabled]="isCalculating()"
             class="flex-1 px-6 py-4 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -143,6 +150,7 @@
             }
           </button>
           <button 
+            data-testid="limpiar-btn"
             (click)="limpiar()"
             class="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
           >
@@ -171,7 +179,7 @@
           </div>
         } @else {
           <!-- Resultados de la tarifa -->
-          <div class="space-y-6">
+          <div data-testid="tarifa-resultado" class="space-y-6">
             <!-- Info del paquete -->
             <div class="bg-white p-6 rounded-xl shadow-lg">
               <h3 class="text-xl font-bold text-[#1A237E] mb-4 flex items-center gap-2">

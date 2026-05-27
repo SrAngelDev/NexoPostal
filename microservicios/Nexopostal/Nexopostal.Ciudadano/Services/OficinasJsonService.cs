@@ -23,7 +23,7 @@ public class OficinasJsonService
     /// <summary>
     /// Obtiene todas las oficinas (cacheadas en memoria).
     /// </summary>
-    public List<OficinaDto> ObtenerTodas()
+    public virtual List<OficinaDto> ObtenerTodas()
     {
         if (_cache != null) return _cache;
 
@@ -53,7 +53,7 @@ public class OficinasJsonService
     /// <summary>
     /// Busca oficinas cuyo código postal coincida o empiece por el valor dado.
     /// </summary>
-    public List<OficinaDto> BuscarPorCodigoPostal(string codigoPostal)
+    public virtual List<OficinaDto> BuscarPorCodigoPostal(string codigoPostal)
     {
         var todas = ObtenerTodas();
         var cp = codigoPostal.Trim();
@@ -74,7 +74,7 @@ public class OficinasJsonService
     /// <summary>
     /// Busca oficinas por texto libre (nombre, dirección, ciudad o código postal).
     /// </summary>
-    public List<OficinaDto> BuscarPorTexto(string query)
+    public virtual List<OficinaDto> BuscarPorTexto(string query)
     {
         var todas = ObtenerTodas();
         var q = query.Trim().ToLowerInvariant();

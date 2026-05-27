@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -13,6 +13,8 @@ using Nexopostal.Reparto.Data;
 using Nexopostal.Reparto.Hubs;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using Testcontainers.PostgreSql;
+using Xunit;
 
 namespace Nexopostal.Tests.Reparto;
 
@@ -57,17 +59,22 @@ public class RepartoTestAuthHandler : AuthenticationHandler<AuthenticationScheme
 
 /// <summary>
 /// WebApplicationFactory para tests de integración de Reparto.
-/// Sustituye RepartoDbContext por InMemory y mockea IHubContext&lt;RepartoHub&gt;.
+/// Usa un contenedor PostgreSQL real (TestContainers), mockea IHubContext&lt;RepartoHub&gt;.
 /// </summary>
-public class CustomRepartoWebApplicationFactory : WebApplicationFactory<Nexopostal.Reparto.Data.RepartoDbContext>
+public class CustomRepartoWebApplicationFactory : WebApplicationFactory<Nexopostal.Reparto.Data.RepartoDbContext>, IAsyncLifetime
 {
+    private readonly PostgreSqlContainer _pgContainer = new PostgreSqlBuilder()
+        .WithImage("postgres:16")
+        .Build();
+
+    public async Task InitializeAsync() => await _pgContainer.StartAsync();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
 
         builder.ConfigureTestServices(services =>
         {
-            // 1. Quitar todos los descriptores de configuración del DbContext (Npgsql)
             var npgsqlDescriptors = services
                 .Where(d =>
                     (d.ServiceType?.FullName?.Contains("Npgsql") == true) ||
@@ -80,7 +87,6 @@ public class CustomRepartoWebApplicationFactory : WebApplicationFactory<Nexopost
                 d => d.ServiceType == typeof(DbContextOptions<RepartoDbContext>));
             if (dbDescriptor != null) services.Remove(dbDescriptor);
 
-            // IDbContextOptionsConfiguration<RepartoDbContext> guarda la lambda UseNpgsql — eliminar por nombre
             var optionsConfigDescriptors = services
                 .Where(d =>
                     d.ServiceType.IsGenericType &&
@@ -90,17 +96,10 @@ public class CustomRepartoWebApplicationFactory : WebApplicationFactory<Nexopost
                 .ToList();
             foreach (var d in optionsConfigDescriptors) services.Remove(d);
 
-            // 2. Agregar InMemory DB sin UseInternalServiceProvider
-            // IMPORTANTE: el nombre debe generarse FUERA de la lambda para que
-            // todos los scopes del mismo factory usen la misma BD InMemory.
-            var dbName = "InMemoryRepartoDbForTesting_" + Guid.NewGuid();
             services.AddDbContext<RepartoDbContext>(options =>
-            {
-                options.UseInMemoryDatabase(dbName);
-                options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
-            });
+                options.UseNpgsql(_pgContainer.GetConnectionString()));
 
-            // 3. Mockear IHubContext<RepartoHub>
+            // Mockear IHubContext<RepartoHub>
             var mockHub = new Mock<IHubContext<RepartoHub>>();
             var mockClients = new Mock<IHubClients>();
             var mockClientProxy = new Mock<IClientProxy>();
@@ -112,9 +111,19 @@ public class CustomRepartoWebApplicationFactory : WebApplicationFactory<Nexopost
 
             services.AddSingleton(mockHub.Object);
 
-            // 4. Registrar TestAuthHandler
             services.AddAuthentication(defaultScheme: "Test")
                 .AddScheme<AuthenticationSchemeOptions, RepartoTestAuthHandler>("Test", _ => { });
         });
     }
+
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+        using var scope = host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<RepartoDbContext>();
+        db.Database.EnsureCreated();
+        return host;
+    }
+
+    public new async Task DisposeAsync() => await _pgContainer.DisposeAsync();
 }

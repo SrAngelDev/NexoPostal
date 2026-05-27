@@ -16,7 +16,7 @@ namespace Nexopostal.Gateway.Controllers;
 [Authorize(Roles = "Admin,JefeReparto")]
 public class RepartidoresAdminProxyController : ControllerBase
 {
-    private static readonly HttpClient _httpClient = new();
+    internal static HttpClient _httpClient = new();
     private readonly string _repartoUrl;
 
     public RepartidoresAdminProxyController(IConfiguration config)

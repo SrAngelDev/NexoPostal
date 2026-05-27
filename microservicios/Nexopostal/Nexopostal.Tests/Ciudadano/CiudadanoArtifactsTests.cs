@@ -43,6 +43,100 @@ public class CiudadanoErrorTests
         error.Code.Should().Be("ENVIO_YA_PAGADO");
         error.Message.Should().Contain("NX12345");
     }
+
+    [Fact]
+    public void EnvioPorTrackingNotFound_ContieneTracking()
+    {
+        var error = CiudadanoError.EnvioPorTrackingNotFound("NXP-TRACK");
+        error.Code.Should().Be("ENVIO_NOT_FOUND");
+        error.Message.Should().Contain("NXP-TRACK");
+    }
+
+    [Fact]
+    public void EnvioNoCancelable_ContieneEstado()
+    {
+        var error = CiudadanoError.EnvioNoCancelable("Entregado");
+        error.Code.Should().Be("ENVIO_NO_CANCELABLE");
+        error.Message.Should().Contain("Entregado");
+    }
+
+    [Fact]
+    public void EnvioNoDevolvible_ContieneEstado()
+    {
+        var error = CiudadanoError.EnvioNoDevolvible("PendientePago");
+        error.Code.Should().Be("ENVIO_NO_DEVOLVIBLE");
+        error.Message.Should().Contain("PendientePago");
+    }
+
+    [Fact]
+    public void TipoEntregaInvalido_ContieneValor()
+    {
+        var error = CiudadanoError.TipoEntregaInvalido("Drone");
+        error.Code.Should().Be("VALIDATION_ERROR");
+        error.ValidationErrors.Should().ContainKey("tipoEntrega");
+    }
+
+    [Fact]
+    public void PagoNotFound_ContieneId()
+    {
+        var error = CiudadanoError.PagoNotFound(99);
+        error.Code.Should().Be("PAGO_NOT_FOUND");
+        error.Message.Should().Contain("99");
+    }
+
+    [Fact]
+    public void PagoYaProcesado_CodigoEstable()
+    {
+        var error = CiudadanoError.PagoYaProcesado();
+        error.Code.Should().Be("PAGO_YA_PROCESADO");
+    }
+
+    [Fact]
+    public void WebhookFirmaInvalida_CodigoEstable()
+    {
+        var error = CiudadanoError.WebhookFirmaInvalida();
+        error.Code.Should().Be("WEBHOOK_INVALID_SIGNATURE");
+    }
+
+    [Fact]
+    public void OficinaNotFound_ContieneId()
+    {
+        var error = CiudadanoError.OficinaNotFound(7);
+        error.Code.Should().Be("OFICINA_NOT_FOUND");
+        error.Message.Should().Contain("7");
+    }
+
+    [Fact]
+    public void CodigoPostalInvalido_ContieneCp()
+    {
+        var error = CiudadanoError.CodigoPostalInvalido("ABCDE");
+        error.Code.Should().Be("VALIDATION_ERROR");
+        error.ValidationErrors.Should().ContainKey("codigoPostal");
+    }
+
+    [Fact]
+    public void PerfilNotFound_ContieneUserId()
+    {
+        var error = CiudadanoError.PerfilNotFound("user-123");
+        error.Code.Should().Be("PERFIL_NOT_FOUND");
+        error.Message.Should().Contain("user-123");
+    }
+
+    [Fact]
+    public void DireccionFavoritaDuplicada_ContieneAlias()
+    {
+        var error = CiudadanoError.DireccionFavoritaDuplicada("Casa");
+        error.Code.Should().Be("DIRECCION_FAVORITA_DUPLICADA");
+        error.Message.Should().Contain("Casa");
+    }
+
+    [Fact]
+    public void DireccionFavoritaNotFound_ContieneId()
+    {
+        var error = CiudadanoError.DireccionFavoritaNotFound(42);
+        error.Code.Should().Be("DIRECCION_FAVORITA_NOT_FOUND");
+        error.Message.Should().Contain("42");
+    }
 }
 
 public class CrearEnvioDtoValidatorTests

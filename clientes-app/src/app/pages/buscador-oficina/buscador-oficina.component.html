@@ -57,6 +57,7 @@
         <!-- Tipo de búsqueda -->
         <div class="flex gap-3 mb-6">
           <button 
+            data-testid="btn-tipo-cp"
             (click)="cambiarTipoBusqueda('codigoPostal')"
             [ngClass]="searchType() === 'codigoPostal' ? 'bg-[#1A237E] text-white' : 'bg-gray-100 text-gray-700'"
             class="flex-1 py-3 px-4 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
@@ -65,6 +66,7 @@
             <span class="hidden sm:inline">Código Postal</span>
           </button>
           <button 
+            data-testid="btn-tipo-direccion"
             (click)="cambiarTipoBusqueda('direccion')"
             [ngClass]="searchType() === 'direccion' ? 'bg-[#1A237E] text-white' : 'bg-gray-100 text-gray-700'"
             class="flex-1 py-3 px-4 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
@@ -88,6 +90,7 @@
             <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10">search</span>
             <input 
               type="text" 
+              data-testid="search-input"
               [ngModel]="searchQuery()"
               (ngModelChange)="onSearchInput($event)"
               [placeholder]="searchType() === 'codigoPostal' ? 'Ej: 28013' : 'Ej: Madrid, Gran Vía'"
@@ -156,6 +159,7 @@
         <div class="flex gap-3">
           @if (searchType() !== 'ubicacionActual') {
             <button 
+              data-testid="buscar-btn"
               (click)="buscarOficinas()"
               [disabled]="isSearching()"
               class="flex-1 px-6 py-4 bg-[#FFC107] text-black rounded-lg font-semibold hover:bg-[#FFB300] transition-all hover:-translate-y-0.5 transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"

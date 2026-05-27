@@ -18,7 +18,7 @@ public class FileProxyController : ControllerBase
     // NO pasa por IHttpClientFactory para evitar el ErrorPropagationHandler
     // registrado en ConfigureHttpClientDefaults, que lee el body como string
     // y destruiría el contenido binario en caso de error.
-    private static readonly HttpClient _httpClient = new();
+    internal static HttpClient _httpClient = new();
     private readonly string _ciudadanoUrl;
 
     public FileProxyController(IConfiguration config)

@@ -1,10 +1,10 @@
-<div class="page">
+<div class="page" data-testid="escaneo-page">
   <!-- ===== NAVBAR ===== -->
   <app-driver-navbar icon="qr_code_scanner" title="Escaneo de entregas" (backClick)="volverDashboard()" />
 
   <main class="main-content">
     <!-- ===== ESCÁNER ===== -->
-    <section class="scanner-section animate-in">
+    <section class="scanner-section animate-in" data-testid="scanner-section">
       <app-barcode-scanner
         [alturaScanner]="240"
         [continuoMode]="false"

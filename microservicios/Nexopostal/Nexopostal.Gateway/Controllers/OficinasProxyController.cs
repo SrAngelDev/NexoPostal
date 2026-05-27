@@ -10,7 +10,7 @@ namespace Nexopostal.Gateway.Controllers;
 public class OficinasProxyController : ControllerBase
 {
     // HttpClient estatico para evitar socket exhaustion.
-    private static readonly HttpClient _httpClient = new();
+    internal static HttpClient _httpClient = new();
     private readonly string _ciudadanoUrl;
 
     public OficinasProxyController(IConfiguration config)

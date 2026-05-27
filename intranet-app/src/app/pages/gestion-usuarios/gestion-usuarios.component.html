@@ -1,4 +1,4 @@
-<div class="page">
+<div class="page" data-testid="gestion-usuarios-page">
   @let activos = kpiActivos();
   @let bloqueados = kpiBloqueados();
   @let eliminados = kpiEliminados();
@@ -22,7 +22,7 @@
           <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
           Recargar
         </button>
-        <button class="btn btn-primary" (click)="abrirModalCrear()">
+        <button class="btn btn-primary" data-testid="nuevo-empleado-btn" (click)="abrirModalCrear()">
           <span class="material-symbols-outlined">person_add</span>
           Nuevo empleado
         </button>
@@ -36,7 +36,7 @@
           <span class="material-symbols-outlined">groups</span>
         </div>
         <div class="kpi-body">
-          <div class="kpi-value">{{ usuarios().length }}</div>
+          <div class="kpi-value" data-testid="kpi-total">{{ usuarios().length }}</div>
           <div class="kpi-label">Total</div>
         </div>
       </article>

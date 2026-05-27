@@ -19,7 +19,12 @@
     Si se omite, se ejecutan todos los tests E2E.
 
 .PARAMETER Headful
-    Ejecuta el navegador en modo visible (no headless). Útil para depurar.
+    Ejecuta el navegador en modo visible (no headless). Útil para ver los tests en tiempo real.
+    Activa automáticamente SlowMo (ver -SlowMo) y ejecución secuencial (un test a la vez).
+
+.PARAMETER SlowMo
+    Milisegundos de pausa entre cada acción de Playwright en modo headful.
+    Por defecto 500 ms. Reduce para ir más rápido, aumenta para seguir cada paso con calma.
 
 .PARAMETER InstallBrowsers
     Instala / actualiza los navegadores de Playwright antes de lanzar los tests.
@@ -37,8 +42,12 @@
     # Solo los tests de autenticación.
 
 .EXAMPLE
-    .\Run-E2ETests.ps1 -Headful -Filter "Category=Driver"
-    # Tests de driver-app con navegador visible.
+    .\Run-E2ETests.ps1 -Headful
+    # Todos los tests con navegador visible a 500 ms por acción.
+
+.EXAMPLE
+    .\Run-E2ETests.ps1 -Headful -SlowMo 250 -Filter "Category=Driver"
+    # Tests de driver-app con navegador visible, acelerando a 250 ms.
 #>
 
 [CmdletBinding()]
@@ -47,6 +56,7 @@ param(
     [switch]$StopAfter,
     [string]$Filter = "",
     [switch]$Headful,
+    [int]$SlowMo = 500,
     [switch]$InstallBrowsers
 )
 
@@ -192,11 +202,17 @@ $env:E2E_CLIENTES_URL = $ClientesUrl
 $env:E2E_INTRANET_URL = $IntranetUrl
 $env:E2E_DRIVER_URL   = $DriverUrl
 
+# Argumentos extra para dotnet test en modo headful (tests secuenciales)
+$HeadfulTestArgs = @()
+
 if ($Headful) {
-    $env:HEADED = "1"
-    Write-Info "Modo headful activado (navegador visible)"
+    $env:HEADED             = "1"
+    $env:PLAYWRIGHT_SLOW_MO = "$SlowMo"
+    $HeadfulTestArgs        = @("--", "NUnit.NumberOfTestWorkers=1")
+    Write-Info "Modo headful activado — navegador visible, SlowMo=${SlowMo}ms, tests secuenciales"
 } else {
-    Remove-Item Env:HEADED -ErrorAction SilentlyContinue
+    Remove-Item Env:HEADED             -ErrorAction SilentlyContinue
+    Remove-Item Env:PLAYWRIGHT_SLOW_MO -ErrorAction SilentlyContinue
 }
 
 # Construir argumentos de dotnet test
@@ -221,26 +237,27 @@ try {
     Write-Header "5a. Tests — Clientes App ($ClientesUrl)"
     $clientesFilter = if ($Filter) { "$Filter&Category=Clientes" } else { "Category=Clientes" }
     dotnet test $E2EProject --no-build -v n --filter $clientesFilter `
-        --logger "console;verbosity=normal"
+        --logger "console;verbosity=normal" @HeadfulTestArgs
     $ResultClientes = $LASTEXITCODE
 
     # ── Tests driver-app ───────────────────────────────────────────────────────
     Write-Header "5b. Tests — Driver App ($DriverUrl)"
     $driverFilter = if ($Filter) { "$Filter&Category=Driver" } else { "Category=Driver" }
     dotnet test $E2EProject --no-build -v n --filter $driverFilter `
-        --logger "console;verbosity=normal"
+        --logger "console;verbosity=normal" @HeadfulTestArgs
     $ResultDriver = $LASTEXITCODE
 
     # ── Tests intranet-app ─────────────────────────────────────────────────────
     Write-Header "5c. Tests — Intranet App ($IntranetUrl)"
     $intranetFilter = if ($Filter) { "$Filter&Category=Intranet" } else { "Category=Intranet" }
     dotnet test $E2EProject --no-build -v n --filter $intranetFilter `
-        --logger "console;verbosity=normal"
+        --logger "console;verbosity=normal" @HeadfulTestArgs
     $ResultIntranet = $LASTEXITCODE
 
 } finally {
     Pop-Location
-    Remove-Item Env:HEADED -ErrorAction SilentlyContinue
+    Remove-Item Env:HEADED             -ErrorAction SilentlyContinue
+    Remove-Item Env:PLAYWRIGHT_SLOW_MO -ErrorAction SilentlyContinue
 }
 
 # ── 6. Parar contenedores si se pidió ─────────────────────────────────────────

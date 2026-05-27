@@ -14,7 +14,7 @@ namespace Nexopostal.Gateway.Controllers;
 [ApiController]
 public class RepartoEntregasProxyController : ControllerBase
 {
-    private static readonly HttpClient _httpClient = new();
+    internal static HttpClient _httpClient = new();
     private readonly string _repartoUrl;
 
     public RepartoEntregasProxyController(IConfiguration config)

@@ -306,7 +306,7 @@ Para enlazar informacion entre modulos se utilizan identificadores compartidos o
 
 Este diseño obliga a asumir una consecuencia importante: la consistencia entre servicios no se obtiene mediante relaciones SQL directas, sino mediante contratos de integracion y actualizaciones coordinadas. Precisamente por eso la memoria debe explicar no solo las entidades aisladas, sino tambien como se sincronizan los estados entre modulos.
 
-Ademas, no toda la informacion del sistema se apoya en tablas relacionales. Existen datos que deliberadamente se mantienen fuera de la base de datos principal. El caso mas claro es el de las oficinas postales, que se obtienen desde un archivo JSON estatico cargado en memoria y utilizado tanto para busquedas publicas como para resolucion de oficinas en procesos internos. Esta decision simplifica la demostracion, evita construir una administracion completa de oficinas y permite mostrar como combinar persistencia relacional con fuentes estructuradas externas.
+El tratamiento del catalogo de oficinas ha evolucionado respecto a versiones anteriores del proyecto. En la implementacion actual, las oficinas no se consumen unicamente desde un JSON estatico cargado en memoria, sino que existen modelos persistidos y APIs especificas para listarlas, buscarlas y administrarlas. Ciudadano mantiene un directorio de oficinas consultable por backend y cacheable en frontend para mejorar la experiencia de busqueda. Intranet, por su parte, mantiene el maestro operativo de oficinas postales y permite altas, ediciones, activaciones y desactivaciones desde paneles administrativos. Siguen existiendo seeders y servicios de apoyo basados en catalogos estructurados para inicializar o resolver oficinas, pero el estado que consumen las aplicaciones ya no depende exclusivamente de un fichero local del frontend. Esto mejora la trazabilidad, facilita el mantenimiento y evita tener que redistribuir los clientes web ante cambios operativos del catalogo.
 
 Tambien existen mecanismos de persistencia ligera en cliente. Por ejemplo, la autenticacion en frontend utiliza almacenamiento local para conservar token y contexto de usuario, mientras que la app de reparto utiliza `localStorage` para mantener la cola offline de ubicaciones y confirmaciones pendientes. Esto introduce una segunda capa de gestion del dato, mas cercana a la experiencia de usuario y a la tolerancia a fallos de conectividad.
 
@@ -318,7 +318,9 @@ A nivel de usuario final, el acceso a rutas protegidas se gestiona mediante JWT.
 
 A nivel de entrada al sistema, el gateway añade una segunda capa de control porque distingue entre rutas publicas y privadas. Login, registro, refresh, reseteo de contraseña, tracking publico, calculo de tarifas, busqueda de oficinas y webhook de Stripe son rutas abiertas por necesidad funcional. El resto exige contexto autenticado. Este punto es importante porque la frontera de acceso no depende solo del frontend, sino tambien del backend central de entrada.
 
-A nivel de roles, cada aplicacion cliente restringe lo que puede hacer el usuario segun su perfil. La web de clientes admite unicamente usuarios con rol `Cliente`. La intranet presenta opciones diferenciadas para cuatro perfiles: `Admin`, `OperarioOficina` (atiende ventanilla y escanea en oficinas postales), `OperarioCTA` (trabaja en la nave de clasificacion y gestiona movimientos troncales) y `Supervisor` (gestiona incidencias, altas de personal y metricas, pero no opera paquetes directamente). La app de reparto distingue entre `Repartidor` (ejecuta la ruta y confirma entregas) y `JefeReparto` (planifica rutas, da de alta repartidores y consulta metricas del equipo). Esta separacion evita mezclar experiencias de usuario y refuerza la idea de aplicacion especializada por contexto operativo.
+A nivel de roles, cada aplicacion cliente restringe lo que puede hacer el usuario segun su perfil. La web de clientes admite unicamente usuarios con rol `Cliente`. La intranet presenta opciones diferenciadas para cuatro perfiles: `Admin`, `OperarioOficina` (atiende ventanilla, da altas presenciales y escanea en oficinas postales), `OperarioCTA` (trabaja en la nave de clasificacion y gestiona movimientos troncales) y `Supervisor` (coordina el CTA, crea o reasigna tareas y supervisa incidencias y metricas). La app de reparto distingue entre `Repartidor` (ejecuta la ruta y confirma entregas) y `JefeReparto` (planifica rutas, gestiona la bandeja de paquetes listos para reparto, redistribuye paradas y administra su equipo). Esta separacion evita mezclar experiencias de usuario y refuerza la idea de aplicacion especializada por contexto operativo.
+
+Un endurecimiento importante introducido en la version actual es la validacion del estado de sesion desde el gateway contra un endpoint interno de Auth. Ya no basta con que el JWT sea formalmente valido: si una cuenta ha sido bloqueada por un administrador, el gateway puede detectar esa situacion y cortar el acceso de forma inmediata. Esto reduce la ventana de riesgo en la que un usuario bloqueado podria seguir operando hasta la expiracion natural del token.
 
 La seguridad del dominio de autenticacion tambien se refuerza con funcionalidades adicionales, como refresh tokens reales con rotacion, revocacion y recuperacion de contraseña por correo. Estas capacidades mejoran la experiencia de usuario, pero tambien elevan el nivel del proyecto frente a un modelo minimo de login con token simple.
 
@@ -330,17 +332,17 @@ Finalmente, la seguridad se extiende tambien a la capa de publicacion. En produc
 
 Uno de los aspectos mas interesantes del diseño de NexoPostal es que la integracion entre modulos no se basa en una unica tecnica, sino en una combinacion de llamadas HTTP entre microservicios y eventos push mediante SignalR. Este enfoque hibrido permite separar adecuadamente la operativa sin perder continuidad de negocio.
 
-La comunicacion síncrona entre servicios se utiliza cuando un modulo necesita provocar de forma inmediata una accion concreta en otro. Algunos ejemplos clave son:
+La comunicacion síncrona entre servicios se utiliza cuando un modulo necesita provocar de forma inmediata una accion concreta en otro. Algunos ejemplos clave en la version actual son los siguientes:
 
-- Ciudadano notifica a Intranet que un envio pagado debe ser admitido en la red.
-- Intranet solicita a Reparto la autoasignacion de una entrega cuando dispone de los datos minimos de ultima milla.
-- Reparto comunica a Ciudadano ubicaciones o eventos de entrega para consolidar el tracking publico.
+- Ciudadano notifica a Intranet que un envio pagado debe ser admitido en la red logistica.
+- Intranet registra en Reparto un paquete pendiente cuando el flujo de escaneo lo sitúa en el estado `DisponibleParaReparto`.
+- Reparto comunica a Ciudadano ubicaciones, intentos de entrega y cierres de reparto para consolidar el tracking publico.
 
 Este modelo tiene la ventaja de ser sencillo de seguir y muy apropiado para un TFG, porque deja visibles las dependencias funcionales entre dominios. Sin embargo, tambien introduce una limitacion conocida: al depender de peticiones directas, la robustez frente a fallos temporales de red es menor que en un sistema basado en mensajeria duradera. Precisamente por eso el proyecto recoge como trabajo futuro la evolucion hacia patrones como outbox e inbox.
 
-En paralelo, el sistema utiliza SignalR en dos ambitos claramente diferenciados. El primero es el tracking publico del cliente, donde el modulo Ciudadano expone un hub al que cualquier usuario puede suscribirse con un numero de seguimiento. El segundo es la intranet, donde existe un hub interno autenticado que organiza a los usuarios por grupos de CTA y rol. Esta separacion es muy importante porque el realtime publico y el realtime operativo responden a necesidades distintas y no deben mezclarse.
+En paralelo, el sistema utiliza SignalR en tres ambitos bien diferenciados. El primero es el tracking publico del cliente, donde el modulo Ciudadano expone un hub al que cualquier usuario puede suscribirse con un numero de seguimiento. El segundo es la intranet, donde existe un hub interno autenticado que organiza a los usuarios por grupos de CTA y rol y distribuye eventos como tareas asignadas, movimientos recibidos o paquetes listos para reparto. El tercero es el modulo de reparto, que dispone de su propio hub para mantener sincronizadas las vistas operativas del equipo de ultima milla. Esta separacion es muy importante porque el realtime publico, el realtime logistico y el realtime de movilidad responden a necesidades distintas y no deben mezclarse.
 
-Gracias a esta estrategia, el flujo completo puede describirse de forma coherente. Un cliente contrata y paga un envio; Ciudadano dispara la admision interna; Intranet resuelve CTA, crea movimientos y notifica a operarios; si procede, Intranet coordina con Reparto la autoasignacion; Reparto ejecuta ruta, registra entregas y reporta ubicacion; y Ciudadano proyecta esa operativa al tracking visible para el cliente. El sistema, por tanto, no solo integra modulos, sino que mantiene un hilo narrativo único del dato a través de todos ellos.
+Gracias a esta estrategia, el flujo completo puede describirse de forma coherente. Un cliente contrata y paga un envio; Ciudadano dispara la admision interna; Intranet resuelve CTA, crea movimientos y encadena tareas operativas mediante escaneo; cuando la clasificacion marca el paquete como `DisponibleParaReparto`, este se registra en la bandeja persistente del JefeReparto; a continuacion, el modulo de reparto crea o reutiliza rutas, ejecuta entregas y reporta ubicacion; y, finalmente, Ciudadano proyecta esa operativa al tracking visible para el cliente. El sistema, por tanto, no solo integra modulos, sino que mantiene un hilo narrativo unico del dato a traves de todos ellos.
 
 ### 2.2.6 Diseño de las interfaces de usuario
 
@@ -360,33 +362,33 @@ La aplicacion de clientes se ha diseñado para ofrecer una experiencia cercana a
 - Pago exitoso y pago cancelado: gestion del retorno tras Stripe Checkout.
 - Recuperacion de contraseña: flujo de reseteo por correo.
 
-La pantalla de nuevo envio merece especial atencion porque concentra una gran parte del valor funcional del proyecto. Su diseno sigue un modelo por pasos. Primero se recogen los datos del remitente. Despues, los del destinatario. Por ultimo, se introducen las caracteristicas fisicas del paquete y se calculan las tarifas disponibles. El usuario puede elegir si el origen o el destino corresponde a una direccion particular o a una oficina postal, reutilizar direcciones guardadas y seleccionar la tarifa mas adecuada. Esta estructura por pasos reduce la complejidad percibida y mejora la usabilidad.
+La pantalla de nuevo envio merece especial atencion porque concentra una gran parte del valor funcional del proyecto. Su diseno sigue un modelo por pasos. Primero se recogen los datos del remitente y la oficina donde se entregara fisicamente el paquete. Despues, los del destinatario. Por ultimo, se introducen las caracteristicas fisicas del paquete y se calculan las tarifas disponibles. En la version actual, la recogida domiciliaria de origen no forma parte del flujo online: el remitente entrega siempre el paquete en una oficina postal, mientras que el destinatario puede recibirlo en domicilio o en oficina. El usuario puede reutilizar direcciones guardadas, buscar oficinas por ciudad o codigo postal y seleccionar la tarifa mas adecuada. Esta estructura por pasos reduce la complejidad percibida y mejora la usabilidad.
 
 Ademas, el formulario incorpora validaciones de negocio que acercan la aplicacion a un caso real. Se comprueba el peso maximo, las dimensiones minimas necesarias para etiquetado, la longitud maxima permitida y la aplicacion de recargos por exceso de tamaño. Tambien se exige DNI/NIF en envios con Canarias, lo que introduce una casuistica interesante en la experiencia de usuario.
 
 #### B) Intranet operativa
 
-La intranet tiene un enfoque completamente distinto. No prima la contratacion o la simplicidad comercial, sino la operativa, la rapidez y la visibilidad del estado interno. Sus pantallas principales son:
+La intranet tiene un enfoque completamente distinto. No prima la contratacion o la simplicidad comercial, sino la operativa, la rapidez y la visibilidad del estado interno. Sus pantallas principales se organizan hoy por rol y por ambito funcional:
 
 - Login interno.
-- Dashboard inicial con acceso segun rol.
-- Gestion de CTA, donde el operario consulta los centros a los que esta asignado y visualiza metricas operativas.
-- Asignaciones, donde se crean, inician, completan o cancelan tareas sobre expediciones.
-- Seguimiento interno, donde se busca un envio por numero de expedicion o seguimiento y se puede modificar su estado interno.
-- Escaneo logistico, pensado para procesar codigos individuales o lotes con distintos modos de operacion.
-- Panel de administracion, reservado a perfiles de mayor privilegio.
-- Gestion de usuarios, exclusiva del rol Admin: listado con filtros, alta de empleados, cambio de rol, bloqueo/desbloqueo de acceso y restablecimiento de contrasena. Esta funcionalidad evita tener que acceder directamente a la base de datos para operaciones habituales de soporte y alta de personal.
+- Dashboard inicial con accesos distintos para `OperarioOficina`, `OperarioCTA`, `Supervisor` y `Admin`.
+- Alta presencial en oficina, donde el operario registra un envio que el cliente entrega fisicamente en ventanilla y cobra en efectivo o tarjeta.
+- Gestion de CTA, donde supervisor y administracion consultan metricas, tareas, movimientos e incidencias del centro.
+- Asignaciones y escaneo integrado, donde se visualizan colas de trabajo, se crean tareas manuales, se reasignan o cancelan y se avanza cada expediente mediante camara o entrada manual.
+- Seguimiento interno, donde se busca un envio por numero de expedicion o seguimiento y se consulta su historial operativo.
+- Gestion de equipo, centrada en operarios de CTA.
+- Backoffice de administracion, reservado a `Admin`, con modulos de usuarios, clientes, envios, repartidores, CTAs, oficinas, tarifas, incidencias globales, movimientos globales y broadcast de notificaciones.
 
-La pantalla de escaneo es especialmente representativa del enfoque operativo del sistema. Se han definido varios modos de escaneo, como recepcion en CTA, clasificacion, despacho troncal, recepcion troncal, recepcion en oficina, entrega a oficina destino y salida a reparto. Esto permite que la misma herramienta se adapte a momentos distintos del circuito logístico. Ademas, se ha incluido modo batch para procesar varios codigos de una sola vez y se mantiene un historial de escaneos durante la sesion.
+La vista de asignaciones con escaneo integrado es especialmente representativa del enfoque operativo del sistema. La misma pantalla sirve para procesar tareas propias, escanear paquetes, filtrar estados, ocultar completadas y, cuando el rol lo permite, crear o reasignar trabajo. Ademas, el proyecto incorpora casuisticas operativas reales, como el reporte de `PaqueteFueraDeTareas`, que permite registrar incidencias cuando un paquete aparece fuera de la cola esperada.
 
 #### C) Aplicacion de repartidores
 
-La app de reparto se ha diseñado con orientacion movil y foco en la accion. Las pantallas principales son:
+La app de reparto se ha diseñado con orientacion movil y foco en la accion, pero en la version actual ya no responde a un unico tipo de usuario. Conviven dos experiencias claramente diferenciadas:
 
-- Login del repartidor.
-- Dashboard operativo.
-- Ruta activa, con resumen de la jornada, entregas, progreso y mapa.
-- Escaneo de expediciones para apoyo en reparto.
+- `Repartidor`, con dashboard operativo, ruta activa, mapa, confirmacion de entregas, GPS, soporte offline y escaneo puntual.
+- `JefeReparto`, con dashboard propio, bandeja de paquetes disponibles para reparto, gestion de rutas del dia, reasignacion de paradas, mapa en tiempo real y gestion de su equipo de repartidores.
+
+Esta separacion es especialmente valiosa porque evita mezclar la experiencia de quien ejecuta entregas en calle con la de quien organiza la ultima milla desde la oficina. Ambas comparten identidad y parte del backend, pero no la misma interfaz ni el mismo nivel de decision operativa.
 
 La vista de ruta es la pantalla mas importante del modulo de reparto. En ella se muestra la ruta asignada, el estado de la jornada, las paradas pendientes, las entregas completadas y las fallidas, asi como un mapa con la posicion del repartidor y los destinos disponibles. Desde esta misma pantalla el usuario puede iniciar o finalizar la ruta, centrar el mapa, abrir navegacion externa y confirmar una entrega con toda la informacion asociada.
 
@@ -467,18 +469,20 @@ El cliente puede registrarse con email, contraseña y nombre completo. Una vez a
 
 La pagina de contratacion del envio es uno de los elementos mas trabajados del proyecto. No se trata de un formulario lineal simple, sino de un asistente por pasos que organiza la informacion para reducir errores y guiar al usuario durante una operacion relativamente compleja.
 
-El flujo se divide en tres fases principales: datos de origen y remitente, datos de destino y destinatario, y configuracion del paquete con servicio y pago. Esta separacion permite validar progresivamente la informacion y mostrar advertencias en el momento oportuno. Entre las reglas implementadas destacan las siguientes:
+El flujo se divide en tres fases principales: datos del remitente y oficina de admision, datos del destinatario y modalidad de entrega, y configuracion del paquete con servicio y pago. Esta separacion permite validar progresivamente la informacion y mostrar advertencias en el momento oportuno. La version actual introduce una regla operativa importante: los envios contratados online no incluyen recogida a domicilio en origen. El remitente debe entregar el paquete en una oficina postal, mientras que el destinatario puede recibirlo en domicilio o recogerlo en oficina.
+
+Entre las reglas implementadas destacan las siguientes:
 
 - Validacion de campos de contacto obligatorios para remitente y destinatario.
-- Comprobacion de codigos postales y estructura minima de direccion.
-- Seleccion explicita entre entrega o recogida en domicilio y entrega o recogida en oficina.
-- Integracion con la agenda de direcciones favoritas para autocompletar remitente o destinatario.
-- Busqueda de oficinas para los escenarios en los que el paquete entra o sale de un punto fisico.
+- Seleccion y validacion de oficina de origen mediante busqueda por ciudad o codigo postal contra el backend.
+- Seleccion de entrega del destinatario en domicilio o en oficina, con su correspondiente validacion de direccion o punto de recogida.
+- Integracion con la agenda de direcciones favoritas para autocompletar datos personales y de entrega.
 - Obligacion de DNI en operaciones que implican Canarias, reflejando una casuistica territorial real.
 - Control de peso maximo de 30 kg y verificacion de dimensiones compatibles con la operativa.
 - Advertencia de recargo cuando la suma de dimensiones supera 210 cm o aparece exceso dimensional relevante.
+- Confirmacion explicita del precio final calculado por servidor antes de redirigir a Stripe, evitando discrepancias entre lo mostrado y lo realmente cobrado.
 
-El valor de esta implementacion no reside solo en la interfaz, sino en la coherencia entre lo que se valida en frontend y lo que finalmente consume backend. El formulario construye un payload estructurado que recoge origen, destino, servicio, medidas, datos personales y preferencias operativas, y lo envía al flujo de pago sin introducir reglas comerciales alternativas. De este modo, la experiencia de contratacion mantiene consistencia con el motor real de negocio.
+El valor de esta implementacion no reside solo en la interfaz, sino en la coherencia entre lo que se valida en frontend y lo que finalmente consume backend. El formulario construye un payload estructurado que recoge oficina de origen, modalidad de entrega, datos personales, medidas y servicio, y lo envia al flujo de pago sin introducir reglas comerciales alternativas. De este modo, la experiencia de contratacion mantiene consistencia con el motor real de negocio.
 
 #### Calculadora de tarifas
 
@@ -498,9 +502,9 @@ Ademas de devolver importe, el calculo tambien informa de tiempo estimado y cond
 
 #### Creacion del envio y pasarela de pago
 
-El flujo real implementado no crea el envio como pagado desde el principio. En lugar de eso, al confirmar el formulario se genera en backend un envio en estado `PendientePago`, junto con una sesion de Stripe Checkout. El usuario es redirigido a la pasarela externa y, una vez completado el pago, el sistema verifica la sesion, marca el envio como pagado, genera documentacion y dispara la admision logistica.
+El flujo real implementado no crea el envio como pagado desde el principio. En lugar de eso, al confirmar el formulario se genera en backend un envio en estado `PendientePago`, junto con una sesion de Stripe Checkout. El usuario ve antes de salir de la aplicacion un resumen con el importe exacto calculado por servidor y, solo entonces, es redirigido a la pasarela externa. Una vez completado el pago, el sistema verifica la sesion, marca el envio como pagado, genera documentacion y dispara la admision logistica.
 
-La app de clientes contempla ademas el retorno desde Stripe hacia pantallas de pago exitoso o cancelado. En el escenario de exito, el frontend consulta al backend para consolidar el resultado real de la sesion; en el escenario de cancelacion, el envio puede seguir existiendo como pendiente y ser reintentado mas adelante. Este diseño es importante porque separa con claridad la intencion de compra de la confirmacion efectiva del pago y evita perder la operacion si el usuario abandona temporalmente la pasarela.
+La app de clientes contempla ademas el retorno desde Stripe hacia pantallas de pago exitoso o cancelado. En el escenario de exito, el frontend consulta al backend para consolidar el resultado real de la sesion. En el escenario de cancelacion, el envio no se pierde: permanece como `PendientePago` y puede reintentarse sin rehacer todo el formulario. Este diseño es importante porque separa con claridad la intencion de compra de la confirmacion efectiva del pago y evita perder la operacion si el usuario abandona temporalmente la pasarela o interrumpe el proceso.
 
 #### Perfil y agenda de direcciones
 
@@ -548,7 +552,9 @@ El mismo controlador incluye endpoints internos para que otros servicios publiqu
 
 #### B) Oficinas postales
 
-La busqueda de oficinas no depende de una tabla relacional sino de un JSON estatico que se carga en memoria y se consulta por codigo postal o texto libre. Esta aproximacion ha sido util para disponer de un catalogo rapido y realista de oficinas sin necesidad de crear una administracion completa sobre ese dato. Ademas, este mismo origen de datos sirve tanto para la experiencia de cliente como para algunos procesos internos, reduciendo duplicidades.
+La gestion de oficinas ha dejado de apoyarse exclusivamente en un JSON estatico consumido por el frontend. En la version actual, Ciudadano expone endpoints de listado y busqueda que devuelven oficinas persistidas y preparadas para ser consumidas por la web publica. El cliente carga ese catalogo desde backend, lo transforma a su modelo de interfaz y mantiene una cache en memoria para agilizar sugerencias y autocompletado. Paralelamente, la intranet mantiene el maestro operativo de oficinas y permite administrarlo desde paneles de backoffice.
+
+El resultado practico es un modelo hibrido: se siguen utilizando fuentes estructuradas y seeders para inicializar o resolver informacion geografica, pero la experiencia de usuario y la operativa interna ya se apoyan en APIs y entidades persistidas, no en un archivo local estatico inmutable.
 
 #### C) Motor de tarifas
 
@@ -564,7 +570,7 @@ La integracion con Stripe se articula en un flujo completo:
 4. Tras el pago, el sistema verifica la sesion, por retorno del cliente o por webhook.
 5. Si el pago es correcto, actualiza el envio, genera la etiqueta y la factura, y envia un correo de confirmacion.
 
-Este proceso representa muy bien una integracion empresarial real. No se trata solo de "cobrar", sino de coordinar un conjunto de acciones dependientes del resultado del pago. El `PagosController` soporta creacion de sesion, verificacion posterior y reintento de pagos pendientes, mientras que el `StripeService` encapsula la comunicacion con la API externa. Cuando el pago se consolida, el sistema ejecuta un procesamiento adicional que genera documentos PDF, actualiza estados, registra fechas y notifica a logistica que el paquete debe ser admitido.
+Este proceso representa muy bien una integracion empresarial real. No se trata solo de "cobrar", sino de coordinar un conjunto de acciones dependientes del resultado del pago. El `PagosController` soporta creacion de sesion, verificacion posterior y reintento de pagos pendientes, mientras que el `StripeService` encapsula la comunicacion con la API externa. Cuando el pago se consolida, el sistema ejecuta un procesamiento adicional que genera documentos PDF, actualiza estados, registra fechas y notifica a logistica que el paquete debe ser admitido. A partir de ese punto, la ultima milla no se autoasigna desde Ciudadano: el envio entra en el circuito logistico y solo pasa a reparto cuando la clasificacion interna lo libera como `DisponibleParaReparto`.
 
 Ademas, el sistema incorpora un servicio en segundo plano que revisa periodicamente pagos pendientes para detectar confirmaciones que no hayan quedado correctamente reflejadas solo con el retorno del navegador. Esta capa aporta robustez y reduce el riesgo de inconsistencias en escenarios reales de navegacion o red.
 
@@ -587,81 +593,108 @@ Este punto es de gran relevancia porque demuestra una integracion real entre dom
 
 ### 2.3.5 Microservicio de intranet y logistica
 
-El modulo intranet modela la red logistica interna. Sus procesos principales son la admision, la resolucion de CTAs, la creacion de movimientos, la asignacion de tareas, la gestion de incidencias y el soporte al escaneo operativo. Desde el punto de vista arquitectonico, este servicio es el puente entre la contratacion del envio y la realidad fisica de la red logística.
+El modulo intranet modela la red logistica interna. Sus procesos principales son la admision, la resolucion de CTAs, la creacion de movimientos, la asignacion de tareas, la gestion de incidencias, el soporte al escaneo operativo y el backoffice administrativo. Desde el punto de vista arquitectonico, este servicio es el puente entre la contratacion del envio y la realidad fisica de la red logística.
 
-#### A) CTAs y clasificacion
+#### A) CTAs y red logistica
 
-Los CTAs se representan como nodos principales de la red. Cada uno tiene codigo, nombre, area zonal, provincia, ciudad y capacidades como nodo aereo o maritimo. Este diseño permite representar una logistica basada en centros de tratamiento y rutas de transporte entre nodos.
+Los CTAs se representan como nodos principales de la red. Cada uno tiene codigo, nombre, area zonal, provincia, ciudad, direccion, codigo postal y capacidades como nodo aereo o maritimo. La version actual no se limita a consultar estos nodos: permite administrarlos desde la intranet, incluyendo creacion, edicion, activacion y desactivacion. Ademas, existen dashboards por CTA y una vista global administrativa con metricas agregadas de tareas, incidencias, movimientos y operarios.
 
 La resolucion del CTA de destino se apoya en el codigo postal. Cuando se admite un paquete, el sistema determina a que centro debe dirigirse y, si el origen y el destino corresponden a CTAs distintos, crea automaticamente un movimiento troncal. En otras palabras, la admision no se limita a registrar que el paquete existe: decide en que punto de la red debe entrar y como debe comenzar a desplazarse.
 
-#### B) Admision de paquetes
+#### B) Admision de paquetes y alta presencial
 
-La admision es uno de los procesos mejor definidos del proyecto. Su flujo es el siguiente:
+La admision es uno de los procesos mejor definidos del proyecto. Su flujo base es el siguiente:
 
 1. Se recibe una solicitud con los datos del paquete y del destino.
 2. Se resuelve el CTA de destino segun el codigo postal.
 3. Si el paquete debe viajar a otro nodo, se calcula el tipo de transporte mas adecuado y se crea un movimiento troncal.
-4. Se notifica en tiempo real a los operarios del CTA destino.
-5. Si existen datos minimos de ultima milla, se orquesta con el modulo de reparto la autoasignacion a una ruta.
+4. Se registran eventos de historial y se notifica en tiempo real a los actores operativos.
+5. El paquete entra en el circuito de tareas y movimientos internos hasta que la clasificacion lo libere para reparto o para entrega en oficina.
 
-Este flujo se implementa principalmente en el `AdmisionService`, que concentra la resolucion del CTA, la creacion del movimiento, la notificacion y la posible coordinacion con reparto. El `AdmisionController` expone tanto rutas de uso interno como endpoints protegidos mediante `X-Service-Key`, lo que permite que Ciudadano inicie el proceso sin abrir innecesariamente la operativa al exterior. Esto permite pasar de un pago realizado por el cliente a una accion operativa interna sin intervencion manual entre medias, lo cual representa un salto cualitativo importante en automatizacion.
+La diferencia importante respecto a versiones anteriores es que la admision ya no autoasigna directamente una ruta de reparto. El `AdmisionService` registra y orquesta la entrada del paquete en la red, pero la ultima milla se materializa mas tarde, cuando un escaneo logistico marca el envio como `DisponibleParaReparto`. Solo en ese momento se informa al dominio de reparto y el JefeReparto decide a que ruta incorporarlo.
 
-#### C) Asignaciones y tareas
+El mismo servicio soporta tambien la alta presencial en oficina. Esta pantalla permite que un `OperarioOficina` cree un envio cuando el cliente lleva fisicamente el paquete a ventanilla, elija el metodo de cobro, busque una oficina de destino si la entrega es en oficina y obtenga como resultado numero de seguimiento, numero de expedicion, coste calculado y CTA destino. Con ello, la intranet no solo consume envios pagados desde la web publica, sino que tambien genera operativa directamente desde el punto fisico.
 
-Las asignaciones representan tareas atomicas sobre expediciones concretas dentro de un CTA. Cada tarea tiene un tipo, un estado, un responsable, un creador, una fecha de asignacion y, en su caso, fechas de inicio y finalizacion. Con esta estructura, la intranet no solo conoce que un paquete existe, sino tambien que trabajo fisico debe realizarse sobre el y quien debe hacerlo.
+#### C) Asignaciones, tareas y cadena de escaneo
 
-La aplicacion interna permite crear asignaciones, filtrarlas por estado y ejecutar transiciones de inicio, finalizacion o cancelacion. Esto convierte la trazabilidad interna en algo accionable, porque cada estado se vincula con trabajo pendiente o completado por parte de operarios reales del sistema.
+Las asignaciones representan tareas atomicas sobre expediciones concretas dentro de un CTA o una oficina. Cada tarea tiene un tipo, un estado, un responsable, un creador, una fecha de asignacion y, en su caso, fechas de inicio y finalizacion. Con esta estructura, la intranet no solo conoce que un paquete existe, sino tambien que trabajo fisico debe realizarse sobre el y quien debe hacerlo.
 
-#### D) Escaneo logistico
+La aplicacion interna permite crear asignaciones, filtrarlas por estado y ejecutar transiciones de inicio, finalizacion, cancelacion y reasignacion. En la version actual, `Admin` y `Supervisor` pueden intervenir administrativamente sobre la cola, mientras que `OperarioCTA` y `OperarioOficina` trabajan sobre sus pendientes y en progreso. Ademas, el sistema conserva completadas recientes y permite limpiar visualmente la vista sin borrar la evidencia del backend.
 
-La intranet incorpora un modulo de escaneo con lectura por camara y procesamiento individual o por lotes. Este modulo es relevante por dos motivos. El primero es que aporta rapidez operativa y reduce errores de introduccion manual. El segundo es que cada escaneo puede activar una accion de negocio distinta dependiendo del modo elegido, lo que lo convierte en una interfaz de alto valor practico.
+Una mejora especialmente relevante es el encadenamiento por escaneo. Cada handler del `ScanProcessorService` no solo valida el codigo, sino que cierra la tarea actual y crea la siguiente cuando procede. Esto permite articular un recorrido operativo coherente, por ejemplo: recepcion en oficina, salida hacia CTA, recepcion en CTA, clasificacion, despacho troncal, recepcion troncal y liberacion para reparto. El estado `DisponibleParaReparto` actua como frontera entre logistica interna y ultima milla.
 
-El servicio de escaneo no es un lector aislado, sino una capa que valida codigos, consulta modos disponibles, procesa lotes y conserva historial de operaciones. Gracias a ello, el escaneo puede utilizarse para distintas etapas del circuito logístico, no solo como mecanismo de captura de datos.
+#### D) Incidencias, movimientos y seguimiento interno
 
-#### E) Notificaciones internas y seguimiento operativo
+El modulo intranet gestiona tanto incidencias como movimientos troncales. Las incidencias pueden filtrarse por estado, CTA y tipo, y entre los tipos implementados aparece `PaqueteFueraDeTareas`, que resuelve una casuistica muy real: encontrar un paquete que no encaja con la cola del operario que lo esta manipulando. Los movimientos globales permiten visualizar expediciones entre CTAs, su transporte, estado y urgencia, lo que aporta una capa de supervision transversal sobre la red logistica.
 
-El modulo intranet incorpora SignalR para notificaciones en tiempo real dirigidas a CTAs y perfiles concretos. De esta manera, eventos como la recepcion de un paquete, la asignacion de una tarea o la creacion de un movimiento pueden llegar directamente a los usuarios que deben actuar sobre ellos. Esta estrategia reduce la dependencia de refrescos manuales y refuerza la sensacion de sistema operativo vivo.
+Ademas, la pantalla de seguimiento interno permite buscar expediciones por numero de seguimiento o por numero de expedicion y consultar el historial detallado. Este punto es crucial porque demuestra que el sistema distingue claramente entre visibilidad para cliente y control de la operativa interna.
 
-Ademas, la pantalla de seguimiento interno permite buscar expediciones por numero de seguimiento o por numero de expedicion y actualizar estados internos con mayor granularidad que en el tracking publico. Este punto es crucial porque demuestra que el sistema distingue claramente entre visibilidad para cliente y control de la operativa interna.
+#### E) Notificaciones internas y backoffice administrativo
+
+El modulo intranet incorpora SignalR para notificaciones en tiempo real dirigidas a CTAs y perfiles concretos. De esta manera, eventos como la recepcion de un paquete, la asignacion de una tarea, la llegada de un movimiento o la disponibilidad de un paquete para reparto pueden llegar directamente a los usuarios que deben actuar sobre ellos. Esta estrategia reduce la dependencia de refrescos manuales y refuerza la sensacion de sistema operativo vivo.
+
+Sobre esa base operativa se ha construido un backoffice administrativo mucho mas amplio que en una primera iteracion del proyecto. El rol `Admin` dispone de modulos para gestionar usuarios internos, clientes, envios, repartidores, oficinas, CTAs, tarifas, incidencias globales, movimientos globales y broadcast de notificaciones. Esto convierte la intranet en una plataforma de explotacion real del sistema y no solo en una interfaz de escaneo.
+
+#### F) Integracion con reparto
+
+La integracion con reparto ya no se entiende como una autoasignacion inmediata desde la admision. En la version actual, el evento tecnico decisivo es el escaneo `DisponibleParaReparto`. Ese handler registra el evento de historial, emite notificaciones operativas y añade el paquete a la bandeja persistente del microservicio de reparto. A partir de ahi, el `JefeReparto` decide si crea una ruta nueva o si incorpora el paquete a una ruta ya planificada. Este desacoplamiento refleja mejor la realidad logistica: clasificacion y ultima milla pertenecen a dominios distintos y no siempre deben resolverse en el mismo instante.
 
 ### 2.3.6 Microservicio de reparto
 
-El modulo de reparto se encarga de la ultima milla, es decir, del tramo final del envio entre la oficina de destino y el destinatario. Incluye el modelo de repartidor, la definicion de rutas diarias y las entregas asociadas a cada ruta. Su importancia dentro del proyecto es alta porque conecta el mundo de la planificacion interna con la ejecucion en movilidad.
+El modulo de reparto se encarga de la ultima milla, es decir, del tramo final del envio entre la oficina de destino y el destinatario. Incluye el modelo de repartidor, la definicion de rutas diarias, las entregas asociadas a cada ruta, la ubicacion GPS y, en la version actual, tambien las superficies de gestion del `JefeReparto`. Su importancia dentro del proyecto es alta porque conecta el mundo de la planificacion interna con la ejecucion en movilidad.
 
-#### A) Repartidores
+#### A) Repartidores y perfiles operativos
 
-Cada repartidor se asocia a un usuario del sistema y a una oficina de referencia. Esto permite enlazar sus credenciales de acceso con su informacion operativa y con el contexto fisico desde el que trabaja. El microservicio expone endpoints para recuperar el perfil del repartidor autenticado y para cargar su contexto de trabajo sin depender de datos introducidos manualmente en cada sesion.
+Cada repartidor se asocia a un usuario del sistema y a una oficina de referencia. Esto permite enlazar sus credenciales de acceso con su informacion operativa y con el contexto fisico desde el que trabaja. El modulo soporta dos perfiles: `Repartidor`, orientado a ejecucion de ruta, y `JefeReparto`, orientado a coordinacion y supervision. Ambos se apoyan en la misma base de dominio, pero no consumen los mismos endpoints ni la misma experiencia de usuario.
 
-#### B) Rutas de reparto
+El microservicio expone endpoints para recuperar el perfil del usuario autenticado, listar repartidores, editar sus datos operativos, activarlos o desactivarlos y consultar sus rutas del dia. Esto permite que la gestion del equipo de ultima milla ya no dependa solo del backoffice general de la intranet, sino tambien de herramientas propias del area de reparto.
+
+#### B) Rutas de reparto y entregas
 
 Las rutas se identifican con codigos del tipo `REP-YYYYMMDD-XXX`, se asignan a una fecha y a un repartidor concreto, y agrupan varias entregas. Una ruta puede estar planificada, en curso o completada, y conserva informacion como hora de salida, hora de regreso y observaciones generales.
 
 La propia ruta actua como unidad de trabajo diaria, permitiendo resumir progreso, volumen de entregas y resultados de la jornada. Desde el backend, el servicio de reparto soporta carga de la ruta activa, inicio de jornada, finalizacion y consulta de entregas asociadas, de forma que el frontend movil puede reconstruir el contexto completo de la operativa del dia.
 
-#### C) Entregas
-
 Cada entrega modela una parada real de la ruta y contiene informacion detallada sobre direccion, codigo postal, ciudad, destinatario, telefono, intento, orden en la ruta, estado, fecha, receptor, coordenadas, firma y foto. Esta riqueza de datos hace que el sistema sea apto tanto para el seguimiento operativo como para la aportacion de evidencias.
 
-La confirmacion de entrega no se reduce a cambiar un estado booleano. El servicio admite distintos resultados operativos, observaciones y pruebas asociadas, lo que acerca la solucion a una operativa real de paqueteria y deja preparado el sistema para auditoria o consulta posterior.
+#### C) Ubicacion, GPS y trazabilidad de ultima milla
 
-#### D) Ubicacion y tracking
-
-El modulo de reparto no se limita a gestionar estados. Tambien expone un endpoint para registrar ubicacion y utiliza un servicio de notificacion a Ciudadano para sincronizar el tracking en tiempo real. Gracias a esto, la posicion del repartidor puede traducirse en informacion visible para el cliente.
+El modulo de reparto no se limita a gestionar estados. Tambien expone un endpoint para registrar ubicacion, mantiene historico operativo de posiciones y publica vistas de ubicaciones activas para supervision en tiempo real. Gracias a esto, la posicion del repartidor puede aprovecharse en dos direcciones: como herramienta de control para el `JefeReparto` y como fuente de eventos para enriquecer el tracking ciudadano.
 
 Esta relacion entre servicios es especialmente relevante porque demuestra que Reparto no es un modulo aislado de movilidad, sino una fuente activa de informacion para el resto del sistema. El backend de reparto consolida los datos de la ejecucion de ruta y los transforma en eventos consumibles por el dominio ciudadano.
 
-#### E) Autoasignacion desde admision
+#### D) Bandeja del JefeReparto y asignacion manual a rutas
 
-Una funcionalidad especialmente interesante del proyecto es el endpoint interno para autoasignar una entrega desde la admision. Cuando logistica recibe un envio con los datos minimos necesarios, puede solicitar a reparto que seleccione un repartidor, cree o reutilice una ruta del dia y anada la entrega. Este proceso incorpora idempotencia basica por numero de expedicion para evitar duplicados en reintentos.
+Una de las evoluciones mas importantes del proyecto es la introduccion de una bandeja persistente de paquetes pendientes de reparto. Cuando Intranet marca un envio como `DisponibleParaReparto`, el paquete se registra en `PaquetePendienteReparto` y queda visible para el `JefeReparto`. Desde esa bandeja puede:
 
-Desde el punto de vista funcional, esta capacidad es una de las que mejor representan el valor del sistema distribuido: un evento originado por el cliente, consolidado por el pago y admitido por logistica puede terminar, sin pasos manuales intermedios, convertido en una entrega planificada para un repartidor concreto.
+- Seleccionar uno o varios paquetes listos para salir a calle.
+- Crear una ruta nueva para un repartidor concreto.
+- Añadir paquetes a una ruta ya planificada.
+- Reasignar entregas entre rutas del mismo dia cuando cambian las necesidades operativas.
 
-### 2.3.7 Aplicacion de reparto: GPS, offline y mapa
+Este modelo sustituye la idea de autoasignacion directa desde admision por una planificacion manual asistida, mucho mas realista en un contexto operativo donde la disponibilidad de personal, la carga diaria y la urgencia influyen en cada decision.
+
+#### E) Gestion del equipo de reparto
+
+El modulo incluye tambien endpoints y vistas para listar repartidores, editar su telefono o vehiculo, desactivarlos cuando no deben operar y reactivarlos despues. En el caso del `JefeReparto`, el backend filtra automaticamente por su propia oficina, de manera que solo gestiona el equipo sobre el que realmente tiene responsabilidad operativa.
+
+Esto convierte a Reparto en un dominio con autonomia real: no solo ejecuta entregas, sino que permite organizar personas, rutas y paradas desde su propio contexto de negocio.
+
+#### F) Sincronizacion con Ciudadano
+
+La confirmacion de entrega no se reduce a cambiar un estado booleano. El servicio admite distintos resultados operativos, observaciones y pruebas asociadas, y a continuacion informa a Ciudadano para consolidar el tracking publico. De esta manera, la app del cliente refleja lo que ha ocurrido realmente en calle y no una simulacion independiente. Esta sincronizacion entre dominios es una de las mejores muestras de madurez arquitectonica del sistema.
+
+### 2.3.7 Aplicacion de reparto: operativa movil, jefe de reparto y soporte offline
 
 La aplicacion de repartidores es probablemente una de las piezas mas avanzadas del proyecto desde el punto de vista tecnico, porque combina operativa de negocio con problemas propios de movilidad.
 
-#### A) Seguimiento GPS
+#### A) Repartidor: ruta activa y operativa de calle
+
+Para el perfil `Repartidor`, la aplicacion gira alrededor de la ruta activa del dia. La pantalla principal muestra el codigo de ruta, estado, progreso, entregas completadas, pendientes y fallidas, junto con la siguiente parada recomendada. Desde ella se pueden iniciar y finalizar rutas, seleccionar entregas concretas, abrir navegacion externa y registrar el resultado de cada parada.
+
+Este enfoque convierte la app en una herramienta de ejecucion directa: no es un visor pasivo, sino el puesto de trabajo movil del repartidor.
+
+#### B) Seguimiento GPS
 
 Cuando una ruta pasa a estado `EnCurso`, la app activa el seguimiento GPS. Para ello combina varias estrategias:
 
@@ -673,13 +706,13 @@ Cuando una ruta pasa a estado `EnCurso`, la app activa el seguimiento GPS. Para 
 
 La implementacion incorpora ademas control del ciclo de vida de la pagina, reactivacion del seguimiento al volver a primer plano y gestion de temporizadores auxiliares. Esta logica demuestra que no se ha tratado la geolocalizacion como una simple llamada puntual, sino como un proceso continuo con consideraciones de rendimiento, bateria y conectividad.
 
-#### B) Cola offline
+#### C) Cola offline
 
 La app mantiene una cola en `localStorage` para dos tipos de eventos: confirmaciones de entrega y ubicaciones pendientes. Si el dispositivo pierde conexion, los datos no se descartan. En su lugar, quedan encolados y se reintentan cuando vuelve la conectividad. Esta decision es clave en un contexto de reparto, donde el uso en movilidad hace que la cobertura no siempre sea estable.
 
 La existencia de este servicio offline convierte a la app en una herramienta utilizable en condiciones reales de campo. Incluso aunque no exista sincronizacion completa bidireccional ni una base local avanzada, la solucion logra preservar las acciones mas criticas para que la jornada no quede bloqueada por una perdida temporal de red.
 
-#### C) Mapa y navegacion
+#### D) Mapa, navegacion y confirmacion de entrega
 
 La vista de ruta integra Leaflet y OpenStreetMap para representar:
 
@@ -695,6 +728,19 @@ Ademas, se ofrecen enlaces rapidos a Google Maps y Waze para facilitar la navega
 La app permite confirmar distintas situaciones: entrega correcta, entrega en punto alternativo, ausente, direccion incorrecta, rechazo o devolucion a oficina. Junto a ese estado, el repartidor puede registrar el nombre del receptor, su DNI, observaciones, firma digital, foto y coordenadas. Todo ello convierte la confirmacion de entrega en un registro mucho mas rico que un simple cambio de estado.
 
 La aplicacion incluye ademas una pantalla de escaneo operativo, capaz de consultar expediciones y sugerir la siguiente accion interna. Esto conecta la actividad del repartidor con la logica de estados del sistema y evita tratar la app movil como una simple lista de paradas.
+
+#### E) Jefe de reparto: bandeja, rutas y supervision
+
+El perfil `JefeReparto` dispone de una experiencia propia dentro de la misma aplicacion. Sus herramientas principales son:
+
+- Dashboard con metricas del dia, como rutas en curso, entregas pendientes, entregas fallidas y repartidores activos.
+- Bandeja de paquetes disponibles para reparto, desde la que puede crear rutas o anadir paquetes a rutas planificadas.
+- Gestion de rutas del dia, con visibilidad sobre reparto asignado y progreso.
+- Reasignacion de paradas entre rutas.
+- Mapa en tiempo real con ubicaciones activas del equipo.
+- Gestion de sus repartidores, con capacidad de editar datos operativos y activar o desactivar perfiles.
+
+Esta parte de la aplicacion tiene mucho valor porque desplaza la coordinacion de la ultima milla al mismo ecosistema en el que luego se ejecuta. No hace falta abrir una cuarta aplicacion ni volver a la intranet para resolver decisiones diarias de reparto.
 
 ### 2.3.8 API Gateway y control de acceso
 
@@ -725,6 +771,8 @@ La configuracion local incluye:
 
 En la practica, `docker-compose.yml` ofrece un entorno completo de extremo a extremo para desarrollo local. La web de clientes, la intranet y la app de reparto se sirven a traves del proxy local, mientras que gateway, microservicios y bases de datos conviven en una misma red Docker. Esto permite probar flujos completos como registro, contratacion, pago, admision, autoasignacion, tracking y entrega sin necesidad de cambiar manualmente URLs ni levantar componentes uno a uno.
 
+Conviene senalar ademas que el flujo local actual usa directamente `docker-compose.yml` como compose por defecto mediante `docker compose up -d --build`. La variante `docker-compose.local.yml` ya no forma parte del circuito operativo vigente, lo que simplifica la puesta en marcha y evita duplicidades de configuracion.
+
 El hecho de levantar la plataforma completa desde un unico archivo simplifica la puesta en marcha y reduce el coste de incorporacion de nuevos desarrolladores o de nuevas pruebas en otras maquinas. Ademas, mejora la paridad con produccion, ya que la topologia general de servicios se mantiene.
 
 ### 2.4.2 Configuracion en contenedores
@@ -743,9 +791,9 @@ El uso de contenedores aporta varias ventajas:
 
 ### 2.4.3 Despliegue en produccion
 
-En produccion, el sistema se despliega en un VPS, utilizando imagenes publicadas en GHCR. El despliegue contempla Nginx con SSL, sin exposicion directa de las bases de datos, y con todos los servicios conectados a una red interna. Esta separacion entre compilacion y despliegue es importante: el servidor no necesita construir el proyecto, sino solo descargar imagenes ya validadas y ejecutar la nueva version.
+En produccion, el sistema se despliega en un VPS, utilizando imagenes publicadas en GHCR. El despliegue contempla Nginx con SSL, sin exposicion directa de las bases de datos, y con todos los servicios conectados a una red interna. Esta separacion entre compilacion y despliegue es importante: el servidor no necesita construir el proyecto, sino solo descargar imagenes ya validadas y ejecutar la nueva version mediante un flujo de `pull` y `up -d --no-build` sobre `docker-compose.production.yml`.
 
-La publicacion se realiza bajo varios dominios y subdominios, con una separacion clara entre clientes, intranet y reparto. Los certificados del proxy deben provisionarse previamente en el servidor para que la entrada HTTPS funcione correctamente, lo cual refleja una necesidad operativa real de cualquier despliegue web serio.
+La publicacion se realiza bajo varios dominios y subdominios, con una separacion clara entre clientes, intranet y reparto. Los certificados del proxy deben provisionarse previamente en el servidor para que la entrada HTTPS funcione correctamente, aunque el pipeline contempla la generacion de un certificado temporal autofirmado como salvaguarda inicial. Esto refleja una necesidad operativa real de cualquier despliegue web serio.
 
 Este modelo es adecuado para un proyecto TFG porque combina realismo tecnico con una infraestructura asumible. No requiere una plataforma cloud compleja, pero al mismo tiempo obliga a trabajar con dominios, certificados, registros, variables seguras y coordinacion de servicios.
 
@@ -757,7 +805,7 @@ El proyecto incluye un workflow de GitHub Actions que automatiza buena parte del
 2. Compila las aplicaciones Angular.
 3. Construye las imagenes Docker de todos los servicios.
 4. Publica dichas imagenes en GitHub Container Registry.
-5. En rama master, conecta con el VPS y ejecuta el despliegue por `pull` y `compose up`.
+5. En rama `master`, conecta con el VPS, publica el `.env`, sincroniza la configuracion necesaria y ejecuta el despliegue por `pull` y `compose up -d --no-build`.
 
 El valor de este pipeline no es solo tecnico, sino metodologico. El proyecto no termina cuando el codigo compila en local, sino cuando existe un proceso repetible para construir, publicar y desplegar una version. Ademas, el uso de GHCR reduce el tiempo de despliegue en el VPS, ya que este solo necesita descargar imagenes y relanzar los contenedores necesarios.
 
@@ -777,20 +825,23 @@ La presencia de este stack complementario es importante porque abre la puerta a 
 
 ## 2.5 Documentacion
 
+La documentacion final del proyecto no se limita a esta memoria principal. En la version actual se articula en tres piezas coordinadas: la memoria del TFG como documento troncal, un manual tecnico como anexo para instalacion, arquitectura y mantenimiento, y un manual de usuario como anexo para la explotacion funcional por perfiles.
+
 ### 2.5.1 Documentacion tecnica del codigo
 
 La documentacion tecnica del proyecto se apoya en varios niveles:
 
-- Un README general del repositorio que resume arquitectura, modulos, credenciales de desarrollo y formas de despliegue.
-- Comentarios XML en controladores y servicios del backend.
-- Documentacion funcional adicional que recoge el estado de prioridades, backlog y mapa de endpoints.
+- Un README general del repositorio que resume arquitectura, modulos, roles, patrones de error y formas de despliegue.
+- Documentos auxiliares de analisis funcional, flujos logísticos y analisis de roles.
+- Comentarios XML y comentarios tecnicos en controladores, hubs y servicios del backend.
 - Estructura del repositorio organizada por aplicaciones y microservicios.
+- Un anexo especifico de manual tecnico, pensado para instalacion, operacion y mantenimiento del sistema.
 
-En los backends .NET se ha trabajado con comentarios que describen el objetivo de controladores, endpoints y servicios, lo cual facilita la comprension del sistema y permite generar documentacion complementaria mediante Swagger u otras herramientas.
+En los backends .NET se ha trabajado con comentarios que describen el objetivo de controladores, endpoints, servicios y hubs, lo cual facilita la comprension del sistema y permite generar documentacion complementaria mediante Swagger u otras herramientas. La memoria, por su parte, sintetiza las decisiones de diseño; el manual tecnico desciende al nivel operativo y de soporte.
 
 ### 2.5.2 Documentacion de API
 
-Los microservicios principales cuentan con configuracion de OpenAPI o Swagger, lo que permite inspeccionar contratos, endpoints y mecanismos de autenticacion. Este aspecto es especialmente util para depuracion, pruebas e integracion entre equipos.
+Los microservicios principales cuentan con configuracion de OpenAPI o Swagger, lo que permite inspeccionar contratos, endpoints y mecanismos de autenticacion. Este aspecto es especialmente util para depuracion, pruebas e integracion entre equipos. A ello se suma la documentacion del gateway y del patron uniforme de errores, que aporta una capa adicional de claridad sobre como se exponen realmente las APIs al exterior.
 
 Los endpoints mas relevantes del sistema son:
 
@@ -820,26 +871,31 @@ En Reparto:
 
 - Perfil del repartidor.
 - Ruta del dia.
-- Rutas por identificador.
+- Rutas del dia y planificacion.
 - Entregas.
 - Confirmacion de entrega.
 - Registro de ubicacion.
-- Autoasignacion interna.
+- Bandeja del jefe de reparto.
+- Reasignacion de entregas y gestion de repartidores.
 
 ### 2.5.3 Documentacion de usuario
 
-La propia estructura de las tres aplicaciones funciona como base para un manual de usuario. De cara a la memoria, conviene incluir capturas de pantalla en esta seccion o en anexos. Algunas capturas recomendadas son:
+La propia estructura de las tres aplicaciones funciona como base para un manual de usuario, pero en la version actual se ha considerado mas adecuado separar ese contenido en un anexo especifico de manual de usuario. Ese documento organiza la operativa por perfil y por aplicacion, de modo que cada actor consulte solo la parte que necesita: cliente, operario de oficina, operario CTA, supervisor, administrador, repartidor o jefe de reparto.
+
+De cara a la entrega final en Word, conviene acompanar esta seccion y el anexo con capturas de pantalla. Algunas especialmente recomendables son:
 
 - Pantalla de inicio de clientes.
 - Wizard de nuevo envio en sus tres pasos.
 - Tracking publico con barra de progreso.
 - Panel de usuario con agenda de direcciones.
-- Dashboard de intranet.
+- Dashboard de intranet por rol.
 - Gestion de CTA.
-- Pantalla de asignaciones.
-- Pantalla de escaneo logistico.
-- Dashboard de driver app.
+- Pantalla de asignaciones y escaneo integrado.
+- Alta presencial en oficina.
+- Dashboard administrativo.
+- Dashboard del jefe de reparto.
 - Vista de ruta con mapa y lista de entregas.
+- Bandeja de paquetes para reparto.
 
 ### 2.5.4 Organizacion del repositorio
 
