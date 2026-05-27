@@ -276,17 +276,20 @@ public class ScanProcessorService : IScanProcessorService
         string? detalles = null;
         if (ctaOrigen != null)
         {
-            // Notificar al CTA origen (ahora sí recibe la señal de paquete entrante).
-            await _notificacionService.NotificarPaqueteRecibidoEnCta(
-                ctaOrigen.CtaId, ctaOrigen.CtaCodigo, expedicion,
-                req.EsUrgente, ctaOrigen.Provincia, "Paquete en camino desde oficina origen");
-
-            // Auto-crear tarea de Recepción para el OperarioCTA del CTA origen.
+            // ⚠️ ORDEN IMPORTANTE: primero crear la tarea, luego notificar al CTA.
+            // Si se notifica antes, el OperarioCTA recibe el evento PaqueteRecibidoEnCta
+            // y su UI llama a /asignaciones/cta/{id} ANTES de que la tarea esté en BD,
+            // devolviendo lista vacía → el operario ve la notificación sin la asignación.
             var autoAsign = await AutoAsignarTareaEnCtaAsync(
                 TipoTarea.Recepcion,
                 expedicion, ctaOrigen.CtaId, ctaOrigen.CtaCodigo, req.EsUrgente,
                 "Tarea generada al salir el paquete de la oficina origen");
             detalles = autoAsign.Message;
+
+            // Notificar al CTA origen (ahora sí recibe la señal de paquete entrante).
+            await _notificacionService.NotificarPaqueteRecibidoEnCta(
+                ctaOrigen.CtaId, ctaOrigen.CtaCodigo, expedicion,
+                req.EsUrgente, ctaOrigen.Provincia, "Paquete en camino desde oficina origen");
         }
         else
         {
@@ -365,11 +368,6 @@ public class ScanProcessorService : IScanProcessorService
             VisibleParaCliente = true
         });
 
-        // Notificar al CTA (SignalR interno)
-        await _notificacionService.NotificarPaqueteRecibidoEnCta(
-            req.CtaId.Value, req.CtaCodigo ?? "", expedicion,
-            req.EsUrgente, "", req.Observaciones);
-
         // Notificar a Ciudadano (tracking público)
         await _ciudadanoNotifier.NotificarEstadoAsync(
             expedicion, expedicion, "RecibidoEnCentroOrigen",
@@ -382,13 +380,22 @@ public class ScanProcessorService : IScanProcessorService
         result.MovimientoTroncalCreado = movimientoCreado;
         result.NotificacionEnviada = true;
 
-        // Encadenado: cerrar Recepción y crear Clasificacion en el mismo CTA
+        // Encadenado: cerrar Recepción y crear Clasificacion en el mismo CTA.
+        // ⚠️ ORDEN IMPORTANTE: crear la siguiente tarea ANTES de notificar al CTA.
+        // Si se notifica antes, el OperarioCTA recibe PaqueteRecibidoEnCta y su UI
+        // refresca el listado /asignaciones/cta/{id} sin que la nueva Clasificacion
+        // esté aún en BD, mostrando "Sin asignaciones".
         await CerrarTareaSiExisteAsync(expedicion, TipoTarea.Recepcion, req.CtaId.Value);
         var autoClasif = await AutoAsignarTareaEnCtaAsync(
             TipoTarea.Clasificacion,
             expedicion, req.CtaId.Value, req.CtaCodigo ?? "", req.EsUrgente,
             "Tarea generada tras recepción en CTA");
         result.Detalles = string.IsNullOrEmpty(detalles) ? autoClasif.Message : $"{detalles}. {autoClasif.Message}";
+
+        // Notificar al CTA (SignalR interno) — después de crear la tarea.
+        await _notificacionService.NotificarPaqueteRecibidoEnCta(
+            req.CtaId.Value, req.CtaCodigo ?? "", expedicion,
+            req.EsUrgente, "", req.Observaciones);
 
         return result;
     }
@@ -597,16 +604,19 @@ public class ScanProcessorService : IScanProcessorService
 
         // Auto-crear tarea RecepcionTroncal en el CTA destino para que el OperarioCTA
         // de allí la vea en su listado de pendientes y notificarle por SignalR.
+        // ⚠️ ORDEN IMPORTANTE: primero crear la tarea, luego notificar (mismo motivo que en
+        // SalidaOficinaACta: el evento PaqueteRecibidoEnCta dispara un refresco en la UI
+        // del CTA destino y si la tarea aún no está en BD, el listado llega vacío).
         if (ctaDestinoId.HasValue)
         {
-            await _notificacionService.NotificarPaqueteRecibidoEnCta(
-                ctaDestinoId.Value, ctaDestinoCodigo ?? "", expedicion,
-                req.EsUrgente, "", $"Paquete en tránsito desde {req.CtaCodigo}");
-
             await AutoAsignarTareaEnCtaAsync(
                 TipoTarea.RecepcionTroncal,
                 expedicion, ctaDestinoId.Value, ctaDestinoCodigo ?? "", req.EsUrgente,
                 $"Tarea generada al despachar el paquete desde {req.CtaCodigo}");
+
+            await _notificacionService.NotificarPaqueteRecibidoEnCta(
+                ctaDestinoId.Value, ctaDestinoCodigo ?? "", expedicion,
+                req.EsUrgente, "", $"Paquete en tránsito desde {req.CtaCodigo}");
         }
 
         return result;
@@ -648,21 +658,24 @@ public class ScanProcessorService : IScanProcessorService
             VisibleParaCliente = true
         });
 
-        // Notificar al CTA destino (SignalR interno)
-        await _notificacionService.NotificarPaqueteRecibidoEnCta(
-            req.CtaId.Value, req.CtaCodigo ?? "", expedicion,
-            req.EsUrgente, "", "Recibido tras movimiento troncal");
-
         // Cerrar la tarea RecepcionTroncal del OperarioCTA que acaba de escanear.
         // Sin esto la tarea quedaría Pendiente para siempre y el operario podría
         // re-escanear infinitas veces obteniendo el mismo mensaje sin avanzar.
         await CerrarTareaSiExisteAsync(expedicion, TipoTarea.RecepcionTroncal, req.CtaId.Value);
 
-        // Crear tarea de Clasificación automática en el CTA destino
+        // ⚠️ ORDEN IMPORTANTE: crear Clasificación ANTES de notificar al CTA destino.
+        // Si se notifica antes, el OperarioCTA recibe PaqueteRecibidoEnCta y su UI
+        // refresca /asignaciones/cta/{id} sin que la nueva Clasificacion esté en BD,
+        // mostrando "Sin asignaciones".
         var autoAsignacion = await AutoAsignarTareaEnCtaAsync(
             TipoTarea.Clasificacion,
             expedicion, req.CtaId.Value, req.CtaCodigo ?? "", req.EsUrgente,
             "Clasificación de última milla tras recepción troncal");
+
+        // Notificar al CTA destino (SignalR interno) — después de crear la tarea.
+        await _notificacionService.NotificarPaqueteRecibidoEnCta(
+            req.CtaId.Value, req.CtaCodigo ?? "", expedicion,
+            req.EsUrgente, "", "Recibido tras movimiento troncal");
 
         // Notificar a Ciudadano (tracking público)
         await _ciudadanoNotifier.NotificarEstadoAsync(
@@ -712,6 +725,17 @@ public class ScanProcessorService : IScanProcessorService
             VisibleParaCliente = true
         });
 
+        // Cerrar tarea DisponibleParaReparto en CTA destino
+        await CerrarTareaSiExisteAsync(expedicion, TipoTarea.DisponibleParaReparto, req.CtaId.Value);
+
+        // ─── Bandeja del JefeReparto del CTA destino ───
+        // Registramos el paquete en la bandeja persistente del microservicio Reparto.
+        // ⚠️ ORDEN IMPORTANTE: registrar en la bandeja ANTES de notificar.
+        // Si se notifica antes, el JefeReparto recibe PaqueteDisponibleParaReparto y
+        // su UI refresca la bandeja sin que el paquete esté aún registrado en Reparto,
+        // mostrando una lista vacía y bloqueando la creación de la ruta.
+        await TryRegistrarEnBandejaRepartoAsync(req, expedicion);
+
         // Notificar a JefeReparto / equipo de reparto del CTA destino.
         await _notificacionService.NotificarPaqueteDisponibleParaReparto(
             req.CtaId.Value, req.CtaCodigo ?? "", expedicion, req.EsUrgente);
@@ -719,14 +743,6 @@ public class ScanProcessorService : IScanProcessorService
         await _ciudadanoNotifier.NotificarEstadoAsync(
             expedicion, expedicion, "DisponibleParaReparto",
             $"Tu paquete está listo para asignar a un repartidor en {req.CtaCodigo}");
-
-        // Cerrar tarea DisponibleParaReparto en CTA destino
-        await CerrarTareaSiExisteAsync(expedicion, TipoTarea.DisponibleParaReparto, req.CtaId.Value);
-
-        // ─── Bandeja del JefeReparto del CTA destino ───
-        // Registramos el paquete en la bandeja persistente del microservicio Reparto.
-        // El JefeReparto lo verá en su panel y lo añadirá a una ruta manualmente.
-        await TryRegistrarEnBandejaRepartoAsync(req, expedicion);
 
         var result = Exito(req, expedicion, "DisponibleParaReparto",
             $"Paquete disponible para reparto desde {req.CtaCodigo}",

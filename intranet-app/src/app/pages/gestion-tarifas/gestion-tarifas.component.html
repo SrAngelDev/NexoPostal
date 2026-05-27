@@ -1,106 +1,149 @@
-<div class="page-container">
-  <div class="page-header">
-    <button class="btn-back" (click)="volver()" type="button">
-      <span class="material-symbols-outlined">arrow_back</span>
-      Volver
-    </button>
-    <h1>
-      <span class="material-symbols-outlined">euro</span>
-      Gestión de Tarifas
-    </h1>
-    <div class="header-actions">
-      <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading() || saving()">
-        <span class="material-symbols-outlined">refresh</span>
-        Recargar
+<div class="page">
+  <main class="page-content fade-in-up">
+
+    <header class="page-header-modern">
+      <button class="btn btn-ghost btn-icon" (click)="volver()" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
       </button>
-      <button class="btn btn-warning" (click)="restaurarDefaults()" [disabled]="loading() || saving()">
-        <span class="material-symbols-outlined">restart_alt</span>
-        Restaurar defaults
-      </button>
-    </div>
-  </div>
-
-  <p class="page-description">
-    Estos son los <strong>precios base sin IVA</strong> aplicados a cada tramo de peso. Las zonas Baleares,
-    Ceuta/Melilla y Canarias se calculan multiplicando los precios de Península por un factor logístico
-    (constante en el código). El recargo por dimensiones extra (35%) y el IVA (21%) se aplican siempre.
-  </p>
-
-  @if (error()) {
-    <div class="alert alert-error">
-      <span class="material-symbols-outlined">error</span>
-      {{ error() }}
-    </div>
-  }
-  @if (success()) {
-    <div class="alert alert-success">
-      <span class="material-symbols-outlined">check_circle</span>
-      {{ success() }}
-    </div>
-  }
-
-  @if (loading()) {
-    <div class="loading-state">
-      <span class="material-symbols-outlined spin">progress_activity</span>
-      Cargando tarifas…
-    </div>
-  } @else {
-    <div class="tarifas-grid">
-      @for (serie of seriesOrder; track serie) {
-        <section class="tarifa-card">
-          <h2>{{ seriesLabel[serie] }}</h2>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Peso hasta (kg)</th>
-                <th>Precio base (€)</th>
-                <th>Última modificación</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (fila of filasPorSerie(serie); track fila.id) {
-                <tr [class.row-changed]="fila.modificado">
-                  <td>{{ fila.pesoHastaKg }} kg</td>
-                  <td>
-                    <input type="number"
-                           class="precio-input"
-                           min="0.01"
-                           step="0.01"
-                           [ngModel]="fila.precioEditado"
-                           (ngModelChange)="onPrecioCambio(fila.id, $event)"
-                           [disabled]="saving()" />
-                  </td>
-                  <td class="meta-cell">
-                    {{ fila.fechaModificacion | date:'short' }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </section>
-      }
-    </div>
-
-    <div class="action-bar">
-      <div class="action-info">
-        @if (hayCambios()) {
-          <span class="badge-info">{{ totalCambios() }} cambios sin guardar</span>
-        } @else {
-          <span class="text-muted">Sin cambios pendientes</span>
-        }
+      <div class="icon-tile icon-tile-lg icon-tile-accent">
+        <span class="material-symbols-outlined">euro</span>
       </div>
-      <div class="action-buttons">
-        <button class="btn btn-secondary" (click)="descartar()" [disabled]="!hayCambios() || saving()">Descartar</button>
-        <button class="btn btn-primary" (click)="guardar()" [disabled]="!hayCambios() || saving()">
-          @if (saving()) {
-            <span class="material-symbols-outlined spin">progress_activity</span>
-            Guardando…
-          } @else {
-            <span class="material-symbols-outlined">save</span>
-            Guardar cambios
-          }
+      <div class="header-text">
+        <h1 class="page-heading">Gestión de tarifas</h1>
+        <p class="page-subheading">
+          Precios base sin IVA por tramo de peso. Las zonas Baleares, Ceuta/Melilla y Canarias
+          se calculan multiplicando los precios de Península por un factor logístico. El recargo
+          por dimensiones extra (35%) y el IVA (21%) se aplican siempre.
+        </p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="cargar()" [disabled]="loading() || saving()">
+          <span class="material-symbols-outlined" [class.spinning]="loading()">refresh</span>
+          Recargar
+        </button>
+        <button class="btn btn-accent" (click)="restaurarDefaults()" [disabled]="loading() || saving()">
+          <span class="material-symbols-outlined">restart_alt</span>
+          Restaurar defaults
         </button>
       </div>
-    </div>
-  }
+    </header>
+
+    <section class="kpi-grid">
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-brand"><span class="material-symbols-outlined">scale</span></div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ filas().length }}</div>
+          <div class="kpi-label">Bandas totales</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg icon-tile-info"><span class="material-symbols-outlined">layers</span></div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ seriesOrder.length }}</div>
+          <div class="kpi-label">Series tarifarias</div>
+        </div>
+      </article>
+      <article class="card kpi-card">
+        <div class="icon-tile icon-tile-lg" [class.icon-tile-warning]="hayCambios()" [class.icon-tile-success]="!hayCambios()">
+          <span class="material-symbols-outlined">{{ hayCambios() ? 'edit' : 'check_circle' }}</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ totalCambios() }}</div>
+          <div class="kpi-label">Cambios pendientes</div>
+        </div>
+      </article>
+    </section>
+
+    @if (error()) {
+      <div class="alert alert-danger fade-in">
+        <span class="material-symbols-outlined">error</span>
+        <span style="flex:1">{{ error() }}</span>
+        <button class="btn btn-icon btn-ghost" (click)="error.set(null)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    }
+    @if (success()) {
+      <div class="alert alert-success fade-in">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span style="flex:1">{{ success() }}</span>
+        <button class="btn btn-icon btn-ghost" (click)="success.set(null)"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando tarifas…
+      </div>
+    } @else {
+      <section class="tarifas-grid">
+        @for (serie of seriesOrder; track serie) {
+          <article class="card tarifa-card">
+            <header class="tarifa-card-head">
+              <div class="icon-tile icon-tile-sm icon-tile-brand"><span class="material-symbols-outlined">sell</span></div>
+              <h2 class="section-title">{{ seriesLabel[serie] }}</h2>
+            </header>
+
+            <div class="surface-elevated table-wrapper tarifa-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Peso hasta (kg)</th>
+                    <th>Precio base (€)</th>
+                    <th>Última modificación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (fila of filasPorSerie(serie); track fila.id) {
+                    <tr [class.row-changed]="fila.modificado">
+                      <td class="cell-mono">{{ fila.pesoHastaKg }} kg</td>
+                      <td>
+                        <input type="number"
+                               class="input input-precio"
+                               min="0.01"
+                               step="0.01"
+                               [ngModel]="fila.precioEditado"
+                               (ngModelChange)="onPrecioCambio(fila.id, $event)"
+                               [disabled]="saving()" />
+                      </td>
+                      <td class="cell-meta">
+                        {{ fila.fechaModificacion | date:'short' }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </article>
+        }
+      </section>
+
+      <footer class="card action-bar">
+        <div class="action-info">
+          @if (hayCambios()) {
+            <span class="chip chip-warning">
+              <span class="material-symbols-outlined">edit</span>
+              {{ totalCambios() }} cambios sin guardar
+            </span>
+          } @else {
+            <span class="chip"><span class="material-symbols-outlined">check_circle</span>Sin cambios pendientes</span>
+          }
+        </div>
+        <div class="action-buttons">
+          <button class="btn btn-secondary" (click)="descartar()" [disabled]="!hayCambios() || saving()">
+            <span class="material-symbols-outlined">undo</span>
+            Descartar
+          </button>
+          <button class="btn btn-primary" (click)="guardar()" [disabled]="!hayCambios() || saving()">
+            @if (saving()) {
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Guardando…
+            } @else {
+              <span class="material-symbols-outlined">save</span>
+              Guardar cambios
+            }
+          </button>
+        </div>
+      </footer>
+    }
+  </main>
 </div>
