@@ -90,7 +90,8 @@ public static class IntranetDataSeeder
         if (await context.CentrosTratamiento.AnyAsync())
         {
             logger.LogInformation("La base de datos ya contiene datos logísticos. Seeding de CTAs/operarios omitido.");
-            // Aun así, en desarrollo, intentamos completar los operarios extra (idempotente).
+            // Parche idempotente (dev + prod): añadir asignaciones CTA para OperariosOficina si faltan.
+            await SeedOperariosOficinaCtaIfMissingAsync(context, logger);
             if (env.IsDevelopment())
             {
                 await SeedDevelopmentExtrasAsync(context, logger, oficinasService);
@@ -113,11 +114,11 @@ public static class IntranetDataSeeder
         logger.LogInformation("✓ {Count} rutas de enrutamiento creadas", rutas.Count);
 
         // 3. Asignar operarios de CTA: cada usuario tiene UN único CTA (Madrid o Barcelona).
+        //    Incluye los OperariosOficina con su CTA de referencia (contexto logístico).
         var operariosCta = CrearOperariosCta(ctas);
         context.OperariosCta.AddRange(operariosCta);
         await context.SaveChangesAsync();
-        logger.LogInformation("✓ {Count} asignaciones operario-CTA creadas (1 CTA por usuario)",
-            operariosCta.Count);
+        logger.LogInformation("✓ {Count} asignaciones operario-CTA creadas", operariosCta.Count);
 
         // 4. Asignar operarios de oficina a oficinas de Madrid y Barcelona.
         var todasLasOficinas = oficinasService.ObtenerTodas();
@@ -218,6 +219,73 @@ public static class IntranetDataSeeder
         }
         if (nuevasOficinas > 0) await context.SaveChangesAsync();
         logger.LogInformation("[DEV] ✓ {Count} operarios de oficina añadidos (Bilbao/Sevilla)", nuevasOficinas);
+
+        // También asignar CTA de referencia para los OperariosOficina dev (idempotente).
+        var ctaAsignacionesDev = new List<(string UserId, string Nombre, string Codigo, int? CtaId)>
+        {
+            (DevOperarioOficinaBilbaoId,  "Roberto Sáenz Etxebarria", "OPE003", ctaBilbao?.Id),
+            (DevOperarioOficinaSevillaId, "Lucía Romero Cabrera",     "OPE004", ctaSevilla?.Id),
+        };
+
+        var nuevasCtaDev = 0;
+        foreach (var op in ctaAsignacionesDev)
+        {
+            if (op.CtaId is null) continue;
+            var existe = await context.OperariosCta.AnyAsync(
+                o => o.IdentityUserId == op.UserId && o.CentroTratamientoId == op.CtaId.Value);
+            if (existe) continue;
+            context.OperariosCta.Add(new OperarioCta
+            {
+                IdentityUserId = op.UserId,
+                NombreCompleto = op.Nombre,
+                CodigoEmpleado = op.Codigo,
+                Rol = RolOperario.OperarioOficina,
+                CentroTratamientoId = op.CtaId.Value
+            });
+            nuevasCtaDev++;
+        }
+        if (nuevasCtaDev > 0) await context.SaveChangesAsync();
+        logger.LogInformation("[DEV] ✓ {Count} asignaciones CTA para OperariosOficina dev añadidas", nuevasCtaDev);
+    }
+
+    /// <summary>
+    /// Parche idempotente (dev + producción): crea en OperariosCta las filas de contexto
+    /// para los OperariosOficina base (María → CTA-MAD, Diego → CTA-BCN).
+    /// Se ejecuta siempre que el seeder detecta que la BD ya tiene datos.
+    /// </summary>
+    private static async Task SeedOperariosOficinaCtaIfMissingAsync(IntranetDbContext context, ILogger logger)
+    {
+        var ctaMad = await context.CentrosTratamiento.FirstOrDefaultAsync(c => c.Codigo == "CTA-MAD");
+        var ctaBcn = await context.CentrosTratamiento.FirstOrDefaultAsync(c => c.Codigo == "CTA-BCN");
+
+        var asignaciones = new List<(string UserId, string Nombre, string Codigo, CentroTratamiento? Cta)>
+        {
+            (OperarioOficinaSeedId,  "María García López",  "OPE001", ctaMad),
+            (OperarioOficina2SeedId, "Diego Herrera Ortiz", "OPE002", ctaBcn),
+        };
+
+        var nuevas = 0;
+        foreach (var a in asignaciones)
+        {
+            if (a.Cta is null) continue;
+            var existe = await context.OperariosCta.AnyAsync(
+                o => o.IdentityUserId == a.UserId && o.CentroTratamientoId == a.Cta.Id);
+            if (existe) continue;
+            context.OperariosCta.Add(new OperarioCta
+            {
+                IdentityUserId = a.UserId,
+                NombreCompleto = a.Nombre,
+                CodigoEmpleado = a.Codigo,
+                Rol = RolOperario.OperarioOficina,
+                CentroTratamientoId = a.Cta.Id
+            });
+            nuevas++;
+        }
+        if (nuevas > 0)
+        {
+            await context.SaveChangesAsync();
+            logger.LogInformation("✓ {Count} asignaciones CTA para OperariosOficina añadidas (parche)", nuevas);
+        }
     }
 
     /// <summary>
@@ -546,10 +614,13 @@ public static class IntranetDataSeeder
 
         var asignaciones = new[]
         {
-            new { IdentityUserId = OperarioCtaSeedId,  Nombre = "Pedro Martínez Ruiz",  Codigo = "OPL001", Rol = RolOperario.OperarioCTA, CtaId = ctaMadrid.Id },
-            new { IdentityUserId = OperarioCta2SeedId, Nombre = "Sergio Romero Vega",   Codigo = "OPL002", Rol = RolOperario.OperarioCTA, CtaId = ctaBarcelona.Id },
-            new { IdentityUserId = SupervisorSeedId,   Nombre = "Laura Fernández Díaz", Codigo = "OPJ001", Rol = RolOperario.Supervisor,  CtaId = ctaMadrid.Id },
-            new { IdentityUserId = Supervisor2SeedId,  Nombre = "Marta Jiménez Castro", Codigo = "OPJ002", Rol = RolOperario.Supervisor,  CtaId = ctaBarcelona.Id },
+            new { IdentityUserId = OperarioCtaSeedId,      Nombre = "Pedro Martínez Ruiz",  Codigo = "OPL001", Rol = RolOperario.OperarioCTA,     CtaId = ctaMadrid.Id },
+            new { IdentityUserId = OperarioCta2SeedId,     Nombre = "Sergio Romero Vega",   Codigo = "OPL002", Rol = RolOperario.OperarioCTA,     CtaId = ctaBarcelona.Id },
+            new { IdentityUserId = SupervisorSeedId,       Nombre = "Laura Fernández Díaz", Codigo = "OPJ001", Rol = RolOperario.Supervisor,      CtaId = ctaMadrid.Id },
+            new { IdentityUserId = Supervisor2SeedId,      Nombre = "Marta Jiménez Castro", Codigo = "OPJ002", Rol = RolOperario.Supervisor,      CtaId = ctaBarcelona.Id },
+            // OperariosOficina también tienen contexto de CTA (para el panel admin)
+            new { IdentityUserId = OperarioOficinaSeedId,  Nombre = "María García López",  Codigo = "OPE001", Rol = RolOperario.OperarioOficina, CtaId = ctaMadrid.Id },
+            new { IdentityUserId = OperarioOficina2SeedId, Nombre = "Diego Herrera Ortiz", Codigo = "OPE002", Rol = RolOperario.OperarioOficina, CtaId = ctaBarcelona.Id },
         };
 
         return asignaciones
