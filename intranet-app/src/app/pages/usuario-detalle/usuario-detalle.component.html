@@ -324,8 +324,8 @@
                         (ngModelChange)="onNuevoOficinaChange($event)"
                         [disabled]="savingOficina() || cargandoOficinas() || oficinasDisponibles().length === 0">
                   <option [ngValue]="null" disabled>
-                    @if (cargandoOficinas()) { Cargando oficinas del CTA… }
-                    @else if (oficinasDisponibles().length === 0) { No hay oficinas en el CTA del operario }
+                    @if (cargandoOficinas()) { Cargando oficinas… }
+                    @else if (oficinasDisponibles().length === 0) { No hay oficinas disponibles }
                     @else { — Selecciona una oficina — }
                   </option>
                   @for (of of oficinasDisponibles(); track of.id) {

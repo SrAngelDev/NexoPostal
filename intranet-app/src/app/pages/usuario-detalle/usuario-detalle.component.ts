@@ -422,24 +422,22 @@ export class UsuarioDetalleComponent implements OnInit {
       next: (oficina) => {
         this.oficinaActual.set(oficina);
         this.nuevoOficinaJsonId.set(oficina?.oficinaJsonId ?? null);
-
-        // Cargar la lista de oficinas del CTA principal del usuario (la primera asignación).
-        const operativo = this.detalleOperativo();
-        const primerCta = operativo?.asignacionesCta?.[0];
-        if (primerCta) {
-          this.cargarOficinasParaCta(primerCta.ctaId);
-        }
+        // El OperarioOficina opera a nivel de oficina, no de CTA: cargamos TODAS
+        // las oficinas para que el admin pueda cambiarlo sin tener que asignarle
+        // un CTA antes (la asignación a CTA es opcional para este rol).
+        this.cargarTodasOficinas();
       },
       error: () => {
         this.oficinaActual.set(null);
+        this.cargarTodasOficinas();
       }
     });
   }
 
-  private cargarOficinasParaCta(ctaId: number): void {
+  private cargarTodasOficinas(): void {
     this.cargandoOficinas.set(true);
-    this.oficinaCtaContexto.set(ctaId);
-    this.adminService.obtenerOficinasPorCta(ctaId).subscribe({
+    this.oficinaCtaContexto.set(null);
+    this.adminService.obtenerTodasOficinas().subscribe({
       next: (oficinas) => {
         this.oficinasDisponibles.set(oficinas);
         this.cargandoOficinas.set(false);
