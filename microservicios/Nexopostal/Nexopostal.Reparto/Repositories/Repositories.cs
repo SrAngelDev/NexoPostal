@@ -70,7 +70,7 @@ public class RutaRepartoRepository : IRutaRepartoRepository
             .Include(r => r.Entregas)
             .FirstOrDefaultAsync(r => r.Id == id);
 
-    public async Task<List<RutaReparto>> GetAllAsync(DateOnly? fecha = null, int? repartidorId = null)
+    public async Task<List<RutaReparto>> GetAllAsync(DateOnly? fecha = null, int? repartidorId = null, int? oficinaJsonId = null)
     {
         var query = _context.RutasReparto
             .Include(r => r.Repartidor)
@@ -81,6 +81,8 @@ public class RutaRepartoRepository : IRutaRepartoRepository
             query = query.Where(r => r.FechaReparto == fecha.Value);
         if (repartidorId.HasValue)
             query = query.Where(r => r.RepartidorId == repartidorId.Value);
+        if (oficinaJsonId.HasValue)
+            query = query.Where(r => r.OficinaOrigenJsonId == oficinaJsonId.Value);
 
         return await query
             .OrderByDescending(r => r.FechaReparto)

@@ -18,12 +18,14 @@ public interface IRepartoService
     Task<(bool Ok, string? Error)> ReactivarRepartidor(int id);
 
     // ─── Rutas ───
-    Task<List<RutaRepartoResumenDto>> ObtenerRutas(DateOnly? fecha = null, int? repartidorId = null);
+    Task<List<RutaRepartoResumenDto>> ObtenerRutas(DateOnly? fecha = null, int? repartidorId = null, int? oficinaJsonId = null);
     Task<RutaRepartoDetalleDto?> ObtenerRutaPorId(int id);
     Task<RutaRepartoDetalleDto?> ObtenerRutaPorCodigo(string codigo);
     Task<RutaRepartoDetalleDto> CrearRuta(CrearRutaRepartoDto dto);
     Task<RutaRepartoDetalleDto?> IniciarRuta(int rutaId);
     Task<RutaRepartoDetalleDto?> FinalizarRuta(int rutaId, string? observaciones = null);
+    Task<(bool Ok, string? Error)> CancelarRuta(int rutaId);
+    Task<(bool Ok, string? Error)> ReactivarRuta(int rutaId);
 
     // ─── Entregas ───
     Task<EntregaPaqueteDto?> AgregarEntregaARuta(int rutaId, AgregarEntregaDto dto);
@@ -54,6 +56,7 @@ public class RepartoService : IRepartoService
     private readonly IEntregaPaqueteRepository _entregaRepo;
     private readonly IUbicacionRepartidorRepository _ubicacionRepo;
     private readonly IRepartoNotifier _notifier;
+    private readonly IVehiculoService _vehiculoService;
     private readonly ILogger<RepartoService> _logger;
 
     public RepartoService(
@@ -62,6 +65,7 @@ public class RepartoService : IRepartoService
         IEntregaPaqueteRepository entregaRepo,
         IUbicacionRepartidorRepository ubicacionRepo,
         IRepartoNotifier notifier,
+        IVehiculoService vehiculoService,
         ILogger<RepartoService> logger)
     {
         _repartidorRepo = repartidorRepo;
@@ -69,6 +73,7 @@ public class RepartoService : IRepartoService
         _entregaRepo = entregaRepo;
         _ubicacionRepo = ubicacionRepo;
         _notifier = notifier;
+        _vehiculoService = vehiculoService;
         _logger = logger;
     }
 
@@ -92,6 +97,7 @@ public class RepartoService : IRepartoService
             OficinaJsonId = r.OficinaJsonId,
             OficinaNombre = r.OficinaNombre,
             TipoVehiculo = r.TipoVehiculo.ToString(),
+            MatriculaVehiculo = r.MatriculaVehiculo,
             Activo = r.Activo,
             RutasHoy = r.Rutas.Count(rt => rt.FechaReparto == hoy)
         }).ToList();
@@ -114,6 +120,7 @@ public class RepartoService : IRepartoService
             OficinaJsonId = r.OficinaJsonId,
             OficinaNombre = r.OficinaNombre,
             TipoVehiculo = r.TipoVehiculo.ToString(),
+            MatriculaVehiculo = r.MatriculaVehiculo,
             Activo = r.Activo,
             RutasHoy = r.Rutas.Count(rt => rt.FechaReparto == hoy)
         };
@@ -153,6 +160,7 @@ public class RepartoService : IRepartoService
             OficinaJsonId = repartidor.OficinaJsonId,
             OficinaNombre = repartidor.OficinaNombre,
             TipoVehiculo = repartidor.TipoVehiculo.ToString(),
+            MatriculaVehiculo = repartidor.MatriculaVehiculo,
             Activo = repartidor.Activo,
             RutasHoy = 0
         };
@@ -176,6 +184,20 @@ public class RepartoService : IRepartoService
 
         await _repartidorRepo.UpdateAsync(repartidor);
 
+        // Si se especificó un vehículo de la flota, actualizar su asignación en la tabla de vehículos.
+        // VehiculoId == 0 significa desasignar; VehiculoId > 0 significa asignar ese vehículo.
+        if (dto.VehiculoId.HasValue)
+        {
+            int? repartidorParaAsignar = dto.VehiculoId.Value == 0 ? null : repartidor.Id;
+            int vehiculoIdEfectivo = dto.VehiculoId.Value == 0
+                ? (await _vehiculoService.ListarAsync(false, repartidor.OficinaJsonId))
+                    .FirstOrDefault(v => v.RepartidorAsignadoId == repartidor.Id)?.Id ?? 0
+                : dto.VehiculoId.Value;
+
+            if (vehiculoIdEfectivo > 0)
+                await _vehiculoService.AsignarAsync(vehiculoIdEfectivo, repartidorParaAsignar, null);
+        }
+
         _logger.LogInformation("Repartidor {Id} actualizado por administrador", id);
 
         var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -190,6 +212,7 @@ public class RepartoService : IRepartoService
             OficinaJsonId = repartidor.OficinaJsonId,
             OficinaNombre = repartidor.OficinaNombre,
             TipoVehiculo = repartidor.TipoVehiculo.ToString(),
+            MatriculaVehiculo = repartidor.MatriculaVehiculo,
             Activo = repartidor.Activo,
             RutasHoy = repartidor.Rutas.Count(rt => rt.FechaReparto == hoy)
         }, null);
@@ -234,9 +257,9 @@ public class RepartoService : IRepartoService
     //  RUTAS DE REPARTO
     // ═══════════════════════════════════════════
 
-    public async Task<List<RutaRepartoResumenDto>> ObtenerRutas(DateOnly? fecha = null, int? repartidorId = null)
+    public async Task<List<RutaRepartoResumenDto>> ObtenerRutas(DateOnly? fecha = null, int? repartidorId = null, int? oficinaJsonId = null)
     {
-        var rutas = await _rutaRepo.GetAllAsync(fecha, repartidorId);
+        var rutas = await _rutaRepo.GetAllAsync(fecha, repartidorId, oficinaJsonId);
 
         return rutas.Select(r => new RutaRepartoResumenDto
         {
@@ -244,6 +267,7 @@ public class RepartoService : IRepartoService
             Codigo = r.Codigo,
             FechaReparto = r.FechaReparto.ToString("yyyy-MM-dd"),
             RepartidorNombre = r.Repartidor?.NombreCompleto ?? string.Empty,
+            OficinaOrigenJsonId = r.OficinaOrigenJsonId,
             OficinaOrigenNombre = r.OficinaOrigenNombre,
             Estado = r.Estado.ToString(),
             TotalEntregas = r.Entregas.Count,
@@ -376,6 +400,52 @@ public class RepartoService : IRepartoService
             ruta.Codigo, ruta.Estado, entregados, totalEntregas);
 
         return await ObtenerRutaPorId(rutaId);
+    }
+
+    public async Task<(bool Ok, string? Error)> CancelarRuta(int rutaId)
+    {
+        var ruta = await _rutaRepo.GetWithEntregasAsync(rutaId);
+        if (ruta == null)
+            return (false, "Ruta no encontrada");
+
+        if (ruta.Estado == EstadoRuta.EnCurso)
+            return (false, "No se puede cancelar una ruta en curso. Finalízala primero.");
+
+        if (ruta.Estado == EstadoRuta.Cancelada)
+            return (false, "La ruta ya está cancelada.");
+
+        if (ruta.Estado == EstadoRuta.Completada || ruta.Estado == EstadoRuta.CompletadaParcial)
+            return (false, "No se puede cancelar una ruta completada.");
+
+        ruta.Estado = EstadoRuta.Cancelada;
+
+        // Devolver entregas pendientes a estado Pendiente (para poder ser reasignadas)
+        foreach (var entrega in ruta.Entregas.Where(e => e.Estado == EstadoEntrega.Pendiente || e.Estado == EstadoEntrega.EnCamino))
+            entrega.Estado = EstadoEntrega.DevueltoAOficina;
+
+        await _rutaRepo.UpdateAsync(ruta);
+        _logger.LogInformation("Ruta {Codigo} cancelada manualmente", ruta.Codigo);
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, string? Error)> ReactivarRuta(int rutaId)
+    {
+        var ruta = await _rutaRepo.GetWithEntregasAsync(rutaId);
+        if (ruta == null)
+            return (false, "Ruta no encontrada");
+
+        if (ruta.Estado != EstadoRuta.Cancelada)
+            return (false, "Solo se pueden reactivar rutas en estado Cancelada.");
+
+        ruta.Estado = EstadoRuta.Planificada;
+
+        // Restaurar entregas devueltas a Pendiente
+        foreach (var entrega in ruta.Entregas.Where(e => e.Estado == EstadoEntrega.DevueltoAOficina))
+            entrega.Estado = EstadoEntrega.Pendiente;
+
+        await _rutaRepo.UpdateAsync(ruta);
+        _logger.LogInformation("Ruta {Codigo} reactivada a Planificada", ruta.Codigo);
+        return (true, null);
     }
 
     // ═══════════════════════════════════════════

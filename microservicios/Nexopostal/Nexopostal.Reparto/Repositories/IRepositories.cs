@@ -21,7 +21,7 @@ public interface IRutaRepartoRepository
     Task<RutaReparto?> GetByIdAsync(int id);
     Task<RutaReparto?> GetByCodigoAsync(string codigo);
     Task<RutaReparto?> GetWithEntregasAsync(int id);
-    Task<List<RutaReparto>> GetAllAsync(DateOnly? fecha = null, int? repartidorId = null);
+    Task<List<RutaReparto>> GetAllAsync(DateOnly? fecha = null, int? repartidorId = null, int? oficinaJsonId = null);
     Task<RutaReparto> CreateAsync(RutaReparto ruta);
     Task UpdateAsync(RutaReparto ruta);
     Task<int> CountByFechaAsync(DateOnly fecha);

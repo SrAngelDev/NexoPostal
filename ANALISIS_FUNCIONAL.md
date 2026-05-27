@@ -67,15 +67,14 @@ Nota: este documento no incluye credenciales ni secretos.
 - Entregas: confirmacion con estados (entregado, ausente, rechazado, etc.) y evidencia de entrega.
 - Mapa operativo en la vista de ruta (Leaflet) con posicion del repartidor, historial de traza y puntos de entrega con coordenadas disponibles.
 - Navegacion rapida por parada mediante deep-links a Google Maps y Waze (siguiente parada y parada seleccionada).
-- GPS reforzado: watchPosition + heartbeat + ajuste por visibilidad (segundo plano) + reintentos exponenciales con cola offline.
-- Offline: cola local de confirmaciones y ubicaciones con reintento automatico al reconectar.
+- GPS reforzado: watchPosition + heartbeat + ajuste por visibilidad (segundo plano) + reintentos exponenciales.
 - Escaneo de codigo de barras (camara y entrada manual) + consulta interna por expedicion.
 
 ## Estado de prioridades (actualizacion)
 
 ### Prioridad 1: Repartidores
 - Estado: implementada.
-- Hecho: integracion driver-app con Reparto, vista de ruta, confirmacion de entregas, inicio/fin de ruta, mapa operativo, navegacion por parada, GPS endurecido en segundo plano y cola offline.
+- Hecho: integracion driver-app con Reparto, vista de ruta, confirmacion de entregas, inicio/fin de ruta, mapa operativo, navegacion por parada y GPS endurecido en segundo plano.
 - Pendiente: evolucionar a capacidades de background de nivel nativo (si el SO suspende el navegador/PWA).
 
 ### Prioridad 2: Tracking realtime
@@ -138,7 +137,7 @@ Nota: este documento no incluye credenciales ni secretos.
 - Falta: robustecer mensajeria inter-servicio ante fallos de red (outbox/inbox, deduplicacion por event-id y observabilidad de colas).
 
 ### Driver app
-- Implementado: login, dashboard, escaneo, ruta activa, confirmacion de entregas, mapa operativo, navegacion por parada, GPS reforzado y modo offline con reintentos.
+- Implementado: login, dashboard, escaneo, ruta activa, confirmacion de entregas, mapa operativo, navegacion por parada y GPS reforzado.
 - Falta: capacidades de tracking persistente de nivel nativo y navegacion turn-by-turn embebida.
 
 ## Backlog propuesto (foco actual)
@@ -151,9 +150,9 @@ Nota: este documento no incluye credenciales ni secretos.
 - Implementar navegacion turn-by-turn embebida (no solo deep-links externos).
 - Incorporar estimaciones ETA por parada y alertas de desvio.
 
-3) Tracking y offline de nivel produccion
-- Estrategia de background tracking de nivel nativo/PWA (cuando el sistema suspende pestañas) y politicas de bateria.
-- Reintentos con backoff, deduplicacion y telemetria de colas.
+3) Tracking de nivel produccion
+- Estrategia de background tracking de nivel nativo/PWA (cuando el sistema suspende pestanas) y politicas de bateria.
+- Reintentos con backoff, deduplicacion y telemetria.
 
 4) Robustez transversal
 - Endurecer seguridad inter-servicio con autenticacion fuerte (mTLS/JWT entre servicios).

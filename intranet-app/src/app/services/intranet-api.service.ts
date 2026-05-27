@@ -191,6 +191,11 @@ export class IntranetApiService {
     return this.http.delete<void>(`/api/operarios/${id}`);
   }
 
+  /** Reactiva un operario previamente desactivado (Admin o Supervisor) */
+  reactivarOperario(id: number): Observable<void> {
+    return this.http.post<void>(`/api/operarios/${id}/reactivar`, {});
+  }
+
   // ─── CTAs ───
 
   /** Obtiene el dashboard de un CTA con estadísticas */

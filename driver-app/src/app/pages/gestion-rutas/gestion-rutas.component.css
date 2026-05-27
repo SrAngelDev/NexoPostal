@@ -1,30 +1,75 @@
 .page-container { display: flex; flex-direction: column; min-height: 100vh; background: #f5f5f5; }
-.page-nav { display: flex; align-items: center; gap: 12px; padding: 16px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.08); }
-.page-title { flex: 1; margin: 0; font-size: 1.2rem; font-weight: 600; }
-.btn-back, .btn-refresh { background: none; border: none; cursor: pointer; padding: 6px; border-radius: 50%; display: flex; align-items: center; color: #555; }
-.btn-back:hover, .btn-refresh:hover { background: #f0f0f0; }
+
+/* Filtros */
+.filtros-bar { display: flex; gap: 12px; padding: 12px 16px; background: #fff; border-bottom: 1px solid #e0e0e0; flex-wrap: wrap; }
+.filtro-fecha, .filtro-estado { display: flex; flex-direction: column; gap: 4px; }
+.filtro-label { font-size: 0.75rem; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.03em; }
+.input-fecha, .select-estado { padding: 6px 10px; border: 1px solid #d0d0d0; border-radius: 8px; font-size: 0.875rem; background: #fafafa; color: #333; cursor: pointer; }
+.input-fecha:focus, .select-estado:focus { outline: none; border-color: #1976d2; }
 
 .loading, .error-msg, .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 48px; color: #888; font-size: 0.95rem; }
 .error-msg { color: #c62828; }
 .spinning { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Lista */
 .rutas-list { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.ruta-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); cursor: pointer; transition: transform .15s; }
+.ruta-card { background: #fff; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); cursor: pointer; transition: transform .15s; }
 .ruta-card:hover { transform: translateY(-2px); }
+.card-cancelada { opacity: 0.75; border-left: 4px solid #e53935; }
+
 .ruta-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .ruta-codigo { font-weight: 600; font-size: 1rem; }
-.ruta-estado { font-size: 0.8rem; padding: 3px 10px; border-radius: 99px; }
+.ruta-estado { font-size: 0.78rem; padding: 3px 10px; border-radius: 99px; font-weight: 600; }
 .estado-planificada { background: #e3f2fd; color: #1565c0; }
 .estado-en-curso { background: #fff8e1; color: #f57f17; }
+.estado-completada { background: #e8f5e9; color: #2e7d32; }
+.estado-completada-parcial { background: #f3e5f5; color: #6a1b9a; }
+.estado-cancelada { background: #ffebee; color: #c62828; }
+
+.ruta-info, .ruta-progreso { display: flex; align-items: center; gap: 6px; font-size: 0.875rem; color: #555; margin-top: 4px; }
+.ruta-info .material-symbols-outlined, .ruta-progreso .material-symbols-outlined { font-size: 1rem; color: #999; }
+
+.badge-pendientes { font-size: 0.75rem; background: #fff8e1; color: #f57f17; padding: 1px 7px; border-radius: 99px; margin-left: 4px; }
+.badge-fallidos { font-size: 0.75rem; background: #ffebee; color: #c62828; padding: 1px 7px; border-radius: 99px; margin-left: 4px; }
+
+/* Acciones en tarjeta */
+.ruta-acciones { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; }
+.btn-accion { display: flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 8px; border: none; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background .15s; }
+.btn-accion .material-symbols-outlined { font-size: 1rem; }
+.btn-cancelar { background: #ffebee; color: #c62828; }
+.btn-cancelar:hover { background: #ffcdd2; }
+.btn-reactivar { background: #e8f5e9; color: #2e7d32; }
+.btn-reactivar:hover { background: #c8e6c9; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+.modal-card { background: #fff; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; border-bottom: 1px solid #eee; }
+.modal-title { margin: 0; font-size: 1rem; font-weight: 700; }
+.modal-close { background: none; border: none; cursor: pointer; padding: 4px; display: flex; color: #666; border-radius: 50%; }
+.modal-close:hover { background: #f5f5f5; }
+.modal-body { padding: 16px 20px; }
+.modal-text { margin: 0; font-size: 0.9rem; color: #333; line-height: 1.55; }
+.modal-error { margin: 8px 0 0; font-size: 0.85rem; color: #c62828; font-weight: 600; }
+.modal-footer { display: flex; gap: 10px; padding: 12px 20px 16px; }
+.btn-modal-cancel { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 10px; background: #fff; color: #555; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+.btn-modal-cancel:hover { background: #f5f5f5; }
+.btn-modal-confirm { flex: 1; padding: 10px; border: none; border-radius: 10px; color: #fff; font-size: 0.875rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background .15s; }
+.btn-modal-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-danger { background: #e53935; }
+.btn-danger:hover:not(:disabled) { background: #b71c1c; }
+.btn-success { background: #2e7d32; }
+.btn-success:hover:not(:disabled) { background: #1b5e20; }
+.spinning-sm { font-size: 1rem; animation: spin 0.8s linear infinite; }
+
+/* Nav action btn */
+.nav-action-btn { background: none; border: none; cursor: pointer; padding: 6px; border-radius: 50%; display: flex; align-items: center; color: #555; }
+.nav-action-btn:hover { background: #f0f0f0; }
 
 @media (max-width: 640px) {
-  .page-nav { padding: 12px; }
-  .page-title { font-size: 1rem; }
-  .btn-back, .btn-refresh { width: 40px; height: 40px; padding: 0; justify-content: center; }
+  .filtros-bar { padding: 10px 12px; }
   .rutas-list { padding: 12px; gap: 10px; }
-  .ruta-card { padding: 14px; }
+  .ruta-card { padding: 12px 14px; }
   .ruta-codigo { font-size: 0.95rem; }
 }
-.estado-completada { background: #e8f5e9; color: #2e7d32; }
-.ruta-info, .ruta-progreso { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #555; margin-top: 4px; }

@@ -5,6 +5,26 @@
     </button>
   </app-driver-navbar>
 
+  <!-- Filtros -->
+  <div class="filtros-bar">
+    <div class="filtro-fecha">
+      <label class="filtro-label">Fecha</label>
+      <input type="date" class="input-fecha" [ngModel]="fechaFiltro()"
+             (ngModelChange)="fechaFiltro.set($event); onFechaChange()" />
+    </div>
+    <div class="filtro-estado">
+      <label class="filtro-label">Estado</label>
+      <select class="select-estado" [ngModel]="estadoFiltro()" (ngModelChange)="estadoFiltro.set($event)">
+        <option value="todas">Todas</option>
+        <option value="Planificada">Planificada</option>
+        <option value="EnCurso">En curso</option>
+        <option value="Completada">Completada</option>
+        <option value="CompletadaParcial">Completada parcial</option>
+        <option value="Cancelada">Cancelada</option>
+      </select>
+    </div>
+  </div>
+
   @if (cargando()) {
     <div class="loading">
       <span class="material-symbols-outlined spinning">progress_activity</span>
@@ -15,29 +35,102 @@
       <span class="material-symbols-outlined">error</span>
       {{ error() }}
     </div>
-  } @else if (rutas().length === 0) {
+  } @else if (rutasFiltradas().length === 0) {
     <div class="empty">
       <span class="material-symbols-outlined">route</span>
-      <p>No hay rutas planificadas para hoy.</p>
+      <p>No hay rutas{{ estadoFiltro() !== 'todas' ? ' con ese estado' : '' }} para la fecha seleccionada.</p>
     </div>
   } @else {
     <div class="rutas-list">
-      @for (ruta of rutas(); track ruta.id) {
-        <div class="ruta-card" (click)="verDetalle(ruta.id)">
+      @for (ruta of rutasFiltradas(); track ruta.id) {
+        <div class="ruta-card" [class.card-cancelada]="ruta.estado === 'Cancelada'" (click)="verDetalle(ruta.id)">
           <div class="ruta-header">
             <span class="ruta-codigo">{{ ruta.codigo }}</span>
-            <span class="ruta-estado" [ngClass]="getEstadoClass(ruta.estado)">{{ ruta.estado }}</span>
+            <span class="ruta-estado" [ngClass]="getEstadoClass(ruta.estado)">{{ getEstadoLabel(ruta.estado) }}</span>
           </div>
           <div class="ruta-info">
             <span class="material-symbols-outlined">person</span>
             {{ ruta.repartidorNombre }}
           </div>
+          <div class="ruta-info">
+            <span class="material-symbols-outlined">location_on</span>
+            {{ ruta.oficinaOrigenNombre }}
+          </div>
           <div class="ruta-progreso">
             <span class="material-symbols-outlined">inventory_2</span>
-            {{ ruta.entregasCompletadas }} / {{ ruta.totalEntregas }} entregas
+            {{ ruta.entregados }} / {{ ruta.totalEntregas }} entregados
+            @if (ruta.pendientes > 0) {
+              <span class="badge-pendientes">{{ ruta.pendientes }} pend.</span>
+            }
+            @if (ruta.fallidos > 0) {
+              <span class="badge-fallidos">{{ ruta.fallidos }} fallidos</span>
+            }
+          </div>
+          <!-- Acciones -->
+          <div class="ruta-acciones" (click)="$event.stopPropagation()">
+            @if (puedeCancel(ruta)) {
+              <button class="btn-accion btn-cancelar" (click)="abrirAccion(ruta, 'cancelar', $event)">
+                <span class="material-symbols-outlined">cancel</span>
+                Cancelar ruta
+              </button>
+            }
+            @if (puedeReactivar(ruta)) {
+              <button class="btn-accion btn-reactivar" (click)="abrirAccion(ruta, 'reactivar', $event)">
+                <span class="material-symbols-outlined">restart_alt</span>
+                Reactivar ruta
+              </button>
+            }
           </div>
         </div>
       }
     </div>
   }
 </div>
+
+<!-- Modal de confirmación -->
+@if (rutaAccion() && tipoAccion()) {
+  <div class="modal-overlay" (click)="cerrarModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          @if (tipoAccion() === 'cancelar') { Cancelar ruta }
+          @else { Reactivar ruta }
+        </h3>
+        <button class="modal-close" (click)="cerrarModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-text">
+          @if (tipoAccion() === 'cancelar') {
+            ¿Confirmas la cancelación de la ruta <strong>{{ rutaAccion()!.codigo }}</strong>?
+            Las entregas pendientes se marcarán como devueltas a oficina.
+          } @else {
+            ¿Confirmas la reactivación de la ruta <strong>{{ rutaAccion()!.codigo }}</strong>?
+            Volverá a estado <em>Planificada</em> con sus entregas restauradas.
+          }
+        </p>
+        @if (errorAccion()) {
+          <p class="modal-error">{{ errorAccion() }}</p>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" (click)="cerrarModal()">Cancelar</button>
+        <button class="btn-modal-confirm"
+                [class.btn-danger]="tipoAccion() === 'cancelar'"
+                [class.btn-success]="tipoAccion() === 'reactivar'"
+                [disabled]="procesando()"
+                (click)="confirmarAccion()">
+          @if (procesando()) {
+            <span class="material-symbols-outlined spinning-sm">autorenew</span>
+            Procesando...
+          } @else if (tipoAccion() === 'cancelar') {
+            Sí, cancelar
+          } @else {
+            Sí, reactivar
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

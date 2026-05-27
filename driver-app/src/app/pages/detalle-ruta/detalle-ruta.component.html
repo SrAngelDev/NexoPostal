@@ -1,0 +1,259 @@
+<app-driver-navbar icon="route" title="Detalle de Ruta" [subtitle]="navSubtitle()" (backClick)="volver()"></app-driver-navbar>
+
+<div class="page-body">
+
+  @if (cargando()) {
+    <div class="loading">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+      Cargando ruta...
+    </div>
+  } @else if (error()) {
+    <div class="error-msg">
+      <span class="material-symbols-outlined">error</span>
+      {{ error() }}
+    </div>
+  } @else if (ruta()) {
+
+    <!-- ── Cabecera de la ruta ── -->
+    <div class="ruta-header-card">
+      <div class="ruta-header-top">
+        <span class="ruta-codigo">{{ ruta()!.codigo }}</span>
+        <span class="ruta-estado" [ngClass]="getEstadoClass(ruta()!.estado)">
+          {{ getEstadoLabel(ruta()!.estado) }}
+        </span>
+      </div>
+
+      <div class="ruta-meta-grid">
+        <div class="meta-item">
+          <span class="material-symbols-outlined">person</span>
+          <div>
+            <div class="meta-label">Repartidor</div>
+            <div class="meta-value">{{ ruta()!.repartidorNombre }}</div>
+          </div>
+        </div>
+        <div class="meta-item">
+          <span class="material-symbols-outlined">location_on</span>
+          <div>
+            <div class="meta-label">Oficina origen</div>
+            <div class="meta-value">{{ ruta()!.oficinaOrigenNombre }}</div>
+          </div>
+        </div>
+        <div class="meta-item">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <div>
+            <div class="meta-label">Fecha reparto</div>
+            <div class="meta-value">{{ ruta()!.fechaReparto }}</div>
+          </div>
+        </div>
+        @if (ruta()!.horaSalida) {
+          <div class="meta-item">
+            <span class="material-symbols-outlined">schedule</span>
+            <div>
+              <div class="meta-label">Hora salida</div>
+              <div class="meta-value">{{ ruta()!.horaSalida | date:'HH:mm' }}</div>
+            </div>
+          </div>
+        }
+        @if (ruta()!.horaRegreso) {
+          <div class="meta-item">
+            <span class="material-symbols-outlined">flag</span>
+            <div>
+              <div class="meta-label">Hora regreso</div>
+              <div class="meta-value">{{ ruta()!.horaRegreso | date:'HH:mm' }}</div>
+            </div>
+          </div>
+        }
+        @if (ruta()!.observaciones) {
+          <div class="meta-item meta-obs">
+            <span class="material-symbols-outlined">notes</span>
+            <div>
+              <div class="meta-label">Observaciones</div>
+              <div class="meta-value">{{ ruta()!.observaciones }}</div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-chip stat-total">
+          <span class="stat-num">{{ stats().total }}</span>
+          <span class="stat-lbl">Total</span>
+        </div>
+        <div class="stat-chip stat-ok">
+          <span class="stat-num">{{ stats().entregados }}</span>
+          <span class="stat-lbl">Entregados</span>
+        </div>
+        @if (stats().enCamino > 0) {
+          <div class="stat-chip stat-camino">
+            <span class="stat-num">{{ stats().enCamino }}</span>
+            <span class="stat-lbl">En camino</span>
+          </div>
+        }
+        @if (stats().pendientes > 0) {
+          <div class="stat-chip stat-pend">
+            <span class="stat-num">{{ stats().pendientes }}</span>
+            <span class="stat-lbl">Pendientes</span>
+          </div>
+        }
+        @if (stats().fallidos > 0) {
+          <div class="stat-chip stat-fail">
+            <span class="stat-num">{{ stats().fallidos }}</span>
+            <span class="stat-lbl">Fallidos</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── Mapa ── -->
+    <div class="mapa-section">
+      <div class="mapa-header">
+        <span class="material-symbols-outlined">map</span>
+        Mapa de la ruta
+        @if (ruta()!.estado === 'EnCurso') {
+          <span class="live-badge">
+            <span class="live-dot"></span>
+            En tiempo real
+          </span>
+        }
+      </div>
+
+      @if (geocodificando()) {
+        <div class="geocod-banner">
+          <span class="material-symbols-outlined">location_searching</span>
+          Localizando paradas en el mapa&hellip;
+        </div>
+      }
+
+      @if (ruta()!.entregas.length === 0) {
+        <div class="mapa-empty">Sin entregas asignadas</div>
+      } @else {
+        <div id="mapa-ruta" class="mapa"></div>
+
+        <!-- Leyenda -->
+        <div class="mapa-leyenda">
+          <div class="leyenda-item">
+            <div class="leyenda-dot" style="background:#1976d2"></div><span>Pendiente</span>
+          </div>
+          <div class="leyenda-item">
+            <div class="leyenda-dot" style="background:#f57f17"></div><span>En camino</span>
+          </div>
+          <div class="leyenda-item">
+            <div class="leyenda-dot" style="background:#2e7d32"></div><span>Entregado</span>
+          </div>
+          <div class="leyenda-item">
+            <div class="leyenda-dot" style="background:#e65100"></div><span>Ausente</span>
+          </div>
+          <div class="leyenda-item">
+            <div class="leyenda-dot" style="background:#b71c1c"></div><span>Fallido</span>
+          </div>
+          @if (ruta()!.estado === 'EnCurso') {
+            <div class="leyenda-item">
+              <div class="leyenda-driver"><span class="material-symbols-outlined" style="font-size:14px;color:#ff6f00">local_shipping</span></div><span>Repartidor</span>
+            </div>
+          }
+        </div>
+
+        @if (ruta()!.estado === 'EnCurso' && ubicacionDriver()) {
+          <div class="driver-status">
+            <span class="material-symbols-outlined">location_on</span>
+            <strong>{{ ruta()!.repartidorNombre }}</strong> —
+            ubicación actualizada
+            @if (ubicacionDriver()!.segundosDesdeActualizacion < 60) {
+              hace menos de 1 min
+            } @else {
+              hace {{ ubicacionDriver()!.segundosDesdeActualizacion / 60 | number:'1.0-0' }} min
+            }
+          </div>
+        }
+      }
+    </div>
+
+    <!-- ── Lista de entregas ── -->
+    <div class="entregas-section">
+      <div class="entregas-header">
+        <span class="material-symbols-outlined">inventory_2</span>
+        Entregas ({{ ruta()!.entregas.length }})
+      </div>
+
+      @if (ruta()!.entregas.length === 0) {
+        <div class="entregas-empty">No hay entregas asignadas a esta ruta.</div>
+      } @else {
+        <div class="entregas-list">
+          @for (entrega of ruta()!.entregas; track entrega.id) {
+            <div class="entrega-item" [ngClass]="getEntregaClass(entrega.estado)">
+              <button class="entrega-toggle" (click)="toggleEntrega(entrega.id)">
+                <div class="entrega-toggle-left">
+                  <span class="entrega-orden">#{{ entrega.ordenEnRuta }}</span>
+                  <div class="entrega-info">
+                    <div class="entrega-destinatario">{{ entrega.nombreDestinatario }}</div>
+                    <div class="entrega-dir">{{ entrega.direccionEntrega }}, {{ entrega.ciudad }}</div>
+                  </div>
+                </div>
+                <div class="entrega-toggle-right">
+                  <span class="entrega-estado-badge">{{ getEntregaLabel(entrega.estado) }}</span>
+                  @if (tieneUbicacion(entrega)) {
+                    <button class="btn-centrar" title="Ver en mapa" (click)="centrarEnEntrega(entrega); $event.stopPropagation()">
+                      <span class="material-symbols-outlined">my_location</span>
+                    </button>
+                  }
+                  <span class="material-symbols-outlined expand-icon">
+                    {{ entregaExpandida() === entrega.id ? 'expand_less' : 'expand_more' }}
+                  </span>
+                </div>
+              </button>
+
+              @if (entregaExpandida() === entrega.id) {
+                <div class="entrega-detalle">
+                  <div class="detalle-row">
+                    <span class="detalle-key">Expedición</span>
+                    <span class="detalle-val">{{ entrega.numeroExpedicion }}</span>
+                  </div>
+                  <div class="detalle-row">
+                    <span class="detalle-key">Seguimiento</span>
+                    <span class="detalle-val">{{ entrega.numeroSeguimiento }}</span>
+                  </div>
+                  <div class="detalle-row">
+                    <span class="detalle-key">CP</span>
+                    <span class="detalle-val">{{ entrega.codigoPostal }}</span>
+                  </div>
+                  @if (entrega.telefonoDestinatario) {
+                    <div class="detalle-row">
+                      <span class="detalle-key">Teléfono</span>
+                      <span class="detalle-val">{{ entrega.telefonoDestinatario }}</span>
+                    </div>
+                  }
+                  @if (entrega.fechaIntento) {
+                    <div class="detalle-row">
+                      <span class="detalle-key">Fecha intento</span>
+                      <span class="detalle-val">{{ entrega.fechaIntento | date:'dd/MM/yyyy HH:mm' }}</span>
+                    </div>
+                  }
+                  @if (entrega.receptorNombre) {
+                    <div class="detalle-row">
+                      <span class="detalle-key">Firmado por</span>
+                      <span class="detalle-val">{{ entrega.receptorNombre }}{{ entrega.receptorDni ? ' · ' + entrega.receptorDni : '' }}</span>
+                    </div>
+                  }
+                  @if (entrega.observaciones) {
+                    <div class="detalle-row">
+                      <span class="detalle-key">Observaciones</span>
+                      <span class="detalle-val">{{ entrega.observaciones }}</span>
+                    </div>
+                  }
+                  @if (entrega.numeroIntento > 1) {
+                    <div class="detalle-row">
+                      <span class="detalle-key">Intento nº</span>
+                      <span class="detalle-val">{{ entrega.numeroIntento }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+  }
+</div>

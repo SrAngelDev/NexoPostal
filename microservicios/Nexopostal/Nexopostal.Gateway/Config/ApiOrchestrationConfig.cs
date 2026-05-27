@@ -171,6 +171,9 @@ public static class ApiOrchestrationConfig
             // ⇒ para /api/reparto/rutas/{id}/iniciar genera "rutas-iniciar" (plural).
             .AddRoute("rutas-iniciar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
             .AddRoute("rutas-finalizar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
+            .AddRoute("rutas-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/rutas/" })
+            .AddRoute("rutas-cancelar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
+            .AddRoute("rutas-reactivar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/rutas/" })
             .AddRoute("confirmar", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/confirmar" })
             .AddRoute("ubicacion", GatewayVerb.POST, new RouteInfo { Path = "api/reparto/ubicacion" })
             .AddRoute("entregas", GatewayVerb.GET, new RouteInfo { Path = "api/reparto/entregas" })

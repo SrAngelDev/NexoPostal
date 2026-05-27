@@ -19,6 +19,7 @@ public class RepartoServiceTests
     private readonly Mock<IEntregaPaqueteRepository> _entregaRepo = new();
     private readonly Mock<IUbicacionRepartidorRepository> _ubicacionRepo = new();
     private readonly Mock<IRepartoNotifier> _notifier = new();
+    private readonly Mock<IVehiculoService> _vehiculoService = new();
 
     private RepartoService BuildService() => new RepartoService(
         _repartidorRepo.Object,
@@ -26,6 +27,7 @@ public class RepartoServiceTests
         _entregaRepo.Object,
         _ubicacionRepo.Object,
         _notifier.Object,
+        _vehiculoService.Object,
         NullLogger<RepartoService>.Instance);
 
     // ═══════════════════════════════════════════

@@ -144,6 +144,8 @@ services:
     environment:
       - ASPNETCORE_URLS=http://+:80
       - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - CiudadanoTrackingSettings__BaseUrl=http://modulo-ciudadano
+      - CiudadanoTrackingSettings__ServiceKey=${INTER_SERVICE_KEY}
     expose:
       - "80"
     networks:

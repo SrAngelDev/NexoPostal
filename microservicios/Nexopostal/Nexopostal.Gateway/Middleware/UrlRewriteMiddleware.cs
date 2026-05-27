@@ -39,8 +39,11 @@ public class UrlRewriteMiddleware
         "/api/nexopostal/admin-clientes",  // Vista 360 de clientes (admin)
         "/api/nexopostal/notificaciones",  // Broadcast notifications (admin)
         "/api/nexopostal/tarifas",         // El gateway pierde los query params en GET
+        "/api/nexopostal/nominatim",        // Proxy directo con User-Agent y query params completos
         "/api/asignaciones/buscar",        // GET con ?codigo=...; el gateway perdería la query
-        "/api/nexopostal/reparto/entregas$" // GET ?rutaId=...; sufijo $ = match exacto (no toca sub-paths)
+        "/api/nexopostal/reparto/entregas$", // GET ?rutaId=...; sufijo $ = match exacto (no toca sub-paths)
+        "/api/nexopostal/reparto/vehiculos", // GET flota para JefeReparto (JWT necesario)
+        "/api/nexopostal/reparto/confirmar"  // POST con ?entregaId=...; el gateway library no reenvía query en POST
     ];
 
     // Compatibilidad para endpoints raíz /api/{apiKey} sin routeKey explícito.
@@ -204,6 +207,17 @@ public class UrlRewriteMiddleware
             extra = null;
             context.Request.Path = $"{GatewayPrefix}{apiKey}/{routeKey}";
             return;
+        }
+
+        // Patrón GET /api/{apiKey}/{subresource}/{numericId} (detalle por ID)
+        // ej: GET /api/reparto/rutas/42 → routeKey="rutas-detalle", parameters="42"
+        // Combinado con Path="api/reparto/rutas/" produce upstream: api/reparto/rutas/42
+        else if (segments.Length == 3
+                 && int.TryParse(segments[2], out _)
+                 && string.Equals(context.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
+        {
+            routeKey = $"{segments[1]}-detalle";
+            extra = segments[2];
         }
 
         // Patrón /api/{apiKey}/{subresource}/{numericId}/{action}

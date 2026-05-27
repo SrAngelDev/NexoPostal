@@ -175,7 +175,7 @@ public class RepartoController : ControllerBase
     // ═══════════════════════════════════════════
 
     /// <summary>
-    /// Obtiene las rutas de reparto. JefeReparto ve todas las rutas de su equipo.
+    /// Obtiene las rutas de reparto. El JefeReparto solo ve rutas de su propia oficina.
     /// </summary>
     [HttpGet("rutas")]
     [Authorize(Roles = "Admin,JefeReparto")]
@@ -189,7 +189,10 @@ public class RepartoController : ControllerBase
             if (!string.IsNullOrEmpty(fecha) && DateOnly.TryParse(fecha, out var f))
                 fechaParsed = f;
 
-            var rutas = await _repartoService.ObtenerRutas(fechaParsed, repartidorId);
+            // El JefeReparto solo puede ver las rutas de su oficina
+            var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
+
+            var rutas = await _repartoService.ObtenerRutas(fechaParsed, repartidorId, oficinaJefe);
             return Ok(rutas);
         }
         catch (Exception ex)
@@ -197,6 +200,44 @@ public class RepartoController : ControllerBase
             _logger.LogError(ex, "Error obteniendo rutas (fecha={Fecha}, repartidorId={RepartidorId})", fecha, repartidorId);
             return StatusCode(500, new { message = "Error obteniendo rutas de reparto.", detail = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Cancela una ruta planificada. Solo JefeReparto (de la misma oficina) y Admin.
+    /// </summary>
+    [HttpPost("rutas/{id:int}/cancelar")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> CancelarRuta(int id)
+    {
+        var ruta = await _repartoService.ObtenerRutaPorId(id);
+        if (ruta == null)
+            return NotFound(new { message = "Ruta no encontrada" });
+
+        var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
+        if (oficinaJefe.HasValue && ruta.OficinaOrigenJsonId != oficinaJefe.Value)
+            return Forbid();
+
+        var (ok, error) = await _repartoService.CancelarRuta(id);
+        return ok ? NoContent() : BadRequest(new { message = error });
+    }
+
+    /// <summary>
+    /// Reactiva una ruta cancelada a estado Planificada. Solo JefeReparto (misma oficina) y Admin.
+    /// </summary>
+    [HttpPost("rutas/{id:int}/reactivar")]
+    [Authorize(Roles = "Admin,JefeReparto")]
+    public async Task<IActionResult> ReactivarRuta(int id)
+    {
+        var ruta = await _repartoService.ObtenerRutaPorId(id);
+        if (ruta == null)
+            return NotFound(new { message = "Ruta no encontrada" });
+
+        var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
+        if (oficinaJefe.HasValue && ruta.OficinaOrigenJsonId != oficinaJefe.Value)
+            return Forbid();
+
+        var (ok, error) = await _repartoService.ReactivarRuta(id);
+        return ok ? NoContent() : BadRequest(new { message = error });
     }
 
     /// <summary>

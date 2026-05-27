@@ -32,6 +32,18 @@ export interface EditarRepartidorRequest {
   oficinaNombre: string;
   tipoVehiculo: string;
   matriculaVehiculo?: string;
+  /** Id del vehículo de la flota: undefined = no cambiar, 0 = desasignar, >0 = asignar */
+  vehiculoId?: number;
+}
+
+export interface VehiculoFlota {
+  id: number;
+  matricula: string;
+  tipo: string;
+  marca?: string;
+  modelo?: string;
+  color?: string;
+  repartidorAsignadoNombre?: string;
 }
 
 export interface EntregaPaquete {
@@ -249,6 +261,10 @@ export class RepartoService {
     return this.http.get<RutaResumen[]>(`${this.API_URL}/rutas`, { params });
   }
 
+  obtenerRutaDetalle(id: number): Observable<RutaRepartoDetalle> {
+    return this.http.get<RutaRepartoDetalle>(`${this.API_URL}/rutas/${id}`);
+  }
+
   obtenerRepartidores(soloActivos = true): Observable<RepartidorPerfil[]> {
     return this.http.get<RepartidorPerfil[]>(`${this.API_URL}/repartidores`, {
       params: { soloActivos }
@@ -268,21 +284,35 @@ export class RepartoService {
   }
 
   editarRepartidor(id: number, dto: EditarRepartidorRequest): Observable<RepartidorPerfil> {
-    return this.http.put<RepartidorPerfil>(`${this.API_URL}/repartidores/${id}`, dto);
+    // PUT no funciona a través del gateway library (devuelve "Invalid verb").
+    // El proxy directo admin-repartidores acepta JefeReparto y Admin.
+    return this.http.put<RepartidorPerfil>(`/api/nexopostal/admin-repartidores/${id}`, dto);
+  }
+
+  listarVehiculosFlota(): Observable<VehiculoFlota[]> {
+    return this.http.get<VehiculoFlota[]>(`${this.API_URL}/vehiculos`);
   }
 
   desactivarRepartidor(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.API_URL}/repartidores/${id}`);
+    return this.http.delete<void>(`/api/nexopostal/admin-repartidores/${id}`);
   }
 
   reactivarRepartidor(id: number): Observable<void> {
-    return this.http.post<void>(`${this.API_URL}/repartidores/${id}/reactivar`, {});
+    return this.http.post<void>(`/api/nexopostal/admin-repartidores/${id}/reactivar`, {});
   }
 
   crearRuta(req: CrearRutaRepartoRequest): Observable<RutaRepartoDetalle> {
     // El Gateway expone esta operación bajo routeKey "crear-ruta" (la lib AspNetCore.ApiGateway
     // no permite GET y POST con la misma routeKey "rutas"). Backend final: POST /api/reparto/rutas.
     return this.http.post<RutaRepartoDetalle>(`${this.API_URL}/crear-ruta`, req);
+  }
+
+  cancelarRuta(id: number): Observable<void> {
+    return this.http.post<void>(`${this.API_URL}/rutas/${id}/cancelar`, {});
+  }
+
+  reactivarRuta(id: number): Observable<void> {
+    return this.http.post<void>(`${this.API_URL}/rutas/${id}/reactivar`, {});
   }
 
   // ─── Bandeja del JefeReparto (paquetes DisponibleParaReparto) ───

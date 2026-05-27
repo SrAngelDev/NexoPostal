@@ -557,18 +557,6 @@ Ademas, permite abrir navegacion externa en:
 - Google Maps
 - Waze
 
-### Trabajo offline
-
-Si se pierde la conexion:
-
-- la app sigue guardando ubicaciones y confirmaciones criticas
-- los eventos pendientes quedan en cola
-- al recuperar internet, la app intenta sincronizarlos
-
-Recomendacion:
-
-- Si ves un indicador de pendientes en cola, intenta sincronizar antes de cerrar la jornada.
-
 ### Escaneo manual
 
 La pantalla de escaneo permite:

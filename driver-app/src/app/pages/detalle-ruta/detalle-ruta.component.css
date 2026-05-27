@@ -1,0 +1,226 @@
+:host { display: flex; flex-direction: column; min-height: 100vh; background: #f5f5f5; }
+
+.page-body { display: flex; flex-direction: column; gap: 0; }
+
+/* Loading / Error */
+.loading, .error-msg {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px; padding: 64px; color: #888;
+}
+.error-msg { color: #c62828; }
+.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Cabecera ── */
+.ruta-header-card {
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 16px;
+}
+
+.ruta-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.ruta-codigo { font-weight: 700; font-size: 1.1rem; color: #1a1a1a; }
+.ruta-estado {
+  font-size: 0.78rem; padding: 4px 12px;
+  border-radius: 99px; font-weight: 700;
+}
+.estado-planificada  { background: #e3f2fd; color: #1565c0; }
+.estado-en-curso     { background: #fff8e1; color: #f57f17; }
+.estado-completada   { background: #e8f5e9; color: #2e7d32; }
+.estado-completada-parcial { background: #f3e5f5; color: #6a1b9a; }
+.estado-cancelada    { background: #ffebee; color: #c62828; }
+
+/* Meta grid */
+.ruta-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.meta-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 0.875rem;
+}
+.meta-item .material-symbols-outlined { font-size: 1.1rem; color: #999; margin-top: 2px; flex-shrink: 0; }
+.meta-label { font-size: 0.72rem; color: #999; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.meta-value { font-weight: 600; color: #222; }
+.meta-obs { grid-column: 1 / -1; }
+
+/* Stats */
+.stats-row {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.stat-chip {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 6px 14px; border-radius: 10px; min-width: 60px;
+}
+.stat-num { font-size: 1.25rem; font-weight: 800; line-height: 1; }
+.stat-lbl { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-total  { background: #f5f5f5; color: #555; }
+.stat-ok     { background: #e8f5e9; color: #2e7d32; }
+.stat-camino { background: #fff8e1; color: #f57f17; }
+.stat-pend   { background: #e3f2fd; color: #1565c0; }
+.stat-fail   { background: #ffebee; color: #c62828; }
+
+/* ── Mapa ── */
+.mapa-section {
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+.mapa-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 12px 16px 8px;
+  font-weight: 700; font-size: 0.9rem; color: #333;
+}
+.mapa-header .material-symbols-outlined { font-size: 1.1rem; color: #1976d2; }
+
+.live-badge {
+  display: flex; align-items: center; gap: 5px;
+  margin-left: auto;
+  background: #fff8e1; color: #e65100;
+  font-size: 0.72rem; font-weight: 700;
+  padding: 3px 10px; border-radius: 99px;
+}
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #e65100;
+  animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.mapa { width: 100%; height: 340px; }
+.mapa-empty { padding: 32px; text-align: center; color: #aaa; font-size: 0.875rem; }
+
+/* Banner de geocodificación en curso */
+.geocod-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px;
+  background: #e3f2fd; color: #1565c0;
+  font-size: 0.8rem; font-weight: 600;
+  border-bottom: 1px solid #bbdefb;
+}
+.geocod-banner .material-symbols-outlined { font-size: 1.1rem; animation: spin 1.5s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Leyenda */
+.mapa-leyenda {
+  display: flex; flex-wrap: wrap; gap: 8px 14px;
+  padding: 8px 16px 10px;
+}
+.leyenda-item { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; color: #555; }
+.leyenda-dot  { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.leyenda-driver { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+
+/* Estado en tiempo real del driver */
+.driver-status {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px 12px;
+  font-size: 0.82rem; color: #555;
+}
+.driver-status .material-symbols-outlined { font-size: 1rem; color: #f57f17; }
+
+/* Estilos para los marcadores del mapa (via DOM) */
+:global(.map-marker) {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 0.78rem;
+  border: 2px solid rgba(255,255,255,.8);
+  box-shadow: 0 2px 6px rgba(0,0,0,.35);
+}
+/* Marcador aproximado (geocodificado): borde punteado para indicar posición estimada */
+:global(.map-marker-approx) {
+  border: 2px dashed rgba(255,255,255,.9);
+  opacity: 0.85;
+}
+:global(.map-driver-marker) {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #ff6f00;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+:global(.popup-entrega) { font-size: 0.85rem; line-height: 1.5; }
+
+/* ── Lista entregas ── */
+.entregas-section { background: #fff; }
+.entregas-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 12px 16px 8px;
+  font-weight: 700; font-size: 0.9rem; color: #333;
+  border-bottom: 1px solid #f0f0f0;
+}
+.entregas-header .material-symbols-outlined { font-size: 1.1rem; color: #1976d2; }
+.entregas-empty { padding: 24px; text-align: center; color: #aaa; font-size: 0.875rem; }
+.entregas-list { display: flex; flex-direction: column; }
+
+/* Entrega item */
+.entrega-item { border-bottom: 1px solid #f0f0f0; }
+.entrega-item:last-child { border-bottom: none; }
+
+.entrega-toggle {
+  width: 100%; display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: none; border: none; cursor: pointer;
+  text-align: left; gap: 8px;
+}
+.entrega-toggle:hover { background: #fafafa; }
+.entrega-toggle-left  { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.entrega-toggle-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.entrega-orden {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #e3f2fd; color: #1565c0;
+  font-size: 0.78rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.e-entregado  .entrega-orden { background: #e8f5e9; color: #2e7d32; }
+.e-camino     .entrega-orden { background: #fff8e1; color: #f57f17; }
+.e-fallido    .entrega-orden { background: #ffebee; color: #c62828; }
+.e-devuelto   .entrega-orden { background: #eceff1; color: #546e7a; }
+
+.entrega-info { flex: 1; min-width: 0; }
+.entrega-destinatario { font-weight: 600; font-size: 0.88rem; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entrega-dir { font-size: 0.78rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.entrega-estado-badge {
+  font-size: 0.72rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 99px;
+  background: #e3f2fd; color: #1565c0;
+  white-space: nowrap;
+}
+.e-entregado .entrega-estado-badge { background: #e8f5e9; color: #2e7d32; }
+.e-camino    .entrega-estado-badge { background: #fff8e1; color: #f57f17; }
+.e-fallido   .entrega-estado-badge { background: #ffebee; color: #c62828; }
+.e-devuelto  .entrega-estado-badge { background: #eceff1; color: #546e7a; }
+
+.btn-centrar {
+  background: none; border: none; cursor: pointer;
+  padding: 3px; display: flex; color: #1976d2; border-radius: 4px;
+}
+.btn-centrar:hover { background: #e3f2fd; }
+.btn-centrar .material-symbols-outlined { font-size: 1rem; }
+
+.expand-icon { font-size: 1.2rem; color: #aaa; }
+
+/* Detalle expandido */
+.entrega-detalle {
+  padding: 4px 16px 12px 56px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.detalle-row { display: flex; gap: 8px; font-size: 0.82rem; }
+.detalle-key { color: #999; font-weight: 600; min-width: 90px; flex-shrink: 0; }
+.detalle-val { color: #333; }
+
+@media (max-width: 640px) {
+  .ruta-meta-grid { grid-template-columns: 1fr 1fr; }
+  .mapa { height: 280px; }
+  .entrega-detalle { padding-left: 44px; }
+}

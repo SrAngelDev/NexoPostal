@@ -1,11 +1,7 @@
 <div class="ruta-page" data-testid="ruta-page">
   <app-driver-navbar icon="route" title="Ruta de reparto" (backClick)="volverDashboard()">
-    <span class="badge" [class.badge-offline]="!online()">{{ online() ? 'Online' : 'Offline' }}</span>
     @if (gpsActivo()) { <span class="badge badge-gps">GPS activo</span> }
     @if (gpsActivo() && seguimientoSegundoPlano()) { <span class="badge badge-background">Tracking 2º plano</span> }
-    @if (pendientesCola() > 0) {
-      <button class="badge badge-queue" (click)="sincronizarPendientes()">{{ pendientesCola() }} pendientes</button>
-    }
   </app-driver-navbar>
 
   <main class="ruta-main">
@@ -45,7 +41,7 @@
           <p>{{ ruta()!.oficinaOrigenNombre }} · {{ ruta()!.fechaReparto }} · Estado: {{ ruta()!.estado }}</p>
         </div>
         <div class="ruta-resumen-actions">
-          <button class="btn" (click)="recargar()" [disabled]="cargandoEntregas() || sincronizando() || procesandoRutaAccion()">
+          <button class="btn" (click)="recargar()" [disabled]="cargandoEntregas() || procesandoRutaAccion()">
             {{ cargandoEntregas() ? 'Actualizando...' : 'Actualizar ruta' }}
           </button>
 
@@ -219,20 +215,6 @@
                 DNI receptor
                 <input type="text" [(ngModel)]="receptorDni" placeholder="Opcional" />
               </label>
-
-              <label>
-                Firma digital (texto)
-                <input type="text" [(ngModel)]="firmaDigital" placeholder="Ej: Firma de Juan Perez" />
-              </label>
-
-              <label>
-                Foto de prueba
-                <input type="file" accept="image/*" capture="environment" (change)="onFotoSeleccionada($event)" />
-              </label>
-
-              @if (fotoPreview()) {
-                <img class="foto-preview" [src]="fotoPreview()!" alt="Vista previa foto" />
-              }
 
               <label>
                 Observaciones

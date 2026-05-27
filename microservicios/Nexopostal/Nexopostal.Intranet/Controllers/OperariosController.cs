@@ -270,4 +270,19 @@ public class OperariosController : ControllerBase
         if (!resultado) return NotFound(new { message = "Operario no encontrado" });
         return NoContent();
     }
+
+    /// <summary>
+    /// Reactiva un operario previamente desactivado.
+    /// Solo Admin y Supervisor pueden reactivar operarios.
+    /// </summary>
+    [HttpPost("{id:int}/reactivar")]
+    [Authorize(Roles = "Admin,Supervisor")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Reactivar(int id)
+    {
+        var resultado = await _operarioService.ReactivarOperario(id);
+        if (!resultado) return NotFound(new { message = "Operario no encontrado" });
+        return NoContent();
+    }
 }

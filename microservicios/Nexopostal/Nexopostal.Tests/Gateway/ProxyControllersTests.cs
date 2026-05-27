@@ -421,7 +421,7 @@ public class RepartoEntregasProxyControllerTests
     public async Task Get_PreservaQueryString()
     {
         GatewayTestHelpers.Wire(_ctrl, "GET", "?rutaId=7");
-        var r = (ContentResult)await _ctrl.Get();
+        var r = (ContentResult)await _ctrl.GetEntregas();
         r.StatusCode.Should().Be(200);
         _stub.Requests[0].RequestUri!.ToString().Should().EndWith("api/reparto/entregas?rutaId=7");
     }

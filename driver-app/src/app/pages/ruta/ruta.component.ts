@@ -22,7 +22,6 @@ import {
   RepartoService,
   RutaRepartoDetalle
 } from '../../services/reparto.service';
-import { RepartoOfflineQueueService } from '../../services/reparto-offline-queue.service';
 import type { CircleMarker, LatLngExpression, Map, Polyline } from 'leaflet';
 
 type PosicionGps = {
@@ -50,13 +49,11 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
   cargandoRuta = signal(false);
   cargandoEntregas = signal(false);
   enviandoConfirmacion = signal(false);
-  sincronizando = signal(false);
   procesandoRutaAccion = signal(false);
 
   error = signal('');
   mensaje = signal('');
 
-  online = signal(navigator.onLine);
   gpsActivo = signal(false);
   seguimientoSegundoPlano = signal(false);
   mapaDisponible = signal(false);
@@ -67,14 +64,10 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
   ultimaUbicacion = signal<PosicionGps | null>(null);
   historialUbicaciones = signal<PosicionGps[]>([]);
   ultimaSincronizacionGps = signal<string | null>(null);
-  fotoPreview = signal<string | null>(null);
-
   estadoSeleccionado: EstadoEntregaConfirmacion = 'Entregado';
   receptorNombre = '';
   receptorDni = '';
   observaciones = '';
-  firmaDigital = '';
-  fotoEntrega = '';
   observacionesFinRuta = '';
 
   readonly estadosConfirmacion = ESTADOS_CONFIRMACION;
@@ -142,8 +135,7 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
   constructor(
     private authService: AuthService,
     private router: Router,
-    private repartoService: RepartoService,
-    private offlineQueue: RepartoOfflineQueueService
+    private repartoService: RepartoService
   ) {
     const user = this.authService.getCurrentUser();
     this.userName = user?.user ?? '';
@@ -157,20 +149,15 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit(): void {
     this.seguimientoSegundoPlano.set(document.visibilityState === 'hidden');
 
-    window.addEventListener('online', this.onOnline);
-    window.addEventListener('offline', this.onOffline);
     document.addEventListener('visibilitychange', this.onVisibilityChange);
 
     this.cargarRutaActiva();
-    this.sincronizarPendientes();
   }
 
   ngOnDestroy(): void {
     this.detenerGps();
     this.destruirMapa();
 
-    window.removeEventListener('online', this.onOnline);
-    window.removeEventListener('offline', this.onOffline);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
 
@@ -247,9 +234,6 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
     this.receptorNombre = entrega.receptorNombre ?? entrega.nombreDestinatario;
     this.receptorDni = entrega.receptorDni ?? '';
     this.observaciones = entrega.observaciones ?? '';
-    this.firmaDigital = entrega.firmaDigital ?? '';
-    this.fotoEntrega = entrega.fotoEntrega ?? '';
-    this.fotoPreview.set(null);
 
     this.sugerirEstadoInicial(entrega.estado);
     this.actualizarMapa();
@@ -271,16 +255,9 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
           receptorNombre: this.receptorNombre || undefined,
           receptorDni: this.receptorDni || undefined,
           observaciones: this.observaciones || undefined,
-          firmaDigital: this.firmaDigital || undefined,
-          fotoEntrega: this.fotoEntrega || undefined,
           latitud: coords?.latitud ?? fallbackCoords?.latitud,
           longitud: coords?.longitud ?? fallbackCoords?.longitud
         };
-
-        if (!this.online()) {
-          this.encolarConfirmacionLocal(entrega.id, request);
-          return;
-        }
 
         this.repartoService.confirmarEntrega(entrega.id, request).subscribe({
           next: (actualizada) => {
@@ -289,8 +266,9 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
             this.limpiarFormularioConfirmacion();
             this.enviandoConfirmacion.set(false);
           },
-          error: () => {
-            this.encolarConfirmacionLocal(entrega.id, request);
+          error: (err) => {
+            this.error.set(err.error?.message || 'No se pudo registrar la entrega. Inténtalo de nuevo.');
+            this.enviandoConfirmacion.set(false);
           }
         });
       })
@@ -331,42 +309,6 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
     this.actualizarMapa();
   }
 
-  onFotoSeleccionada(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) {
-      this.fotoEntrega = '';
-      this.fotoPreview.set(null);
-      return;
-    }
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    this.fotoEntrega = `${timestamp}_${file.name}`.slice(0, 200);
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.fotoPreview.set(typeof reader.result === 'string' ? reader.result : null);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  async sincronizarPendientes(): Promise<void> {
-    if (!this.online() || this.sincronizando()) return;
-
-    this.sincronizando.set(true);
-    const result = await this.offlineQueue.procesarPendientes(this.repartoService);
-
-    if (result.procesados > 0) {
-      this.mensaje.set(`Sincronización completada. Enviados ${result.procesados} eventos pendientes.`);
-      const ruta = this.ruta();
-      if (ruta) this.cargarEntregas(ruta.id);
-
-      this.ultimaSincronizacionGps.set(new Date().toISOString());
-    }
-
-    this.sincronizando.set(false);
-  }
-
   estadoClase(estado: string): string {
     if (estado === 'Entregado' || estado === 'EntregadoPuntoAlternativo') return 'estado-ok';
     if (estado === 'Ausente' || estado === 'DireccionIncorrecta' || estado === 'Rechazado') return 'estado-error';
@@ -374,12 +316,12 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
     return 'estado-pendiente';
   }
 
-  pendientesCola(): number {
-    return this.offlineQueue.pendientes();
-  }
-
   private cargarRutaActiva(): void {
-    this.cargandoRuta.set(true);
+    // Solo mostrar spinner de carga la primera vez (sin ruta ya visible).
+    // Si hay ruta activa, mantener el map en DOM durante la actualización.
+    if (!this.ruta()) {
+      this.cargandoRuta.set(true);
+    }
     this.error.set('');
 
     this.repartoService.obtenerMiRuta().subscribe({
@@ -580,11 +522,6 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
       descripcion: this.descripcionTracking(fuente)
     };
 
-    if (!this.online()) {
-      this.offlineQueue.encolarUbicacion({ request });
-      return;
-    }
-
     this.repartoService.registrarUbicacion(request).subscribe({
       next: () => {
         this.erroresGpsConsecutivos = 0;
@@ -592,7 +529,6 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
       },
       error: () => {
         this.erroresGpsConsecutivos++;
-        this.offlineQueue.encolarUbicacion({ request });
         this.programarReintentoGps(rutaId);
       }
     });
@@ -664,7 +600,18 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private async inicializarMapa(): Promise<void> {
-    if (this.mapa || !this.mapCanvas?.nativeElement) {
+    // Si el mapa ya existe pero su contenedor fue removido del DOM (p.ej. por
+    // re-renderizado Angular), destruirlo para forzar la re-inicialización.
+    if (this.mapa) {
+      const container = this.mapa.getContainer();
+      if (!container || container !== this.mapCanvas?.nativeElement) {
+        this.destruirMapa();
+      } else {
+        return; // mapa válido, nada que hacer
+      }
+    }
+
+    if (!this.mapCanvas?.nativeElement) {
       return;
     }
 
@@ -884,52 +831,11 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
     this.actualizarMapa();
   }
 
-  private encolarConfirmacionLocal(entregaId: number, request: RegistrarEntregaRequest): void {
-    this.offlineQueue.encolarConfirmacion({ entregaId, request });
-
-    this.entregas.update(list =>
-      list.map(e =>
-        e.id === entregaId
-          ? {
-              ...e,
-              estado: request.estado,
-              fechaIntento: new Date().toISOString(),
-              receptorNombre: request.receptorNombre,
-              receptorDni: request.receptorDni,
-              observaciones: this.mergeObservaciones(request.observaciones, 'Pendiente de sincronizar'),
-              latitudEntrega: request.latitud,
-              longitudEntrega: request.longitud,
-              firmaDigital: request.firmaDigital,
-              fotoEntrega: request.fotoEntrega
-            }
-          : e
-      )
-    );
-
-    this.mensaje.set('Sin conexión: confirmación guardada en cola para reintento automático.');
-    this.limpiarFormularioConfirmacion();
-    this.enviandoConfirmacion.set(false);
-  }
-
-  private mergeObservaciones(base?: string, extra?: string): string | undefined {
-    const cleanBase = (base ?? '').trim();
-    const cleanExtra = (extra ?? '').trim();
-
-    if (!cleanBase && !cleanExtra) return undefined;
-    if (!cleanBase) return cleanExtra;
-    if (!cleanExtra) return cleanBase;
-
-    return `${cleanBase} | ${cleanExtra}`;
-  }
-
   private limpiarFormularioConfirmacion(): void {
     this.estadoSeleccionado = 'Entregado';
     this.receptorNombre = '';
     this.receptorDni = '';
     this.observaciones = '';
-    this.firmaDigital = '';
-    this.fotoEntrega = '';
-    this.fotoPreview.set(null);
     this.enviandoConfirmacion.set(false);
   }
 
@@ -952,21 +858,6 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
     this.estadoSeleccionado = 'Entregado';
   }
 
-  private readonly onOnline = () => {
-    this.online.set(true);
-
-    const ruta = this.ruta();
-    if (ruta?.estado === 'EnCurso' && this.gpsActivo()) {
-      this.enviarUbicacion(ruta.id, 'foreground', true);
-    }
-
-    this.sincronizarPendientes();
-  };
-
-  private readonly onOffline = () => {
-    this.online.set(false);
-  };
-
   private readonly onVisibilityChange = () => {
     const hidden = document.visibilityState === 'hidden';
     this.seguimientoSegundoPlano.set(hidden);
@@ -976,10 +867,6 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
       this.activarWatchGps(ruta.id);
       this.programarHeartbeatGps(ruta.id);
       this.enviarUbicacion(ruta.id, hidden ? 'manual' : 'foreground', true);
-    }
-
-    if (!hidden) {
-      this.sincronizarPendientes();
     }
   };
 }

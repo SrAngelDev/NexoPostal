@@ -153,7 +153,6 @@ Responsabilidades principales:
 
 - Ruta activa del `Repartidor`.
 - GPS y sincronizacion de ubicaciones.
-- Cola offline para eventos criticos.
 - Confirmacion de entregas con evidencias.
 - Bandeja, rutas, supervision y gestion de equipo para `JefeReparto`.
 
@@ -161,7 +160,6 @@ Puntos tecnicos destacables:
 
 - Geolocalizacion continua con control de segundo plano.
 - Integracion con Leaflet y OpenStreetMap.
-- Soporte offline con `localStorage`.
 - Experiencia diferenciada por rol dentro de la misma app.
 
 ### 4.4 `Nexopostal.Auth`
@@ -412,7 +410,6 @@ El `Repartidor` registra ubicacion mediante el navegador y la envia al backend d
 - heartbeats.
 - control de visibilidad.
 - reintentos.
-- cola offline.
 
 ---
 

@@ -178,6 +178,11 @@ export class HomeComponent implements AfterViewInit, OnDestroy {
   }
 
   navigateToWizard(): void {
+    if (!this.authService.isAuthenticated()) {
+      this.notificacion.aviso('Inicia sesión', 'Debes iniciar sesión o registrarte para enviar un paquete.');
+      this.showLoginModal.set(true);
+      return;
+    }
     this.router.navigate(['/nuevo-envio']);
   }
 

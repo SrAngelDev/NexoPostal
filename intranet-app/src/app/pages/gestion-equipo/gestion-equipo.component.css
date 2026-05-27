@@ -681,6 +681,52 @@
 .btn-confirm-yes:hover:not(:disabled) { background: #b91c1c; }
 .btn-confirm-yes:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/* ===== Reactivate Section ===== */
+.reactivate-section { padding-top: 0.25rem; }
+
+.btn-reactivate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #6ee7b7;
+  border-radius: 0.625rem;
+  background: #f0fdf4;
+  color: #059669;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-reactivate:hover { background: #d1fae5; border-color: #34d399; }
+.btn-reactivate .material-symbols-outlined { font-size: 1.125rem; }
+
+.confirm-box-reactivar {
+  background: #f0fdf4;
+  border-color: #6ee7b7;
+}
+
+.btn-confirm-reactivar {
+  flex: 1;
+  padding: 0.625rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #059669;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  transition: background 0.2s;
+}
+.btn-confirm-reactivar:hover:not(:disabled) { background: #047857; }
+.btn-confirm-reactivar:disabled { opacity: 0.6; cursor: not-allowed; }
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .navbar { padding: 0 1rem; }

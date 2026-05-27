@@ -28,7 +28,7 @@ De manera mas concreta, los objetivos especificos del proyecto han sido los sigu
 
 - Diseñar una aplicacion para clientes que permita registrarse, iniciar sesion, calcular tarifas, crear envios, pagar online, consultar el estado de los paquetes y gestionar su perfil.
 - Desarrollar una intranet operativa orientada a personal interno para gestionar la admision de paquetes, la clasificacion por CTAs, las asignaciones de tareas, el seguimiento interno y el escaneo logistico.
-- Implementar una aplicacion para repartidores enfocada a la gestion de rutas, visualizacion de entregas, confirmacion de entregas, seguimiento GPS, uso offline y escaneo de codigos.
+- Implementar una aplicacion para repartidores enfocada a la gestion de rutas, visualizacion de entregas, confirmacion de entregas, seguimiento GPS y escaneo de codigos.
 - Construir una arquitectura backend basada en microservicios con separacion de responsabilidades entre autenticacion, ciudadano, logistica y reparto.
 - Incorporar mecanismos de comunicacion en tiempo real para que el cliente pueda seguir su envio y para que los operarios reciban notificaciones operativas.
 - Integrar un sistema de pago realista mediante Stripe Checkout, junto con la generacion automatica de factura y etiqueta en PDF.
@@ -147,7 +147,7 @@ En el area de reparto, el sistema debia incluir:
 - Confirmacion de entrega con distintos resultados posibles.
 - Registro de evidencias como nombre del receptor, DNI, firma o foto.
 - Envio periodico de ubicacion GPS.
-- Persistencia temporal offline y reintentos automáticos.
+- Persistencia temporal de reintentos automaticos.
 - Escaneo de expediciones desde la propia app de reparto.
 
 ### 2.1.4 Requisitos no funcionales
@@ -163,7 +163,7 @@ Ademas de los requisitos funcionales, el proyecto debia cumplir una serie de con
 - Resiliencia: soportar reconexiones en tiempo real y cierta tolerancia a conectividad limitada en reparto.
 - Mantenibilidad: organizar el codigo por capas, servicios, DTOs, repositorios y modelos.
 
-Estos requisitos no funcionales no se definieron como una lista teorica separada del desarrollo, sino que condicionaron directamente la forma de construir el sistema. La modularidad explica la division en microservicios y en tres frontends distintos; la portabilidad justifica el uso de Docker y Docker Compose; la seguridad se materializa en JWT, roles y claves internas entre servicios; la resiliencia se refleja en la reconexion automatica de SignalR y en la cola offline del modulo de reparto; y la mantenibilidad se consigue gracias a una estructura separada por controladores, servicios, repositorios, DTOs y modelos. En otras palabras, buena parte de la arquitectura tecnica de NexoPostal es una consecuencia directa de estos requisitos no funcionales.
+Estos requisitos no funcionales no se definieron como una lista teorica separada del desarrollo, sino que condicionaron directamente la forma de construir el sistema. La modularidad explica la division en microservicios y en tres frontends distintos; la portabilidad justifica el uso de Docker y Docker Compose; la seguridad se materializa en JWT, roles y claves internas entre servicios; la resiliencia se refleja en la reconexion automatica de SignalR; y la mantenibilidad se consigue gracias a una estructura separada por controladores, servicios, repositorios, DTOs y modelos. En otras palabras, buena parte de la arquitectura tecnica de NexoPostal es una consecuencia directa de estos requisitos no funcionales.
 
 ### 2.1.5 Reglas de negocio clave
 
@@ -180,7 +180,7 @@ Mas alla de los requisitos generales, durante el analisis fue necesario identifi
 - La admision del paquete resuelve automaticamente el CTA de destino a partir del codigo postal. Si origen y destino pertenecen a nodos distintos, se crea ademas un movimiento troncal con el tipo de transporte adecuado.
 - La ultima milla no nace por autoasignacion directa desde la admision. El punto de corte operativo es el estado `DisponibleParaReparto`, que incorpora el paquete a la bandeja persistente de reparto para que el `JefeReparto` lo planifique manualmente.
 - El seguimiento GPS del repartidor no debe estar activo en cualquier contexto. La app movil solo intensifica el tracking cuando la ruta esta realmente en curso, evitando gasto innecesario de bateria y eventos irrelevantes.
-- La falta de conectividad no debe bloquear la operativa de reparto. Por ello, confirmaciones de entrega y ubicaciones se almacenan temporalmente en una cola local para reenviarse cuando el dispositivo recupera conexion.
+- La falta de conectividad puntual se gestiona mediante reintentos automaticos en el GPS del repartidor, con backoff exponencial ante errores consecutivos.
 
 Estas reglas son fundamentales para entender el valor del proyecto. No se limitan a ser detalles tecnicos de implementacion, sino que explican por que el comportamiento observado en cliente, intranet y reparto es coherente entre si.
 
@@ -309,7 +309,7 @@ Este diseño obliga a asumir una consecuencia importante: la consistencia entre 
 
 El tratamiento del catalogo de oficinas ha evolucionado respecto a versiones anteriores del proyecto. En la implementacion actual, las oficinas no se consumen unicamente desde un JSON estatico cargado en memoria, sino que existen modelos persistidos y APIs especificas para listarlas, buscarlas y administrarlas. Ciudadano mantiene un directorio de oficinas consultable por backend y cacheable en frontend para mejorar la experiencia de busqueda. Intranet, por su parte, mantiene el maestro operativo de oficinas postales y permite altas, ediciones, activaciones y desactivaciones desde paneles administrativos. Siguen existiendo seeders y servicios de apoyo basados en catalogos estructurados para inicializar o resolver oficinas, pero el estado que consumen las aplicaciones ya no depende exclusivamente de un fichero local del frontend. Esto mejora la trazabilidad, facilita el mantenimiento y evita tener que redistribuir los clientes web ante cambios operativos del catalogo.
 
-Tambien existen mecanismos de persistencia ligera en cliente. Por ejemplo, la autenticacion en frontend utiliza almacenamiento local para conservar token y contexto de usuario, mientras que la app de reparto utiliza `localStorage` para mantener la cola offline de ubicaciones y confirmaciones pendientes. Esto introduce una segunda capa de gestion del dato, mas cercana a la experiencia de usuario y a la tolerancia a fallos de conectividad.
+Tambien existen mecanismos de persistencia ligera en cliente. Por ejemplo, la autenticacion en frontend utiliza almacenamiento local para conservar token y contexto de usuario.
 
 ### 2.2.4 Diseño de seguridad
 
@@ -386,14 +386,14 @@ La vista de asignaciones con escaneo integrado es especialmente representativa d
 
 La app de reparto se ha diseñado con orientacion movil y foco en la accion, pero en la version actual ya no responde a un unico tipo de usuario. Conviven dos experiencias claramente diferenciadas:
 
-- `Repartidor`, con dashboard operativo, ruta activa, mapa, confirmacion de entregas, GPS, soporte offline y escaneo puntual.
+- `Repartidor`, con dashboard operativo, ruta activa, mapa, confirmacion de entregas, GPS y escaneo puntual.
 - `JefeReparto`, con dashboard propio, bandeja de paquetes disponibles para reparto, gestion de rutas del dia, reasignacion de paradas, mapa en tiempo real y gestion de su equipo de repartidores.
 
 Esta separacion es especialmente valiosa porque evita mezclar la experiencia de quien ejecuta entregas en calle con la de quien organiza la ultima milla desde la oficina. Ambas comparten identidad y parte del backend, pero no la misma interfaz ni el mismo nivel de decision operativa.
 
 La vista de ruta es la pantalla mas importante del modulo de reparto. En ella se muestra la ruta asignada, el estado de la jornada, las paradas pendientes, las entregas completadas y las fallidas, asi como un mapa con la posicion del repartidor y los destinos disponibles. Desde esta misma pantalla el usuario puede iniciar o finalizar la ruta, centrar el mapa, abrir navegacion externa y confirmar una entrega con toda la informacion asociada.
 
-Este diseño responde a una realidad operativa clara: el repartidor no puede navegar entre multiples pantallas complejas mientras conduce o realiza entregas. Por ello, se ha concentrado la mayor parte de la accion en una vista unica y se ha dotado a esa vista de soporte GPS, reintentos, cola offline y evidencias de entrega.
+Este diseño responde a una realidad operativa clara: el repartidor no puede navegar entre multiples pantallas complejas mientras conduce o realiza entregas. Por ello, se ha concentrado la mayor parte de la accion en una vista unica y se ha dotado a esa vista de soporte GPS, reintentos y evidencias de entrega.
 
 ### 2.2.7 Manual de usuario resumido por procesos
 
@@ -434,8 +434,7 @@ Proceso de reparto:
 3. Inicia la ruta cuando sale a reparto.
 4. El sistema activa el seguimiento GPS y comienza a reportar ubicacion.
 5. En cada parada, el repartidor selecciona la entrega y confirma su resultado.
-6. Si no hay conectividad, la accion se guarda en cola y se reintenta automaticamente.
-7. Al finalizar la jornada, el repartidor cierra la ruta con observaciones.
+6. Al finalizar la jornada, el repartidor cierra la ruta con observaciones.
 
 ## 2.3 Implementacion
 

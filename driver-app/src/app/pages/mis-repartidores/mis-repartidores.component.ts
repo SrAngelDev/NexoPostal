@@ -5,7 +5,8 @@ import { Router } from '@angular/router';
 import {
   RepartoService,
   RepartidorPerfil,
-  EditarRepartidorRequest
+  EditarRepartidorRequest,
+  VehiculoFlota
 } from '../../services/reparto.service';
 import { AuthService } from '../../services/auth.service';
 import { DriverNavbarComponent } from '../../components/driver-navbar/driver-navbar.component';
@@ -39,6 +40,11 @@ export class MisRepartidoresComponent implements OnInit {
     tipoVehiculo: 'Furgoneta',
     matriculaVehiculo: ''
   });
+
+  // Flota de vehículos para el selector
+  vehiculosFlota = signal<VehiculoFlota[]>([]);
+  cargandoFlota = signal(false);
+  vehiculoSeleccionadoId = signal<number | null>(null);
 
   userName = '';
 
@@ -111,13 +117,46 @@ export class MisRepartidoresComponent implements OnInit {
     });
     this.mensaje.set(null);
     this.error.set(null);
+    // Intentar preseleccionar el vehículo actual en la flota
+    this.vehiculoSeleccionadoId.set(null);
     this.mostrarModal.set(true);
+    // Cargar flota al abrir el modal
+    this.cargandoFlota.set(true);
+    this.repartoService.listarVehiculosFlota().subscribe({
+      next: (lista) => {
+        this.vehiculosFlota.set(lista);
+        // Preseleccionar si la matrícula actual coincide con algún vehículo de la flota
+        const match = lista.find(v => v.matricula === r.matriculaVehiculo);
+        this.vehiculoSeleccionadoId.set(match?.id ?? null);
+        this.cargandoFlota.set(false);
+      },
+      error: () => {
+        this.vehiculosFlota.set([]);
+        this.cargandoFlota.set(false);
+      }
+    });
   }
 
   cerrarModal(): void {
     if (this.procesando()) return;
     this.mostrarModal.set(false);
     this.enEdicion.set(null);
+    this.vehiculosFlota.set([]);
+    this.vehiculoSeleccionadoId.set(null);
+  }
+
+  onVehiculoSeleccionado(idStr: string): void {
+    const id = idStr ? +idStr : null;
+    this.vehiculoSeleccionadoId.set(id);
+    if (!id) {
+      // "Sin vehículo"
+      this.form.update(f => ({ ...f, tipoVehiculo: 'Furgoneta', matriculaVehiculo: '' }));
+      return;
+    }
+    const v = this.vehiculosFlota().find(x => x.id === id);
+    if (v) {
+      this.form.update(f => ({ ...f, tipoVehiculo: v.tipo, matriculaVehiculo: v.matricula }));
+    }
   }
 
   actualizarCampo<K extends keyof EditarRepartidorRequest>(key: K, value: EditarRepartidorRequest[K]): void {
@@ -134,9 +173,18 @@ export class MisRepartidoresComponent implements OnInit {
       return;
     }
 
+    // Incluir vehiculoId si hay flota disponible:
+    // - vehículo seleccionado (>0) para asignar
+    // - null si no se cargó flota (no tocar asignación)
+    const vehiculoId = this.vehiculosFlota().length > 0
+      ? (this.vehiculoSeleccionadoId() ?? 0)   // 0 = desasignar
+      : undefined;                              // undefined = no cambiar
+
+    const request: EditarRepartidorRequest = { ...dto, vehiculoId };
+
     this.procesando.set(true);
     this.error.set(null);
-    this.repartoService.editarRepartidor(target.id, dto).subscribe({
+    this.repartoService.editarRepartidor(target.id, request).subscribe({
       next: (actualizado) => {
         this.repartidores.update(list =>
           list.map(r => r.id === actualizado.id ? actualizado : r)

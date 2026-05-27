@@ -23,6 +23,11 @@ export const routes: Routes = [
     canActivate: [jefeRepartoGuard]
   },
   {
+    path: 'detalle-ruta/:id',
+    loadComponent: () => import('./pages/detalle-ruta/detalle-ruta.component').then(m => m.DetalleRutaComponent),
+    canActivate: [jefeRepartoGuard]
+  },
+  {
     path: 'dashboard-jefe',
     loadComponent: () => import('./pages/dashboard-jefe/dashboard-jefe.component').then(m => m.DashboardJefeComponent),
     canActivate: [jefeRepartoGuard]

@@ -172,7 +172,7 @@
             </div>
           </div>
 
-          <!-- Desactivar -->
+          <!-- Desactivar / Reactivar -->
           @if (op.activo) {
             <div class="deactivate-section">
               @if (!confirmDesactivar()) {
@@ -197,6 +197,36 @@
                         Desactivando...
                       } @else {
                         Sí, desactivar
+                      }
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="reactivate-section">
+              @if (!confirmReactivar()) {
+                <button class="btn-reactivate" (click)="pedirConfirmacionReactivar()">
+                  <span class="material-symbols-outlined">person_check</span>
+                  Reactivar operario
+                </button>
+              } @else {
+                <div class="confirm-box confirm-box-reactivar">
+                  <p class="confirm-text">
+                    ¿Confirmas la reactivación de <strong>{{ op.nombreCompleto }}</strong>?
+                    Volverá a tener acceso al sistema operativo.
+                  </p>
+                  @if (errorDetalle()) {
+                    <p class="confirm-error">{{ errorDetalle() }}</p>
+                  }
+                  <div class="confirm-actions">
+                    <button class="btn-cancel" (click)="cancelarConfirmacion()">Cancelar</button>
+                    <button class="btn-confirm-reactivar" [disabled]="reactivando()" (click)="reactivarOperario()">
+                      @if (reactivando()) {
+                        <span class="material-symbols-outlined spin">autorenew</span>
+                        Reactivando...
+                      } @else {
+                        Sí, reactivar
                       }
                     </button>
                   </div>

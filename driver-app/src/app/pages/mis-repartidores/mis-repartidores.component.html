@@ -5,6 +5,8 @@
     </button>
   </app-driver-navbar>
 
+  <div class="page-content">
+
   @if (mensaje()) {
     <div class="banner banner-ok">
       <span class="material-symbols-outlined">check_circle</span>
@@ -147,24 +149,54 @@
         </label>
 
         <label>
-          Tipo de vehículo
-          <select
-            [ngModel]="form().tipoVehiculo"
-            (ngModelChange)="actualizarCampo('tipoVehiculo', $event)">
-            <option value="Furgoneta">Furgoneta</option>
-            <option value="Moto">Moto</option>
-            <option value="Coche">Coche</option>
-            <option value="Bicicleta">Bicicleta</option>
-            <option value="A pie">A pie</option>
-          </select>
-        </label>
-
-        <label>
-          Matrícula
-          <input
-            type="text"
-            [ngModel]="form().matriculaVehiculo"
-            (ngModelChange)="actualizarCampo('matriculaVehiculo', $event)" />
+          Vehículo de la flota
+          @if (cargandoFlota()) {
+            <div class="flota-loading">
+              <span class="material-symbols-outlined spinning">progress_activity</span>
+              Cargando flota…
+            </div>
+          } @else if (vehiculosFlota().length === 0) {
+            <div class="flota-empty">
+              <span class="material-symbols-outlined">info</span>
+              No hay vehículos en la flota. El administrador puede añadirlos desde la intranet.
+            </div>
+            <!-- Fallback manual si no hay flota -->
+            <div class="flota-manual">
+              <select
+                [ngModel]="form().tipoVehiculo"
+                (ngModelChange)="actualizarCampo('tipoVehiculo', $event)">
+                <option value="Furgoneta">Furgoneta</option>
+                <option value="Moto">Moto</option>
+                <option value="Coche">Coche</option>
+                <option value="Bicicleta">Bicicleta</option>
+                <option value="Otro">Otro</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Matrícula (opcional)"
+                [ngModel]="form().matriculaVehiculo"
+                (ngModelChange)="actualizarCampo('matriculaVehiculo', $event)" />
+            </div>
+          } @else {
+            <select
+              [ngModel]="vehiculoSeleccionadoId()"
+              (ngModelChange)="onVehiculoSeleccionado($event)">
+              <option value="">— Sin vehículo asignado —</option>
+              @for (v of vehiculosFlota(); track v.id) {
+                <option [value]="v.id">
+                  {{ v.tipo }} · {{ v.matricula }}
+                  @if (v.marca || v.modelo) { ({{ v.marca }} {{ v.modelo }}) }
+                  @if (v.repartidorAsignadoNombre) { · En uso: {{ v.repartidorAsignadoNombre }} }
+                </option>
+              }
+            </select>
+            @if (form().matriculaVehiculo) {
+              <small class="flota-hint">
+                <span class="material-symbols-outlined">directions_car</span>
+                {{ form().tipoVehiculo }} · {{ form().matriculaVehiculo }}
+              </small>
+            }
+          }
         </label>
 
         <div class="modal-actions">
@@ -184,4 +216,5 @@
       </div>
     </div>
   }
+  </div><!-- /.page-content -->
 </div>

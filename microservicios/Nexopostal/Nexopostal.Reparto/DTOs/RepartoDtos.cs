@@ -17,6 +17,7 @@ public class RepartidorResumenDto
     public int OficinaJsonId { get; set; }
     public string OficinaNombre { get; set; } = string.Empty;
     public string TipoVehiculo { get; set; } = string.Empty;
+    public string? MatriculaVehiculo { get; set; }
     public bool Activo { get; set; }
     public int RutasHoy { get; set; }
 }
@@ -47,6 +48,8 @@ public class EditarRepartidorDto
     public string OficinaNombre { get; set; } = string.Empty;
     public string TipoVehiculo { get; set; } = "Furgoneta";
     public string? MatriculaVehiculo { get; set; }
+    /// <summary>Id del vehículo de la flota a asignar. Null = dejar como está. 0 = desasignar.</summary>
+    public int? VehiculoId { get; set; }
 }
 
 // ─── Ruta de Reparto ───
@@ -57,6 +60,7 @@ public class RutaRepartoResumenDto
     public string Codigo { get; set; } = string.Empty;
     public string FechaReparto { get; set; } = string.Empty;
     public string RepartidorNombre { get; set; } = string.Empty;
+    public int OficinaOrigenJsonId { get; set; }
     public string OficinaOrigenNombre { get; set; } = string.Empty;
     public string Estado { get; set; } = string.Empty;
     public int TotalEntregas { get; set; }

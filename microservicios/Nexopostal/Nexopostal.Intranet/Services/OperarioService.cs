@@ -40,6 +40,9 @@ public interface IOperarioService
 
     /// <summary>Desactiva un operario</summary>
     Task<bool> DesactivarOperario(int operarioId);
+
+    /// <summary>Reactiva un operario previamente desactivado</summary>
+    Task<bool> ReactivarOperario(int operarioId);
 }
 
 public class OperarioService : IOperarioService
@@ -383,6 +386,19 @@ public class OperarioService : IOperarioService
         await _operarioRepo.UpdateAsync(operario);
 
         _logger.LogInformation("Operario {Codigo} desactivado", operario.CodigoEmpleado);
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> ReactivarOperario(int operarioId)
+    {
+        var operario = await _operarioRepo.GetByIdAsync(operarioId);
+        if (operario == null) return false;
+
+        operario.Activo = true;
+        await _operarioRepo.UpdateAsync(operario);
+
+        _logger.LogInformation("Operario {Codigo} reactivado", operario.CodigoEmpleado);
         return true;
     }
 }

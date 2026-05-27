@@ -37,6 +37,8 @@ export class GestionEquipoComponent implements OnInit {
   showModal = signal(false);
   confirmDesactivar = signal(false);
   desactivando = signal(false);
+  confirmReactivar = signal(false);
+  reactivando = signal(false);
 
   showNotificaciones = signal(false);
 
@@ -127,6 +129,7 @@ export class GestionEquipoComponent implements OnInit {
     this.showModal.set(false);
     this.operarioDetalle.set(null);
     this.confirmDesactivar.set(false);
+    this.confirmReactivar.set(false);
     this.errorDetalle.set('');
   }
 
@@ -136,6 +139,7 @@ export class GestionEquipoComponent implements OnInit {
 
   cancelarConfirmacion(): void {
     this.confirmDesactivar.set(false);
+    this.confirmReactivar.set(false);
   }
 
   desactivarOperario(): void {
@@ -153,6 +157,29 @@ export class GestionEquipoComponent implements OnInit {
       error: () => {
         this.desactivando.set(false);
         this.errorDetalle.set('No se pudo desactivar el operario. Inténtalo de nuevo.');
+      }
+    });
+  }
+
+  pedirConfirmacionReactivar(): void {
+    this.confirmReactivar.set(true);
+  }
+
+  reactivarOperario(): void {
+    const detalle = this.operarioDetalle();
+    if (!detalle) return;
+    this.reactivando.set(true);
+
+    this.intranetApi.reactivarOperario(detalle.id).subscribe({
+      next: () => {
+        this.reactivando.set(false);
+        this.cerrarModal();
+        const cta = this.ctaSeleccionado();
+        if (cta) this.seleccionarCta(cta);
+      },
+      error: () => {
+        this.reactivando.set(false);
+        this.errorDetalle.set('No se pudo reactivar el operario. Inténtalo de nuevo.');
       }
     });
   }
