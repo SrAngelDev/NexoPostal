@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<coverage line-rate="0.3295" branch-rate="0.1307" version="1.9" timestamp="1779973305" lines-covered="1410" lines-valid="4278" branches-covered="108" branches-valid="826">
+<coverage line-rate="0.3295" branch-rate="0.1307" version="1.9" timestamp="1779974756" lines-covered="1410" lines-valid="4278" branches-covered="108" branches-valid="826">
   <sources>
     <source>C:\Users\angel\Desktop\NexoPostal\microservicios\Nexopostal\</source>
   </sources>

@@ -353,31 +353,31 @@ var assemblies = [
   {
     "name": "Nexopostal.Reparto",
     "classes": [
-      { "name": "Nexopostal.Reparto.Controllers.AdminVehiculosController", "rp": "Nexopostal.Reparto_AdminVehiculosController.html", "cl": 24, "ucl": 0, "cal": 24, "tl": 133, "cb": 3, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Controllers.AdminVehiculosController", "rp": "Nexopostal.Reparto_AdminVehiculosController.html", "cl": 0, "ucl": 24, "cal": 24, "tl": 133, "cb": 0, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Controllers.JefeVehiculosController", "rp": "Nexopostal.Reparto_JefeVehiculosController.html", "cl": 0, "ucl": 5, "cal": 5, "tl": 76, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Controllers.RepartoController", "rp": "Nexopostal.Reparto_RepartoController.html", "cl": 13, "ucl": 15, "cal": 28, "tl": 733, "cb": 0, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Data.RepartoDbContext", "rp": "Nexopostal.Reparto_RepartoDbContext.html", "cl": 134, "ucl": 0, "cal": 134, "tl": 168, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.DTOs.VehiculoDto", "rp": "Nexopostal.Reparto_VehiculoDto.html", "cl": 0, "ucl": 1, "cal": 1, "tl": 66, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Reparto.Errors.RepartoError", "rp": "Nexopostal.Reparto_RepartoError.html", "cl": 3, "ucl": 15, "cal": 18, "tl": 68, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Errors.RepartoError", "rp": "Nexopostal.Reparto_RepartoError.html", "cl": 0, "ucl": 18, "cal": 18, "tl": 68, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Infrastructures.RepartoServiceCollectionExtensions", "rp": "Nexopostal.Reparto_RepartoServiceCollectionExtensions.html", "cl": 0, "ucl": 14, "cal": 14, "tl": 33, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Repositories.EntregaPaqueteRepository", "rp": "Nexopostal.Reparto_EntregaPaqueteRepository.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 306, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Repositories.RepartidorRepository", "rp": "Nexopostal.Reparto_RepartidorRepository.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 306, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Repositories.RutaRepartoRepository", "rp": "Nexopostal.Reparto_RutaRepartoRepository.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 306, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Repositories.UbicacionRepartidorRepository", "rp": "Nexopostal.Reparto_UbicacionRepartidorRepository.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 306, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Reparto.Repositories.VehiculoRepository", "rp": "Nexopostal.Reparto_VehiculoRepository.html", "cl": 5, "ucl": 0, "cal": 5, "tl": 306, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Repositories.VehiculoRepository", "rp": "Nexopostal.Reparto_VehiculoRepository.html", "cl": 1, "ucl": 4, "cal": 5, "tl": 306, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Services.AuthUserSyncService", "rp": "Nexopostal.Reparto_AuthUserSyncService.html", "cl": 6, "ucl": 0, "cal": 6, "tl": 61, "cb": 2, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Reparto.Services.BalanceoCargaService", "rp": "Nexopostal.Reparto_BalanceoCargaService.html", "cl": 6, "ucl": 0, "cal": 6, "tl": 285, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Reparto.Services.BandejaPendientesService", "rp": "Nexopostal.Reparto_BandejaPendientesService.html", "cl": 25, "ucl": 0, "cal": 25, "tl": 230, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Services.BalanceoCargaService", "rp": "Nexopostal.Reparto_BalanceoCargaService.html", "cl": 0, "ucl": 6, "cal": 6, "tl": 285, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Services.BandejaPendientesService", "rp": "Nexopostal.Reparto_BandejaPendientesService.html", "cl": 6, "ucl": 19, "cal": 25, "tl": 230, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Services.CiudadanoTrackingNotifierService", "rp": "Nexopostal.Reparto_CiudadanoTrackingNotifierService.html", "cl": 6, "ucl": 8, "cal": 14, "tl": 149, "cb": 1, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Reparto.Services.OptimizacionRutasService", "rp": "Nexopostal.Reparto_OptimizacionRutasService.html", "cl": 81, "ucl": 0, "cal": 81, "tl": 274, "cb": 20, "tb": 20, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Reparto.Services.ReintentoEntregaService", "rp": "Nexopostal.Reparto_ReintentoEntregaService.html", "cl": 30, "ucl": 0, "cal": 30, "tl": 246, "cb": 6, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Services.OptimizacionRutasService", "rp": "Nexopostal.Reparto_OptimizacionRutasService.html", "cl": 0, "ucl": 81, "cal": 81, "tl": 274, "cb": 0, "tb": 20, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Services.ReintentoEntregaService", "rp": "Nexopostal.Reparto_ReintentoEntregaService.html", "cl": 0, "ucl": 30, "cal": 30, "tl": 246, "cb": 0, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Services.RepartoNotifier", "rp": "Nexopostal.Reparto_RepartoNotifier.html", "cl": 4, "ucl": 0, "cal": 4, "tl": 45, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Services.RepartoService", "rp": "Nexopostal.Reparto_RepartoService.html", "cl": 51, "ucl": 30, "cal": 81, "tl": 1059, "cb": 3, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "Nexopostal.Reparto.Services.VehiculoService", "rp": "Nexopostal.Reparto_VehiculoService.html", "cl": 6, "ucl": 2, "cal": 8, "tl": 264, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Reparto.Validators.CrearRepartidorDtoValidator", "rp": "Nexopostal.Reparto_CrearRepartidorDtoValidator.html", "cl": 10, "ucl": 0, "cal": 10, "tl": 71, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Reparto.Validators.CrearRutaRepartoDtoValidator", "rp": "Nexopostal.Reparto_CrearRutaRepartoDtoValidator.html", "cl": 10, "ucl": 0, "cal": 10, "tl": 71, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Reparto.Validators.CrearVehiculoDtoValidator", "rp": "Nexopostal.Reparto_CrearVehiculoDtoValidator.html", "cl": 8, "ucl": 0, "cal": 8, "tl": 71, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "Nexopostal.Reparto.Validators.EditarRepartidorDtoValidator", "rp": "Nexopostal.Reparto_EditarRepartidorDtoValidator.html", "cl": 10, "ucl": 0, "cal": 10, "tl": 71, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Validators.CrearRepartidorDtoValidator", "rp": "Nexopostal.Reparto_CrearRepartidorDtoValidator.html", "cl": 0, "ucl": 10, "cal": 10, "tl": 71, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Validators.CrearRutaRepartoDtoValidator", "rp": "Nexopostal.Reparto_CrearRutaRepartoDtoValidator.html", "cl": 0, "ucl": 10, "cal": 10, "tl": 71, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Validators.CrearVehiculoDtoValidator", "rp": "Nexopostal.Reparto_CrearVehiculoDtoValidator.html", "cl": 0, "ucl": 8, "cal": 8, "tl": 71, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "Nexopostal.Reparto.Validators.EditarRepartidorDtoValidator", "rp": "Nexopostal.Reparto_EditarRepartidorDtoValidator.html", "cl": 0, "ucl": 10, "cal": 10, "tl": 71, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
     ]},
   {
     "name": "Nexopostal.Shared",
@@ -432,6 +432,18 @@ var riskHotspots = [
       { "value": 10, "exceeded": false },
     ]},
   {
+    "assembly": "Nexopostal.Reparto", "class": "Nexopostal.Reparto.Controllers.AdminVehiculosController", "reportPath": "Nexopostal.Reparto_AdminVehiculosController.html", "methodName": "GetUserId()", "methodShortName": "GetUserId()", "fileIndex": 0, "line": 130,
+    "metrics": [
+      { "value": 110, "exceeded": true },
+      { "value": 10, "exceeded": false },
+    ]},
+  {
+    "assembly": "Nexopostal.Reparto", "class": "Nexopostal.Reparto.Services.OptimizacionRutasService", "reportPath": "Nexopostal.Reparto_OptimizacionRutasService.html", "methodName": "AplicarNearestNeighbor(System.Collections.Generic.List`1<Nexopostal.Reparto.Services.EntregaParaOptimizar>,System.Double,System.Double)", "methodShortName": "AplicarNearestNeighbor(...)", "fileIndex": 0, "line": 215,
+    "metrics": [
+      { "value": 110, "exceeded": true },
+      { "value": 10, "exceeded": false },
+    ]},
+  {
     "assembly": "Nexopostal.Intranet", "class": "Nexopostal.Intranet.Services.AsignacionService", "reportPath": "Nexopostal.Intranet_AsignacionService.html", "methodName": "MapTipoTareaAModoEscaneo(Nexopostal.Intranet.Models.TipoTarea)", "methodShortName": "MapTipoTareaAModoEscaneo(...)", "fileIndex": 0, "line": 457,
     "metrics": [
       { "value": 69, "exceeded": true },
@@ -463,6 +475,18 @@ var riskHotspots = [
     ]},
   {
     "assembly": "Nexopostal.Reparto", "class": "Nexopostal.Reparto.Controllers.RepartoController", "reportPath": "Nexopostal.Reparto_RepartoController.html", "methodName": "SecureEquals(System.String,System.String)", "methodShortName": "SecureEquals(...)", "fileIndex": 0, "line": 684,
+    "metrics": [
+      { "value": 42, "exceeded": true },
+      { "value": 6, "exceeded": false },
+    ]},
+  {
+    "assembly": "Nexopostal.Reparto", "class": "Nexopostal.Reparto.Services.OptimizacionRutasService", "reportPath": "Nexopostal.Reparto_OptimizacionRutasService.html", "methodName": "ReordenarEntregas(System.Collections.Generic.List`1<Nexopostal.Reparto.Services.EntregaParaOptimizar>,System.Double,System.Double)", "methodShortName": "ReordenarEntregas(...)", "fileIndex": 0, "line": 152,
+    "metrics": [
+      { "value": 42, "exceeded": true },
+      { "value": 6, "exceeded": false },
+    ]},
+  {
+    "assembly": "Nexopostal.Reparto", "class": "Nexopostal.Reparto.Services.ReintentoEntregaService", "reportPath": "Nexopostal.Reparto_ReintentoEntregaService.html", "methodName": "DeterminarAccionInterna(Nexopostal.Reparto.Models.EntregaPaquete)", "methodShortName": "DeterminarAccionInterna(...)", "fileIndex": 0, "line": 211,
     "metrics": [
       { "value": 42, "exceeded": true },
       { "value": 6, "exceeded": false },
