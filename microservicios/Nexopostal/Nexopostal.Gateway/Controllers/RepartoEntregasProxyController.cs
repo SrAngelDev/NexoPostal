@@ -72,6 +72,66 @@ public class RepartoEntregasProxyController : ControllerBase
     }
 
     /// <summary>
+    /// GET /api/nexopostal/reparto/bandeja[?ctaId=N&incluirAsignados=false]
+    /// Lista los paquetes pendientes en la bandeja del JefeReparto conservando la query string.
+    /// </summary>
+    [HttpGet("bandeja")]
+    public async Task<IActionResult> GetBandeja()
+    {
+        var queryString = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
+        var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_repartoUrl}/api/reparto/bandeja{queryString}");
+
+        if (Request.Headers.TryGetValue("Authorization", out var authHeader))
+            requestMessage.Headers.TryAddWithoutValidation("Authorization", authHeader.ToString());
+
+        var response = await _httpClient.SendAsync(requestMessage);
+        var body = await response.Content.ReadAsStringAsync();
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/json";
+
+        return new ContentResult
+        {
+            StatusCode = (int)response.StatusCode,
+            ContentType = contentType,
+            Content = body
+        };
+    }
+
+    /// <summary>
+    /// POST /api/nexopostal/reparto/bandeja/{pendienteId}/asignar-a-ruta
+    /// Asigna un paquete de la bandeja a una ruta de reparto.
+    /// </summary>
+    [HttpPost("bandeja/{pendienteId:int}/asignar-a-ruta")]
+    public async Task<IActionResult> PostAsignarARuta(int pendienteId)
+    {
+        var requestMessage = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{_repartoUrl}/api/reparto/bandeja/{pendienteId}/asignar-a-ruta");
+
+        if (Request.Headers.TryGetValue("Authorization", out var authHeader))
+            requestMessage.Headers.TryAddWithoutValidation("Authorization", authHeader.ToString());
+
+        if (Request.ContentLength > 0 || Request.Headers.ContainsKey("Content-Type"))
+        {
+            Request.EnableBuffering();
+            using var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true);
+            var bodyText = await reader.ReadToEndAsync();
+            Request.Body.Position = 0;
+            requestMessage.Content = new StringContent(bodyText, Encoding.UTF8, "application/json");
+        }
+
+        var response = await _httpClient.SendAsync(requestMessage);
+        var responseBody = await response.Content.ReadAsStringAsync();
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/json";
+
+        return new ContentResult
+        {
+            StatusCode = (int)response.StatusCode,
+            ContentType = contentType,
+            Content = responseBody
+        };
+    }
+
+    /// <summary>
     /// POST /api/nexopostal/reparto/confirmar?entregaId=N
     /// Reenvía cuerpo JSON + query string al backend de reparto.
     /// El gateway library no preserva query params en POST.

@@ -111,6 +111,16 @@ builder.Services.AddHttpClient<ICiudadanoTrackingNotifierService, CiudadanoTrack
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+var authBaseUrl = ResolveConfigValue(builder.Configuration["AuthSettings:BaseUrl"]);
+if (string.IsNullOrWhiteSpace(authBaseUrl) || authBaseUrl.Contains("${"))
+    authBaseUrl = "http://modulo-seguridad:80";
+
+builder.Services.AddHttpClient<IAuthUserSyncService, AuthUserSyncService>(client =>
+{
+    client.BaseAddress = new Uri(authBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 // 4. Configurar Controllers y JSON
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

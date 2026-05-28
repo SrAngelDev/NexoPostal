@@ -57,6 +57,7 @@ public class RepartoService : IRepartoService
     private readonly IUbicacionRepartidorRepository _ubicacionRepo;
     private readonly IRepartoNotifier _notifier;
     private readonly IVehiculoService _vehiculoService;
+    private readonly IAuthUserSyncService _authSync;
     private readonly ILogger<RepartoService> _logger;
 
     public RepartoService(
@@ -66,6 +67,7 @@ public class RepartoService : IRepartoService
         IUbicacionRepartidorRepository ubicacionRepo,
         IRepartoNotifier notifier,
         IVehiculoService vehiculoService,
+        IAuthUserSyncService authSync,
         ILogger<RepartoService> logger)
     {
         _repartidorRepo = repartidorRepo;
@@ -74,6 +76,7 @@ public class RepartoService : IRepartoService
         _ubicacionRepo = ubicacionRepo;
         _notifier = notifier;
         _vehiculoService = vehiculoService;
+        _authSync = authSync;
         _logger = logger;
     }
 
@@ -175,6 +178,7 @@ public class RepartoService : IRepartoService
         if (!Enum.TryParse<TipoVehiculo>(dto.TipoVehiculo, ignoreCase: true, out var tipo))
             return (null, $"Tipo de vehículo no válido: {dto.TipoVehiculo}.");
 
+        var nombreAnterior = repartidor.NombreCompleto;
         repartidor.NombreCompleto    = string.IsNullOrWhiteSpace(dto.NombreCompleto) ? repartidor.NombreCompleto : dto.NombreCompleto.Trim();
         repartidor.Telefono          = string.IsNullOrWhiteSpace(dto.Telefono) ? null : dto.Telefono.Trim();
         repartidor.OficinaJsonId     = dto.OficinaJsonId;
@@ -183,6 +187,13 @@ public class RepartoService : IRepartoService
         repartidor.MatriculaVehiculo = string.IsNullOrWhiteSpace(dto.MatriculaVehiculo) ? null : dto.MatriculaVehiculo.Trim().ToUpperInvariant();
 
         await _repartidorRepo.UpdateAsync(repartidor);
+
+        // Sincronizar nombre con Auth si cambió, para que el próximo JWT lo refleje.
+        if (!string.Equals(repartidor.NombreCompleto, nombreAnterior, StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(repartidor.IdentityUserId))
+        {
+            await _authSync.SincronizarNombreAsync(repartidor.IdentityUserId, repartidor.NombreCompleto);
+        }
 
         // Si se especificó un vehículo de la flota, actualizar su asignación en la tabla de vehículos.
         // VehiculoId == 0 significa desasignar; VehiculoId > 0 significa asignar ese vehículo.

@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Nexopostal.Reparto.Data;
 using Nexopostal.Reparto.DTOs;
+using Nexopostal.Reparto.Hubs;
 using Nexopostal.Reparto.Models;
 
 namespace Nexopostal.Reparto.Services;
@@ -32,15 +34,18 @@ public class BandejaPendientesService : IBandejaPendientesService
 {
     private readonly RepartoDbContext _db;
     private readonly IRepartoService _repartoService;
+    private readonly IHubContext<RepartoHub> _hub;
     private readonly ILogger<BandejaPendientesService> _logger;
 
     public BandejaPendientesService(
         RepartoDbContext db,
         IRepartoService repartoService,
+        IHubContext<RepartoHub> hub,
         ILogger<BandejaPendientesService> logger)
     {
         _db = db;
         _repartoService = repartoService;
+        _hub = hub;
         _logger = logger;
     }
 
@@ -118,6 +123,23 @@ public class BandejaPendientesService : IBandejaPendientesService
         _logger.LogInformation(
             "Paquete {Expedicion} añadido a bandeja del CTA {Cta} ({CtaCodigo}).",
             pendiente.NumeroExpedicion, pendiente.CtaId, pendiente.CtaCodigo);
+
+        // Notificar en tiempo real a los JefeReparto conectados.
+        try
+        {
+            await _hub.Clients.Group("jefes-reparto").SendAsync("PaqueteEnBandeja", new
+            {
+                ctaId = pendiente.CtaId,
+                ctaCodigo = pendiente.CtaCodigo,
+                numeroExpedicion = pendiente.NumeroExpedicion,
+                esUrgente = pendiente.EsUrgente
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "No se pudo enviar notificación SignalR PaqueteEnBandeja para {Expedicion}",
+                pendiente.NumeroExpedicion);
+        }
 
         return new RegistrarPaqueteBandejaResponseDto
         {

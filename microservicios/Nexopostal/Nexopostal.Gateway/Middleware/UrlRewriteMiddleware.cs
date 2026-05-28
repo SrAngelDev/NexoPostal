@@ -43,7 +43,8 @@ public class UrlRewriteMiddleware
         "/api/asignaciones/buscar",        // GET con ?codigo=...; el gateway perdería la query
         "/api/nexopostal/reparto/entregas$", // GET ?rutaId=...; sufijo $ = match exacto (no toca sub-paths)
         "/api/nexopostal/reparto/vehiculos", // GET flota para JefeReparto (JWT necesario)
-        "/api/nexopostal/reparto/confirmar"  // POST con ?entregaId=...; el gateway library no reenvía query en POST
+        "/api/nexopostal/reparto/confirmar",  // POST con ?entregaId=...; el gateway library no reenvía query en POST
+        "/api/nexopostal/reparto/bandeja"     // GET ?ctaId=...; POST /{id}/asignar-a-ruta — gateway library pierde query params
     ];
 
     // Compatibilidad para endpoints raíz /api/{apiKey} sin routeKey explícito.

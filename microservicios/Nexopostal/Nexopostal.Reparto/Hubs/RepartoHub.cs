@@ -19,11 +19,21 @@ public class RepartoHub : Hub
         _logger = logger;
     }
 
-    public override Task OnConnectedAsync()
+    public override async Task OnConnectedAsync()
     {
         _logger.LogInformation("SignalR conexión abierta: User={UserId} Conn={ConnId}",
             Context.UserIdentifier, Context.ConnectionId);
-        return base.OnConnectedAsync();
+
+        // Los JefeReparto se suscriben automáticamente al grupo "jefes-reparto"
+        // para recibir avisos de nuevos paquetes disponibles en bandeja.
+        if (Context.User?.IsInRole("JefeReparto") == true)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, "jefes-reparto");
+            _logger.LogInformation("SignalR: User={UserId} añadido al grupo jefes-reparto",
+                Context.UserIdentifier);
+        }
+
+        await base.OnConnectedAsync();
     }
 
     public override Task OnDisconnectedAsync(Exception? exception)

@@ -58,6 +58,15 @@ export class SignalrService {
       });
     });
 
+    this.connection.on('PaqueteEnBandeja', (payload: any) => {
+      this.agregarNotificacion({
+        evento: 'PaqueteEnBandeja',
+        titulo: payload?.esUrgente ? '🔴 Paquete urgente listo para asignar' : '🚚 Nuevo paquete en bandeja',
+        mensaje: `El paquete ${payload?.numeroExpedicion ?? ''} está disponible en ${payload?.ctaCodigo ?? ''} para asignar a una ruta`,
+        payload
+      });
+    });
+
     try {
       await this.connection.start();
       this.estadoConexion.set('conectado');

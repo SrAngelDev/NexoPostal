@@ -152,6 +152,7 @@ services:
       - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
       - CiudadanoSettings__ServiceKey=${INTER_SERVICE_KEY}
       - IntranetSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - RepartoSettings__BaseUrl=http://modulo-reparto
     networks:
       - nexopostal-net
     depends_on:
@@ -172,6 +173,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
       - InterServiceSettings__ServiceKey=${INTER_SERVICE_KEY}
+      - AuthSettings__BaseUrl=http://modulo-seguridad
+      - AuthSettings__ServiceKey=${INTER_SERVICE_KEY}
     networks:
       - nexopostal-net
     depends_on:

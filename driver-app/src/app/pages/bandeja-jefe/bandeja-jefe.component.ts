@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -9,6 +9,7 @@ import {
   RutaResumen
 } from '../../services/reparto.service';
 import { AuthService } from '../../services/auth.service';
+import { SignalrService } from '../../services/signalr.service';
 import { DriverNavbarComponent } from '../../components/driver-navbar/driver-navbar.component';
 
 type ModoAsignacion = 'nueva' | 'existente';
@@ -59,9 +60,19 @@ export class BandejaJefeComponent implements OnInit {
   constructor(
     private repartoService: RepartoService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private signalr: SignalrService
   ) {
     this.userName = this.authService.getCurrentUser()?.user ?? '';
+
+    // Refrescar bandeja al recibir notificación de nuevo paquete disponible.
+    effect(() => {
+      const notifs = this.signalr.notificaciones();
+      const ultima = notifs[0];
+      if (ultima?.evento === 'PaqueteEnBandeja' && !ultima.leida) {
+        this.refrescar();
+      }
+    });
   }
 
   ngOnInit(): void {

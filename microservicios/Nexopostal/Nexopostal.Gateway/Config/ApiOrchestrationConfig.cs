@@ -197,9 +197,11 @@ public static class ApiOrchestrationConfig
             .AddRoute("asignaciones-crear", GatewayVerb.POST, new RouteInfo { Path = "api/asignaciones/crear" })
             .AddRoute("mis-pendientes", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/mis-pendientes" })
             .AddRoute("mis-en-progreso", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/mis-en-progreso" })
+            .AddRoute("mis-completadas", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/mis-completadas" })
             // Busca una tarea del operario autenticado por código de expedición (?codigo=)
             .AddRoute("asignaciones-buscar", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/buscar" })
-            .AddRoute("cta", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/cta/" })
+            // El UrlRewriteMiddleware transforma /api/asignaciones/cta/{id} → routeKey "cta-detalle"
+            .AddRoute("cta-detalle", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/cta/" })
             .AddRoute("detalle", GatewayVerb.GET, new RouteInfo { Path = "api/asignaciones/" })
             .AddRoute("iniciar", GatewayVerb.PUT, new RouteInfo { Path = "api/asignaciones/" })
             .AddRoute("completar", GatewayVerb.PUT, new RouteInfo { Path = "api/asignaciones/" })
