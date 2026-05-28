@@ -158,9 +158,9 @@
             <tbody>
               @for (asig of asignacionesFiltradas; track asig.id) {
                 <tr [class.row-urgent]="asig.esUrgente">
-                  <td class="cell-mono cell-strong">{{ asig.numeroExpedicion }}</td>
-                  <td>{{ getTipoTareaLabel(asig.tipoTarea) }}</td>
-                  <td>
+                  <td class="cell-mono cell-strong" data-label="Expedición">{{ asig.numeroExpedicion }}</td>
+                  <td data-label="Tipo">{{ getTipoTareaLabel(asig.tipoTarea) }}</td>
+                  <td data-label="Estado">
                     @switch (asig.estadoTarea) {
                       @case ('Pendiente') {
                         <span class="chip chip-warning"><span class="material-symbols-outlined">schedule</span>Pendiente</span>
@@ -179,7 +179,7 @@
                       }
                     }
                   </td>
-                  <td>
+                  <td data-label="Operario">
                     <div class="cell-user">
                       <div class="avatar avatar-sm avatar-success">{{ asig.operarioAsignado.slice(0,2).toUpperCase() }}</div>
                       <div class="cell-user-text">
@@ -187,9 +187,9 @@
                       </div>
                     </div>
                   </td>
-                  <td class="cell-meta">{{ asig.asignadoPor }}</td>
-                  <td class="cell-meta">{{ formatearFecha(asig.fechaAsignacion) }}</td>
-                  <td>
+                  <td class="cell-meta" data-label="Asig. por">{{ asig.asignadoPor }}</td>
+                  <td class="cell-meta" data-label="Fecha">{{ formatearFecha(asig.fechaAsignacion) }}</td>
+                  <td data-label="Prioridad">
                     @if (asig.esUrgente) {
                       <span class="chip chip-danger"><span class="material-symbols-outlined">bolt</span>Urgente</span>
                     } @else {
@@ -197,7 +197,7 @@
                     }
                   </td>
                   @if (puedeGestionarTareas) {
-                    <td class="cell-actions">
+                    <td class="cell-actions" data-label="">
                       @if (puedeGestionar(asig)) {
                         <button
                           class="btn btn-icon btn-sm btn-ghost"

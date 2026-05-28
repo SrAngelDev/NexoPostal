@@ -154,7 +154,7 @@ export class EnvioPaqueteComponent {
     };
     this.destinatario.update(d => ({ ...d, ...datos }));
     this.showSelectorDestinatario.set(false);
-    this.notificacion.exito('Dirección aplicada', `Se han rellenado los datos desde "${dir.alias}".`);
+    this.notificacion.exito('Dirección aplicada', `Se ha usado "${dir.alias}" de tu agenda. Revisa los campos y corrígelos si es necesario.`);
   }
 
   goToStep(step: number): void {

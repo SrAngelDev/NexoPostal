@@ -111,3 +111,128 @@
 .data-table tr.row-urgent {
   background: linear-gradient(90deg, rgba(220,53,69,0.06), transparent 35%);
 }
+
+/* ═══════════════════════ RESPONSIVE ═══════════════════════ */
+
+/* ── 768 px: ajustes generales de densidad ── */
+@media (max-width: 768px) {
+  /* Cabecera: ocultar icono grande para ganar espacio vertical */
+  .page-header-modern > .icon-tile-lg { display: none; }
+
+  /* Scan card: apilar input y botones en columna */
+  .scan-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .scan-row .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .scan-row .field {
+    min-width: unset !important;
+    width: 100%;
+  }
+
+  /* Section header: ocultar subtítulo para compactar */
+  .section-sub { display: none; }
+}
+
+/* ── 640 px: tabla → tarjetas ── */
+@media (max-width: 640px) {
+  /* El wrapper pierde overflow oculto para que las tarjetas respiren */
+  .surface-elevated.table-wrapper {
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ocultar cabecera de tabla */
+  .data-table thead { display: none; }
+
+  /* Cada fila es ahora una tarjeta */
+  .data-table,
+  .data-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: transparent;
+  }
+
+  .data-table tbody tr {
+    display: block;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  /* Urgente como tarjeta con borde izquierdo rojo */
+  .data-table tbody tr.row-urgent {
+    background: linear-gradient(135deg, rgba(220,53,69,0.04), var(--surface));
+    border-left: 3px solid var(--danger);
+  }
+
+  /* Sin hover en tarjetas */
+  .data-table tbody tr:hover { background: var(--surface); }
+
+  /* Cada celda: etiqueta | valor en fila */
+  .data-table td {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.42rem 0;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: unset;
+  }
+  .data-table td:last-child {
+    border-bottom: none;
+    padding-top: 0.65rem;
+    justify-content: flex-end;
+  }
+
+  /* Etiquetas generadas desde data-label */
+  .data-table td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 4.5rem;
+  }
+  /* Acciones no llevan etiqueta */
+  .data-table td[data-label=""]::before { display: none; }
+
+  /* La expedición destaca como encabezado de tarjeta */
+  .data-table td[data-label="Expedición"] {
+    font-size: 1rem;
+    padding-bottom: 0.65rem;
+    margin-bottom: 0.1rem;
+    border-bottom: 2px solid var(--border-soft);
+  }
+
+  /* Avatar + nombre alineado a la derecha */
+  .data-table .cell-user { justify-content: flex-end; }
+  .data-table .cell-meta { font-size: 0.82rem; }
+}
+
+/* ── 480 px: modales como bottom-sheet ── */
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal-card {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+    max-height: 92dvh;
+  }
+  .modal-header { padding: 1rem 1.25rem; }
+  .modal-form   { padding: 1rem 1.25rem 1.5rem; }
+}
