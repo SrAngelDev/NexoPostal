@@ -1,0 +1,66 @@
+<div class="page-container" data-testid="mis-rutas-page">
+  <app-driver-navbar icon="route" title="Mis rutas asignadas" (backClick)="volverDashboard()">
+    <button class="nav-action-btn" (click)="cargar()" title="Refrescar">
+      <span class="material-symbols-outlined">refresh</span>
+    </button>
+  </app-driver-navbar>
+
+  <main class="mis-rutas-main">
+    @if (cargando()) {
+      <div class="loading">
+        <span class="material-symbols-outlined spinning">progress_activity</span>
+        Cargando tus rutas...
+      </div>
+    } @else if (error()) {
+      <div class="error-msg">
+        <span class="material-symbols-outlined">error</span>
+        {{ error() }}
+        <button class="btn-retry" (click)="cargar()">Reintentar</button>
+      </div>
+    } @else if (rutasOrdenadas().length === 0) {
+      <div class="empty">
+        <span class="material-symbols-outlined">inventory_2</span>
+        <p>No tienes rutas asignadas para hoy.</p>
+        <div class="empty-actions">
+          <button class="btn-retry" (click)="cargar()">Reintentar</button>
+          <button class="btn-secondary" (click)="irEscaneo()">Ir a escaneo manual</button>
+        </div>
+      </div>
+    } @else {
+      <p class="rutas-count">{{ rutasOrdenadas().length }} ruta{{ rutasOrdenadas().length === 1 ? '' : 's' }} asignada{{ rutasOrdenadas().length === 1 ? '' : 's' }}</p>
+      <div class="rutas-list">
+        @for (ruta of rutasOrdenadas(); track ruta.id) {
+          @let r = resumenEntregas(ruta);
+          <button class="ruta-card"
+                  [attr.data-testid]="'ruta-card-' + ruta.id"
+                  [class.card-cancelada]="ruta.estado === 'Cancelada'"
+                  (click)="abrirRuta(ruta.id)">
+            <div class="ruta-header">
+              <span class="ruta-codigo">{{ ruta.codigo }}</span>
+              <span class="ruta-estado" [ngClass]="getEstadoClass(ruta.estado)">{{ getEstadoLabel(ruta.estado) }}</span>
+            </div>
+            <div class="ruta-info">
+              <span class="material-symbols-outlined">location_on</span>
+              {{ ruta.oficinaOrigenNombre }}
+            </div>
+            <div class="ruta-info">
+              <span class="material-symbols-outlined">event</span>
+              {{ ruta.fechaReparto }}
+            </div>
+            <div class="ruta-progreso">
+              <span class="material-symbols-outlined">inventory_2</span>
+              {{ r.entregadas }} / {{ r.total }} entregadas
+              @if (r.pendientes > 0) {
+                <span class="badge-pendientes">{{ r.pendientes }} pend.</span>
+              }
+              @if (r.fallidas > 0) {
+                <span class="badge-fallidos">{{ r.fallidas }} fallidas</span>
+              }
+            </div>
+            <span class="ruta-chevron material-symbols-outlined">chevron_right</span>
+          </button>
+        }
+      </div>
+    }
+  </main>
+</div>

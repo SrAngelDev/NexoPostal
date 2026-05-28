@@ -104,6 +104,7 @@ public class ScanController : ControllerBase
             new { valor = ModosEscaneo.RecepcionTroncal,    etiqueta = "Recepción troncal",           icono = "move_to_inbox",  requiere = "cta"     },
             new { valor = ModosEscaneo.DisponibleParaReparto,etiqueta = "Disponible para reparto",    icono = "outbox",         requiere = "cta"     },
             new { valor = ModosEscaneo.EntregaOficinaDestino, etiqueta = "Entrega a oficina destino", icono = "storefront",     requiere = "oficina" },
+            new { valor = ModosEscaneo.EntregaAlClienteEnOficina, etiqueta = "Entrega al cliente en oficina", icono = "how_to_reg", requiere = "oficina" },
             new { valor = ModosEscaneo.SalidaAReparto,      etiqueta = "Salida a reparto",            icono = "delivery_dining",requiere = "oficina" }
         };
 

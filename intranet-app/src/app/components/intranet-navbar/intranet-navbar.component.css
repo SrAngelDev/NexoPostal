@@ -31,6 +31,25 @@
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.nav-status-group,
+.nav-utility-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.nav-status-group {
+  flex-wrap: wrap;
+}
+
+.nav-utility-group {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 /* ── Botón atrás ── */
@@ -76,6 +95,8 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   color: #fff;
+  flex: 1 1 auto;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -323,17 +344,41 @@
     height: auto;
     padding: 0.75rem 1rem;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .nav-left,
+  .nav-right {
+    width: 100%;
+  }
+  .nav-right {
+    justify-content: space-between;
+  }
+  .nav-status-group {
+    flex: 1 1 0;
+  }
+  .nav-utility-group {
+    flex: 0 0 auto;
+    margin-left: auto;
   }
   .nav-signalr span:not(.signalr-dot) { display: none; }
   .nav-signalr { padding: 0.3rem 0.45rem; min-width: 0; }
   .nav-user-text { display: none; }
   .logout-label { display: none; }
-  .notif-panel { width: min(340px, 90vw); right: -0.5rem; }
+  .notif-panel { width: min(340px, calc(100vw - 1.5rem)); right: 0; }
   .nav-title { font-size: 1rem; }
 }
 
 @media (max-width: 480px) {
+  .intranet-nav {
+    padding: 0.65rem 0.75rem;
+  }
+  .nav-left {
+    gap: 0.5rem;
+  }
+  .nav-icon-tile {
+    display: none;
+  }
   .nav-user-pill { display: none; }
   .nav-logout { padding: 0.45rem 0.6rem; }
 }

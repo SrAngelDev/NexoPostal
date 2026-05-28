@@ -8,7 +8,17 @@ export const routes: Routes = [
     canActivate: [loginGuard]
   },
   {
+    path: 'mis-rutas',
+    loadComponent: () => import('./pages/mis-rutas/mis-rutas.component').then(m => m.MisRutasComponent),
+    canActivate: [repartidorGuard]
+  },
+  {
     path: 'ruta',
+    loadComponent: () => import('./pages/ruta/ruta.component').then(m => m.RutaComponent),
+    canActivate: [repartidorGuard]
+  },
+  {
+    path: 'ruta/:id',
     loadComponent: () => import('./pages/ruta/ruta.component').then(m => m.RutaComponent),
     canActivate: [repartidorGuard]
   },

@@ -1,105 +1,144 @@
 # NexoPostal
 
-NexoPostal es una plataforma completa de paqueteria con tres apps:
+NexoPostal es una plataforma end-to-end de paqueteria compuesta por tres aplicaciones Angular y una arquitectura de microservicios .NET 10. El sistema cubre el ciclo completo de un envio: registro y autenticacion, cotizacion, pago, admision, operativa interna, reparto y seguimiento en tiempo real.
 
-- **nexopostal.es (clientes)**: alta, login, creacion de envios, pago y seguimiento.
-- **Intranet**: gestion operativa y logistica (CTAs, oficinas, incidencias, admision).
-- **Driver app**: herramientas para repartidores (rutas, entregas, confirmaciones, ubicacion).
+## Estado del proyecto
 
-Todo esta orquestado por un API Gateway y microservicios .NET con bases de datos Postgres.
+- Aplicacion finalizada y preparada para ejecucion local, automatizacion y despliegue.
+- Monorepo con frontend, backend, infraestructura, pruebas y pipeline de CI/CD.
+- Despliegue productivo basado en imagenes Docker publicadas en GHCR.
 
----
+## Aplicaciones
 
-## Aplicaciones y funcionalidades
+| Aplicacion | Dominio funcional | Capacidades principales |
+|---|---|---|
+| clientes-app | Portal publico de clientes | registro, login, cotizacion, creacion de envios, pago con Stripe Checkout, tracking, descarga de etiqueta/factura PDF, gestion de direcciones y oficinas |
+| intranet-app | Operativa y logistica interna | dashboard, admision, gestion de CTAs, asignaciones, incidencias, escaneos, oficinas y notificaciones internas |
+| driver-app | Herramienta de reparto | bandeja de trabajo, rutas, entregas, cambios de estado, confirmaciones y envio de ubicacion |
 
-### NexoPostal.es (clientes)
-- Registro y login de clientes.
-- Cotizacion y calculo de tarifas.
-- Creacion de envios y pago con Stripe Checkout.
-- Seguimiento por numero de envio.
-- Descarga de etiqueta y factura en PDF.
-- Buscador de oficinas por codigo postal o texto.
-- Perfil de cliente y gestion de direcciones.
-- Notificaciones de estado en tiempo real via SignalR.
+## Roles soportados
 
-### Intranet (operaciones)
-- Dashboard operativo de la red logistica.
-- Gestion de CTAs y rutas de enrutamiento por prefijos de CP.
-- Admision de envios y asignaciones internas.
-- Registro de movimientos, incidencias y escaneos.
-- Consulta de oficinas y operarios asignados.
-- Notificaciones internas en tiempo real via SignalR.
+| Rol | Aplicacion principal |
+|---|---|
+| Cliente | clientes-app |
+| Admin | intranet-app |
+| OperarioOficina | intranet-app |
+| OperarioCTA | intranet-app |
+| Supervisor | intranet-app |
+| Repartidor | driver-app |
+| JefeReparto | driver-app |
 
-### Driver app (reparto)
-- Vista de ruta y entregas asignadas.
-- Confirmacion de entrega y cambios de estado.
-- Envio de ubicacion para seguimiento en tiempo real.
+## Stack tecnologico
 
----
+- Frontend: Angular 21, Tailwind CSS 4, SignalR y Leaflet.
+- Backend: ASP.NET Core 10, EF Core 10, Identity, JWT, FluentValidation, Serilog y CSharpFunctionalExtensions.
+- Infraestructura: Docker, Docker Compose, Nginx, PostgreSQL 16, GitHub Actions y GHCR.
+- Integraciones: Stripe Checkout + webhooks, SMTP para correo transaccional y SignalR para notificaciones/tracking.
 
 ## Arquitectura
 
-- **API Gateway**: enrutamiento y seguridad de rutas publicas/privadas.
-- **Microservicios**:
-	- **Auth**: autenticacion y usuarios (Identity + JWT).
-	- **Ciudadano**: envios, tarifas, pagos, oficinas, tracking.
-	- **Intranet (Logistica)**: CTAs, operativa, incidencias, oficinas.
-	- **Reparto**: rutas, entregas y ubicacion.
-- **Nexopostal.Shared**: libreria transversal con `DomainError`, `Result/UnitResult` (ROP),
-	middleware `UseGlobalExceptionHandler`, extensiones de Serilog, FluentValidation y JWT.
-- **Nginx**: reverse proxy y SSL.
-- **Postgres**: una base por microservicio.
-- **Stripe**: pagos con Checkout y webhook.
-- **SignalR**: tracking y notificaciones en tiempo real.
-
-### Patron de errores y resultados (ROP)
-
-Todos los servicios devuelven `Result<TDto, DomainError>` o `UnitResult<DomainError>`
-(via `CSharpFunctionalExtensions`). Los controllers usan `.ToActionResult()` para
-mapear a HTTP de forma uniforme. El payload de error es consistente:
-
-```json
-{
-	"errorId": "8 chars",
-	"code": "ENVIO_NOT_FOUND",
-	"message": "Envío '42' no encontrado",
-	"errorType": "NotFoundError",
-	"timestamp": "ISO-8601",
-	"path": "/api/...",
-	"method": "GET",
-	"errors": { "campo": ["mensaje"] }
-}
+```mermaid
+flowchart LR
+	C[clientes-app] --> N[Nginx reverse proxy]
+	I[intranet-app] --> N
+	D[driver-app] --> N
+	N --> G[API Gateway]
+	G --> A[Auth]
+	G --> CI[Ciudadano]
+	G --> LO[Intranet]
+	G --> R[Reparto]
+	A --> PA[(Postgres Auth)]
+	CI --> PC[(Postgres Ciudadano)]
+	LO --> PI[(Postgres Intranet)]
+	R --> PR[(Postgres Reparto)]
+	CI --> S[Stripe]
+	A --> M[SMTP]
+	CI -. SignalR .- C
+	LO -. SignalR .- I
+	R -. Tracking .- D
 ```
 
-Mapeo `DomainError` → HTTP: NotFoundError→404, ValidationError→400,
-ConflictError→409, UnauthorizedError→401, ForbiddenError→403,
-BusinessRuleError→400, InfrastructureError→500.
+### Decisiones tecnicas relevantes
 
----
+- Un API Gateway centraliza el acceso a los microservicios y desacopla a las SPAs de las rutas internas.
+- Cada microservicio mantiene su propia base de datos PostgreSQL.
+- `Nexopostal.Shared` unifica errores, resultados, validacion y middleware transversal.
+- El backend usa un patron ROP con `Result<TDto, DomainError>` y `UnitResult<DomainError>` para mapear respuestas HTTP de forma consistente.
 
-## Sistema de roles (actualizado)
+## Estructura del repositorio
 
-| Rol | Enum value | App |
-|-----|-----------:|-----|
-| Cliente | 0 | clientes-app |
-| Admin | 1 | intranet-app |
-| OperarioOficina | 2 | intranet-app |
-| OperarioCTA | 3 | intranet-app |
-| Supervisor | 4 | intranet-app |
-| Repartidor | 5 | driver-app |
-| JefeReparto | 7 | driver-app |
+| Ruta | Contenido |
+|---|---|
+| `clientes-app/` | SPA Angular del portal de clientes |
+| `intranet-app/` | SPA Angular de operativa interna |
+| `driver-app/` | SPA Angular para repartidores |
+| `microservicios/Nexopostal/` | solucion .NET 10 con Gateway, Auth, Ciudadano, Intranet, Reparto, Shared y tests |
+| `nginx/` | configuraciones de proxy local y produccion |
+| `documentacion/diagramas/` | diagramas y documentacion complementaria |
+| `.github/workflows/` | pipeline de build, pruebas, empaquetado y despliegue |
 
-Nota: el valor 6 se omite de forma intencional (rol eliminado en la reestructuracion).
+## Arranque local rapido
 
----
+### Requisitos
 
-## Credenciales por defecto (solo desarrollo)
+- Docker Desktop
+- PowerShell 7 recomendado para ejecutar los scripts del repositorio
+- .NET SDK 10 y Node.js 22 solo si vas a ejecutar tests o levantar apps fuera de Docker
 
-Estas cuentas se crean automaticamente en el seed del modulo Auth.
-**No usar en produccion.** Cambia passwords y elimina usuarios si es necesario.
+### Pasos
+
+1. Copia la plantilla de variables de entorno:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+2. Revisa al menos estos bloques del archivo `.env`:
+   - JWT (`JWT_SECRET_KEY` debe tener al menos 32 caracteres reales)
+   - PostgreSQL (`POSTGRES_*` para los cuatro modulos)
+   - Stripe (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`)
+   - SMTP (`SMTP_*`)
+   - Comunicacion interna (`INTER_SERVICE_KEY`)
+
+3. Levanta toda la plataforma:
+
+```powershell
+docker compose up -d --build
+```
+
+4. Accede a las aplicaciones:
+
+| Entorno local | URL |
+|---|---|
+| Portal de clientes | http://localhost |
+| Intranet | http://localhost:8202 |
+| Driver app | http://localhost:8201 |
+
+### Notas del primer arranque
+
+- El modulo Auth aplica migraciones y siembra usuarios demo automaticamente.
+- En desarrollo local se exponen las bases de datos en los puertos 15432, 15433, 15434 y 15435.
+- El archivo `.env.example` es la referencia base de configuracion para todos los servicios.
+
+## Variables de entorno
+
+El contrato completo esta en `.env.example`. Los grupos mas importantes son estos:
+
+| Grupo | Variables clave | Uso |
+|---|---|---|
+| Autenticacion | `JWT_SECRET_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_EXPIRY_MINUTES` | emision y validacion de tokens JWT |
+| Microservicios | `URL_MODULO_*`, `URL_API_GATEWAY`, `INTER_SERVICE_KEY` | descubrimiento interno y llamadas seguras entre servicios |
+| Bases de datos | `POSTGRES_AUTH_*`, `POSTGRES_CIUDADANO_*`, `POSTGRES_INTRANET_*`, `POSTGRES_REPARTO_*` | conexion de cada modulo con su PostgreSQL |
+| Pagos | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | checkout y confirmacion de pagos |
+| Correo | `SMTP_*`, `FRONTEND_URL` | recuperacion de contrasena y notificaciones por email |
+| Proxy y dominios | `DOMINIO_*`, `NGINX_HTTP_PORT`, `NGINX_HTTPS_PORT` | resolucion local y despliegue productivo |
+
+## Usuarios demo
+
+Estas cuentas se crean desde el seed del modulo Auth. Son solo para desarrollo local y entornos de prueba.
 
 | App | Rol | Email | Password |
-|-----|-----|-------|----------|
+|---|---|---|---|
 | Intranet | Admin | admin@nexopostal.es | Admin123! |
 | Intranet | OperarioOficina | operario@nexopostal.es | Operario123! |
 | Intranet | OperarioOficina | operario2@nexopostal.es | Operario123! |
@@ -113,63 +152,75 @@ Estas cuentas se crean automaticamente en el seed del modulo Auth.
 | Driver | JefeReparto | jefe.reparto2@nexopostal.es | Repartidor123! |
 | Clientes | Cliente demo | cliente@example.com | Cliente123! |
 
----
+En entorno `Development` tambien se siembran usuarios extra para escenarios E2E y flujos Bilbao/Sevilla.
 
-## URLs
+## Pruebas automatizadas
 
-### Desarrollo local
-- Clientes: http://localhost
-- Intranet: http://localhost:4202
-- Driver: http://localhost:4201
+El proyecto cubre tres niveles de validacion automatica:
+
+- Unitarias .NET con xUnit y Moq.
+- Integracion .NET con Testcontainers y PostgreSQL efimero.
+- End-to-end con Playwright + NUnit contra el stack completo.
+
+### Comandos utiles
+
+```powershell
+# Suite completa: unitarias + integracion + E2E
+.\Run-AllTests.ps1
+
+# Solo backend unitario
+.\Run-AllTests.ps1 -Unit
+
+# Solo backend integracion
+.\Run-AllTests.ps1 -Integration
+
+# Backend con cobertura e informe HTML
+.\Run-AllTests.ps1 -Unit -Coverage -OpenReport
+
+# E2E con rebuild, instalacion de navegadores y limpieza final
+.\Run-E2ETests.ps1 -Build -InstallBrowsers -StopAfter
+```
+
+Los tests E2E viven en `microservicios/Nexopostal/Nexopostal.Tests.E2E/` y generan capturas y videos para diagnostico.
+
+## Despliegue
 
 ### Produccion
-- Clientes: https://nexopostal.es
-- Intranet: https://intranet.nexopostal.es
-- Driver: https://driver.nexopostal.es
 
----
+| Entorno productivo | URL |
+|---|---|
+| Portal de clientes | https://nexopostal.es |
+| Intranet | https://intranet.nexopostal.es |
+| Driver app | https://driver.nexopostal.es |
 
-## Quick Start
+El archivo `docker-compose.production.yml` esta preparado para despliegue por imagenes desde GHCR y expone solo los puertos 80 y 443.
 
-### Desarrollo local
-```bash
-docker compose up -d --build
+### Requisitos de produccion
+
+- Archivo `.env` con secretos reales.
+- Certificados SSL en `nginx/certs/nexopostal.crt` y `nginx/certs/nexopostal.key`.
+- Acceso al registro `ghcr.io` para descargar imagenes publicadas por la pipeline.
+
+### Despliegue manual
+
+```powershell
+docker compose --env-file ./.env -f docker-compose.production.yml pull
+docker compose --env-file ./.env -f docker-compose.production.yml up -d --no-build
 ```
-
-### Produccion (VPS)
-```bash
-# CI/CD despliega automaticamente al hacer push a master
-```
-
----
-
-## Comandos utiles
-
-```bash
-# Desarrollo
-docker compose up -d --build
-docker compose logs -f
-docker compose down
-
-# Produccion (manual)
-docker compose -f docker-compose.production.yml up -d
-docker compose -f docker-compose.production.yml logs -f
-docker compose -f docker-compose.production.yml down
-```
-
----
 
 ## CI/CD
 
-Al hacer push a `master`, GitHub Actions automaticamente:
-1. Compila .NET
-2. Compila Angular
-3. Build Docker
-4. Despliega a VPS (DigitalOcean)
+La pipeline definida en `.github/workflows/deploy-vps.yml` ejecuta este flujo:
 
----
+1. Pruebas unitarias del backend.
+2. Pruebas de integracion del backend.
+3. Compilacion de las tres apps Angular.
+4. Build y push de imagenes Docker a GHCR.
+5. Pruebas E2E contra el stack completo.
+6. Despliegue automatico al VPS de produccion cuando el push llega a `master`.
 
-## Requisitos
+## Documentacion adicional
 
-- Docker
-- Docker Compose
+- `documentacion/diagramas/` contiene material visual complementario.
+- `microservicios/Nexopostal/Nexopostal.Tests.E2E/README.md` documenta el detalle de los tests end-to-end.
+- `LICENSE` contiene la licencia del proyecto.

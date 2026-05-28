@@ -25,6 +25,16 @@ public interface INotificacionService
     Task NotificarTareaAsignada(int operarioId, int ctaId, string ctaCodigo,
         string numeroExpedicion, string tipoTarea, bool esUrgente, string asignadoPor);
 
+    /// <summary>Notifica a un OperarioOficina que se le ha asignado una tarea de oficina.</summary>
+    /// <remarks>
+    /// Los OperariosOficina viven en grupos <c>operario-oficina-{id}</c> y <c>oficina-{jsonId}</c>
+    /// (ver <see cref="Hubs.IntranetHub"/>), NO en <c>operario-{id}</c>. Por eso
+    /// <see cref="NotificarTareaAsignada"/> no les llega y necesitamos un método específico.
+    /// El evento SignalR se llama también "TareaAsignada" para reutilizar el handler del cliente.
+    /// </remarks>
+    Task NotificarTareaAsignadaOficina(int operarioOficinaId, int oficinaJsonId, string? oficinaNombre,
+        string numeroExpedicion, string tipoTarea, bool esUrgente, string asignadoPor);
+
     /// <summary>Notifica al rol OperarioCTA del CTA que un operario ha iniciado una tarea</summary>
     Task NotificarTareaIniciada(int ctaId, string ctaCodigo, string numeroExpedicion,
         string tipoTarea, string operarioNombre);
@@ -193,6 +203,39 @@ public class NotificacionService : INotificacionService
         _logger.LogInformation(
             "📡 SignalR → TareaAsignada · {Tarea} para {Expedicion} → Operario {OpId} en {Cta}",
             tipoTarea, numeroExpedicion, operarioId, ctaCodigo);
+    }
+
+    /// <inheritdoc />
+    public async Task NotificarTareaAsignadaOficina(int operarioOficinaId, int oficinaJsonId, string? oficinaNombre,
+        string numeroExpedicion, string tipoTarea, bool esUrgente, string asignadoPor)
+    {
+        var prioridad = esUrgente ? "🔴 URGENTE" : "";
+        var notificacion = new NotificacionDto
+        {
+            Tipo = "TareaAsignada",
+            Titulo = $"Nueva tarea: {tipoTarea} {prioridad}",
+            Mensaje = $"{asignadoPor} te ha asignado la tarea de {tipoTarea} para el paquete {numeroExpedicion}.",
+            CtaId = 0,
+            CtaCodigo = string.Empty,
+            NumeroExpedicion = numeroExpedicion,
+            EsUrgente = esUrgente,
+            Datos = new
+            {
+                tipoTarea,
+                asignadoPor,
+                oficinaJsonId,
+                oficinaNombre,
+                accionRequerida = "Iniciar la tarea cuando estés listo"
+            }
+        };
+
+        // Notificar al OperarioOficina individual asignado (grupo personal del Hub).
+        await _hubContext.Clients.Group($"operario-oficina-{operarioOficinaId}")
+            .SendAsync("TareaAsignada", notificacion);
+
+        _logger.LogInformation(
+            "📡 SignalR → TareaAsignada (Oficina) · {Tarea} para {Expedicion} → OperarioOficina {OpId} en oficina {Ofi}",
+            tipoTarea, numeroExpedicion, operarioOficinaId, oficinaJsonId);
     }
 
     /// <inheritdoc />

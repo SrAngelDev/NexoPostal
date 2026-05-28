@@ -35,6 +35,9 @@ public static class ModosEscaneo
     /// <summary>Paquete clasificado de última milla, liberado al equipo de reparto</summary>
     public const string DisponibleParaReparto = "DisponibleParaReparto";
 
+    /// <summary>Paquete entregado físicamente al destinatario que acude a la oficina destino</summary>
+    public const string EntregaAlClienteEnOficina = "EntregaAlClienteEnOficina";
+
     /// <summary>Todos los modos soportados por el motor de escaneo.</summary>
     public static readonly string[] Todos =
     [
@@ -46,6 +49,7 @@ public static class ModosEscaneo
         RecepcionTroncal,
         DisponibleParaReparto,
         EntregaOficinaDestino,
+        EntregaAlClienteEnOficina,
         SalidaAReparto
     ];
 
@@ -55,6 +59,7 @@ public static class ModosEscaneo
         RecepcionOficina,
         SalidaOficinaACta,
         EntregaOficinaDestino,
+        EntregaAlClienteEnOficina,
         SalidaAReparto
     ];
 

@@ -158,65 +158,81 @@
             <tbody>
               @for (asig of asignacionesFiltradas; track asig.id) {
                 <tr [class.row-urgent]="asig.esUrgente">
-                  <td class="cell-mono cell-strong" data-label="Expedición">{{ asig.numeroExpedicion }}</td>
-                  <td data-label="Tipo">{{ getTipoTareaLabel(asig.tipoTarea) }}</td>
+                  <td class="cell-mono cell-strong" data-label="Expedición">
+                    <span class="cell-value">{{ asig.numeroExpedicion }}</span>
+                  </td>
+                  <td data-label="Tipo">
+                    <span class="cell-value">{{ getTipoTareaLabel(asig.tipoTarea) }}</span>
+                  </td>
                   <td data-label="Estado">
-                    @switch (asig.estadoTarea) {
-                      @case ('Pendiente') {
-                        <span class="chip chip-warning"><span class="material-symbols-outlined">schedule</span>Pendiente</span>
+                    <span class="cell-value">
+                      @switch (asig.estadoTarea) {
+                        @case ('Pendiente') {
+                          <span class="chip chip-warning"><span class="material-symbols-outlined">schedule</span>Pendiente</span>
+                        }
+                        @case ('EnProgreso') {
+                          <span class="chip chip-info"><span class="material-symbols-outlined">play_circle</span>En progreso</span>
+                        }
+                        @case ('Completada') {
+                          <span class="chip chip-success"><span class="material-symbols-outlined">check_circle</span>Completada</span>
+                        }
+                        @case ('Cancelada') {
+                          <span class="chip chip-danger"><span class="material-symbols-outlined">cancel</span>Cancelada</span>
+                        }
+                        @default {
+                          <span class="chip">{{ asig.estadoTarea }}</span>
+                        }
                       }
-                      @case ('EnProgreso') {
-                        <span class="chip chip-info"><span class="material-symbols-outlined">play_circle</span>En progreso</span>
-                      }
-                      @case ('Completada') {
-                        <span class="chip chip-success"><span class="material-symbols-outlined">check_circle</span>Completada</span>
-                      }
-                      @case ('Cancelada') {
-                        <span class="chip chip-danger"><span class="material-symbols-outlined">cancel</span>Cancelada</span>
-                      }
-                      @default {
-                        <span class="chip">{{ asig.estadoTarea }}</span>
-                      }
-                    }
+                    </span>
                   </td>
                   <td data-label="Operario">
-                    <div class="cell-user">
-                      <div class="avatar avatar-sm avatar-success">{{ asig.operarioAsignado.slice(0,2).toUpperCase() }}</div>
-                      <div class="cell-user-text">
-                        <div class="cell-user-name">{{ asig.operarioAsignado }}</div>
+                    <div class="cell-value">
+                      <div class="cell-user">
+                        <div class="avatar avatar-sm avatar-success">{{ asig.operarioAsignado.slice(0,2).toUpperCase() }}</div>
+                        <div class="cell-user-text">
+                          <div class="cell-user-name">{{ asig.operarioAsignado }}</div>
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td class="cell-meta" data-label="Asig. por">{{ asig.asignadoPor }}</td>
-                  <td class="cell-meta" data-label="Fecha">{{ formatearFecha(asig.fechaAsignacion) }}</td>
+                  <td class="cell-meta" data-label="Asig. por">
+                    <span class="cell-value">{{ asig.asignadoPor }}</span>
+                  </td>
+                  <td class="cell-meta" data-label="Fecha">
+                    <span class="cell-value">{{ formatearFecha(asig.fechaAsignacion) }}</span>
+                  </td>
                   <td data-label="Prioridad">
-                    @if (asig.esUrgente) {
-                      <span class="chip chip-danger"><span class="material-symbols-outlined">bolt</span>Urgente</span>
-                    } @else {
-                      <span class="chip">Normal</span>
-                    }
+                    <span class="cell-value">
+                      @if (asig.esUrgente) {
+                        <span class="chip chip-danger"><span class="material-symbols-outlined">bolt</span>Urgente</span>
+                      } @else {
+                        <span class="chip">Normal</span>
+                      }
+                    </span>
                   </td>
                   @if (puedeGestionarTareas) {
-                    <td class="cell-actions" data-label="">
-                      @if (puedeGestionar(asig)) {
-                        <button
-                          class="btn btn-icon btn-sm btn-ghost"
-                          type="button"
-                          title="Reasignar a otro operario"
-                          (click)="abrirReasignar(asig)">
-                          <span class="material-symbols-outlined">swap_horiz</span>
-                        </button>
-                        <button
-                          class="btn btn-icon btn-sm btn-ghost btn-danger-ghost"
-                          type="button"
-                          title="Cancelar tarea"
-                          [disabled]="cancelandoId() === asig.id"
-                          (click)="cancelarTarea(asig)">
-                          <span class="material-symbols-outlined">cancel</span>
-                        </button>
-                      } @else {
-                        <span class="cell-meta">—</span>
-                      }
+                    <td data-label="">
+                      <div class="cell-actions cell-value cell-value-actions">
+                        @if (puedeGestionar(asig)) {
+                          <button
+                            class="btn btn-icon btn-sm btn-ghost"
+                            type="button"
+                            title="Reasignar a otro operario"
+                            (click)="abrirReasignar(asig)">
+                            <span class="material-symbols-outlined">swap_horiz</span>
+                          </button>
+                          <button
+                            class="btn btn-icon btn-sm btn-ghost btn-danger-ghost"
+                            type="button"
+                            title="Cancelar tarea"
+                            [disabled]="cancelandoId() === asig.id"
+                            (click)="cancelarTarea(asig)">
+                            <span class="material-symbols-outlined">cancel</span>
+                          </button>
+                        } @else {
+                          <span class="cell-meta">—</span>
+                        }
+                      </div>
                     </td>
                   }
                 </tr>

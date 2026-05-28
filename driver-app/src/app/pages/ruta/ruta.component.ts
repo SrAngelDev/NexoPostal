@@ -10,7 +10,8 @@ import {
   signal
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Observable } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { DriverNavbarComponent } from '../../components/driver-navbar/driver-navbar.component';
 import {
@@ -132,9 +133,13 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly intervaloGpsSegundoPlanoMs = 60000;
   private readonly maxHistorialUbicaciones = 80;
 
+  /** Id de ruta concreto pasado por URL (cuando se entra desde la lista). */
+  private rutaIdParam: number | null = null;
+
   constructor(
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private repartoService: RepartoService
   ) {
     const user = this.authService.getCurrentUser();
@@ -150,6 +155,10 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
     this.seguimientoSegundoPlano.set(document.visibilityState === 'hidden');
 
     document.addEventListener('visibilitychange', this.onVisibilityChange);
+
+    const idParam = this.route.snapshot.paramMap.get('id');
+    const parsed = idParam ? Number(idParam) : NaN;
+    this.rutaIdParam = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 
     this.cargarRutaActiva();
   }
@@ -167,7 +176,8 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   volverDashboard(): void {
-    this.router.navigate(['/']);
+    // Si entramos por la lista de rutas, volvemos a ella; si no, al dashboard.
+    this.router.navigate([this.rutaIdParam != null ? '/mis-rutas' : '/']);
   }
 
   irEscaneo(): void {
@@ -324,13 +334,20 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.error.set('');
 
-    this.repartoService.obtenerMiRuta().subscribe({
-      next: (rutas) => {
-        const rutaActiva =
-          rutas.find(r => r.estado === 'EnCurso') ??
-          rutas.find(r => r.estado === 'Planificada') ??
-          rutas[0] ??
-          null;
+    // Si tenemos id en la URL cargamos esa ruta concreta; si no, la activa del repartidor.
+    const carga$: Observable<RutaRepartoDetalle | RutaRepartoDetalle[]> = this.rutaIdParam != null
+      ? this.repartoService.obtenerRutaDetalle(this.rutaIdParam)
+      : this.repartoService.obtenerMiRuta();
+
+    carga$.subscribe({
+      next: (resultado: RutaRepartoDetalle | RutaRepartoDetalle[]) => {
+        const rutas = Array.isArray(resultado) ? resultado : (resultado ? [resultado] : []);
+        const rutaActiva = this.rutaIdParam != null
+          ? (rutas[0] ?? null)
+          : (rutas.find(r => r.estado === 'EnCurso')
+              ?? rutas.find(r => r.estado === 'Planificada')
+              ?? rutas[0]
+              ?? null);
 
         this.ruta.set(rutaActiva);
 
@@ -353,7 +370,7 @@ export class RutaComponent implements OnInit, OnDestroy, AfterViewInit {
           this.detenerGps();
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.cargandoRuta.set(false);
         this.error.set(err.error?.message || 'No se pudo cargar la ruta asignada.');
       }

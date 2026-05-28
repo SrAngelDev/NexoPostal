@@ -463,6 +463,8 @@ public class AsignacionService : IAsignacionService
         TipoTarea.DespachoTroncal => "DespachoTroncal",
         TipoTarea.RecepcionTroncal => "RecepcionTroncal",
         TipoTarea.DisponibleParaReparto => "DisponibleParaReparto",
+        TipoTarea.EntregaCtaAOficinaDestino => "EntregaOficinaDestino",
+        TipoTarea.EntregaAlClienteEnOficina => "EntregaAlClienteEnOficina",
         _ => null
     };
 

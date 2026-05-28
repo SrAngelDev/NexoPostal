@@ -47,6 +47,7 @@ public class ScanProcessorService : IScanProcessorService
         [ModosEscaneo.RecepcionTroncal] = "Recepción troncal en CTA destino",
         [ModosEscaneo.DisponibleParaReparto] = "Disponible para reparto (última milla)",
         [ModosEscaneo.EntregaOficinaDestino] = "Entrega a oficina de destino",
+        [ModosEscaneo.EntregaAlClienteEnOficina] = "Entrega al destinatario en oficina",
         [ModosEscaneo.SalidaAReparto] = "Salida a reparto a domicilio"
     };
 
@@ -61,6 +62,7 @@ public class ScanProcessorService : IScanProcessorService
         [ModosEscaneo.RecepcionTroncal] = "RecibidoEnCentroDestino",
         [ModosEscaneo.DisponibleParaReparto] = "DisponibleParaReparto",
         [ModosEscaneo.EntregaOficinaDestino] = "DepositadoEnOficina",
+        [ModosEscaneo.EntregaAlClienteEnOficina] = "EntregadoEnOficina",
         [ModosEscaneo.SalidaAReparto] = "EnReparto"
     };
 
@@ -131,6 +133,7 @@ public class ScanProcessorService : IScanProcessorService
                 ModosEscaneo.RecepcionTroncal => await ProcesarRecepcionTroncal(request, expedicion),
                 ModosEscaneo.DisponibleParaReparto => await ProcesarDisponibleParaReparto(request, expedicion),
                 ModosEscaneo.EntregaOficinaDestino => await ProcesarEntregaOficinaDestino(request, expedicion),
+                ModosEscaneo.EntregaAlClienteEnOficina => await ProcesarEntregaAlClienteEnOficina(request, expedicion),
                 ModosEscaneo.SalidaAReparto => await ProcesarSalidaAReparto(request, expedicion),
                 _ => Error(request, "Modo no implementado")
             };
@@ -412,24 +415,32 @@ public class ScanProcessorService : IScanProcessorService
 
         string? detalles = null;
 
-        // Resolver CTA destino si se proporciona CP
-        if (!string.IsNullOrEmpty(req.CodigoPostalDestino))
+        // Resolver TipoEntrega (consulta Ciudadano) lo antes posible: lo necesitamos
+        // tanto para detectar same-CTA (cuando el escaneo no incluye CP) como para
+        // bifurcar el flujo de última milla.
+        var (esEntregaEnOficina, envioLookup) = await ResolverTipoEntregaAsync(expedicion);
+
+        // Resolver CTA destino: prioriza el CP enviado por el escáner; si no viene
+        // (caso típico de tareas autoasignadas), cae al CP del envío (Ciudadano).
+        DTOs.ResolverCtaResponseDto? ctaDestino = null;
+        var cpDestino = !string.IsNullOrWhiteSpace(req.CodigoPostalDestino)
+            ? req.CodigoPostalDestino
+            : envioLookup?.CodigoPostalDestino;
+        if (!string.IsNullOrWhiteSpace(cpDestino))
         {
-            var ctaDestino = await _clasificacionService.ResolverCtaDestino(req.CodigoPostalDestino);
+            ctaDestino = await _clasificacionService.ResolverCtaDestino(cpDestino);
             if (ctaDestino != null)
                 detalles = $"Destino resuelto: {ctaDestino.CtaCodigo} ({ctaDestino.Provincia})";
         }
 
         // Detectar si es clasificación de última milla (CTA destino ha recibido un troncal para esta expedición)
         var movimientoRecibido = await _movimientoRepo.GetRecibidoByExpedicionAndCtaDestinoAsync(expedicion, req.CtaId.Value);
-        var esUltimaMilla = movimientoRecibido != null;
-
-        // Resolver TipoEntrega para bifurcar el flujo de última milla:
-        //   - Domicilio → DisponibleParaReparto + bandeja del JefeReparto
-        //   - Oficina   → EntregaCtaAOficinaDestino en la oficina destino (NO pasa por reparto)
-        var (esEntregaEnOficina, envioLookup) = esUltimaMilla
-            ? await ResolverTipoEntregaAsync(expedicion)
-            : (false, null);
+        // Caso especial: envío "same-CTA" (origen y destino atendidos por el mismo CTA, p. ej. Madrid → Leganés).
+        // En `ProcesarRecepcionCta` solo se crea MovimientoPaquete si ctaDestino ≠ ctaActual, así que
+        // estos envíos nunca tienen `movimientoRecibido`, pero ya están físicamente en el CTA destino
+        // y deben seguir el flujo de última milla (bandeja del JefeReparto o EntregaCtaAOficinaDestino).
+        var esSameCta = movimientoRecibido == null && ctaDestino != null && ctaDestino.CtaId == req.CtaId.Value;
+        var esUltimaMilla = movimientoRecibido != null || esSameCta;
 
         string estadoNuevo;
         string descripcion;
@@ -819,6 +830,59 @@ public class ScanProcessorService : IScanProcessorService
     }
 
     /// <summary>
+    /// El destinatario acude a la oficina destino y recoge el paquete físicamente.
+    /// → Estado: EntregadoEnOficina (FIN del recorrido para envíos modalidad "Oficina").
+    /// → Cierra la tarea EntregaAlClienteEnOficina del OperarioOficina.
+    /// </summary>
+    private async Task<ScanResultDto> ProcesarEntregaAlClienteEnOficina(ScanRequestDto req, string expedicion)
+    {
+        if (!req.OficinaJsonId.HasValue)
+            return Error(req, "Se requiere la oficina para registrar la entrega al destinatario");
+
+        var (esOficina, envio) = await ResolverTipoEntregaAsync(expedicion);
+        if (!esOficina)
+        {
+            // Defensa en profundidad: este modo sólo aplica a envíos modalidad "Oficina".
+            return Error(req,
+                "Este envío no es de modalidad oficina; debe entregarse a domicilio mediante el reparto.");
+        }
+
+        string? avisoOficina = null;
+        if (envio?.OficinaDestinoId is int oficDest && oficDest != req.OficinaJsonId.Value)
+        {
+            avisoOficina = $"Aviso: oficina destino esperada {oficDest} pero entrega en {req.OficinaJsonId}";
+            _logger.LogWarning("{Expedicion}: {Aviso}", expedicion, avisoOficina);
+        }
+
+        await RegistrarHistorial(expedicion, new CrearHistorialEventoDto
+        {
+            NumeroExpedicion = expedicion,
+            Estado = "EntregadoEnOficina",
+            TipoUbicacion = TipoUbicacion.Oficina.ToString(),
+            UbicacionId = req.OficinaJsonId,
+            UbicacionNombre = req.OficinaNombre,
+            OperarioNombre = req.OperarioNombre,
+            Descripcion = $"Paquete entregado al destinatario en oficina {req.OficinaNombre}",
+            Observaciones = req.Observaciones,
+            VisibleParaCliente = true
+        });
+
+        await _ciudadanoNotifier.NotificarEstadoAsync(
+            expedicion, expedicion, "EntregadoEnOficina",
+            $"Paquete entregado al destinatario en {req.OficinaNombre}");
+
+        // Cerrar tarea final EntregaAlClienteEnOficina del OperarioOficina.
+        await CerrarTareaOficinaSiExisteAsync(expedicion, TipoTarea.EntregaAlClienteEnOficina, req.OficinaJsonId.Value);
+
+        var result = Exito(req, expedicion, "EntregadoEnOficina",
+            $"Entregado al destinatario en {req.OficinaNombre}",
+            req.OficinaNombre);
+        result.Detalles = avisoOficina;
+        result.NotificacionEnviada = true;
+        return result;
+    }
+
+    /// <summary>
     /// Paquete sale de la oficina para reparto a domicilio.
     /// → Estado: EnReparto
     /// Rechaza el escaneo si el envío es de modalidad "Oficina" (no debe salir a reparto).
@@ -1109,6 +1173,13 @@ public class ScanProcessorService : IScanProcessorService
                 EsUrgente = esUrgente,
                 Observaciones = observaciones ?? $"Tarea {tipoTarea} — auto-asignada por flujo de escaneo"
             });
+
+            // Notificar al OperarioOficina por SignalR (grupo operario-oficina-{id}).
+            // Sin esto el operario solo ve la tarea al refrescar manualmente: la campana no suena.
+            await _notificacionService.NotificarTareaAsignadaOficina(
+                operarioAsignado.Id, oficinaJsonId, oficinaNombre,
+                numeroExpedicion, tipoTarea.ToString(),
+                esUrgente, "Sistema");
 
             _logger.LogInformation(
                 "Tarea {Tipo} auto-asignada a OperarioOficina {Operario} en oficina {Ofi} para {Expedicion}",
