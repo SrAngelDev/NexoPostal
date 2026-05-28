@@ -2,10 +2,8 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AdminService, RepartidorAdminDto, EditarRepartidorDto, CrearRepartidorDto, OficinaJsonResumen, UsuarioAdminDto } from '../../services/admin.service';
+import { AdminService, RepartidorAdminDto, EditarRepartidorDto, CrearRepartidorDto, OficinaJsonResumen, UsuarioAdminDto, VehiculoResumenDto } from '../../services/admin.service';
 import { forkJoin } from 'rxjs';
-
-const TIPOS_VEHICULO = ['Bicicleta', 'Moto', 'Furgoneta', 'Camion'];
 
 @Component({
   selector: 'app-gestion-repartidores',
@@ -15,10 +13,13 @@ const TIPOS_VEHICULO = ['Bicicleta', 'Moto', 'Furgoneta', 'Camion'];
   styleUrl: './gestion-repartidores.component.css'
 })
 export class GestionRepartidoresComponent implements OnInit {
-  readonly tiposVehiculo = TIPOS_VEHICULO;
+
+  readonly tiposVehiculo = ['Bicicleta', 'Moto', 'Furgoneta', 'Camion'];
 
   repartidores = signal<RepartidorAdminDto[]>([]);
   oficinas     = signal<OficinaJsonResumen[]>([]);
+  vehiculos    = signal<VehiculoResumenDto[]>([]);
+  cargandoVehiculos = signal(false);
   loading      = signal(false);
   error        = signal<string | null>(null);
   actionError  = signal<string | null>(null);
@@ -40,8 +41,7 @@ export class GestionRepartidoresComponent implements OnInit {
     telefono: '',
     oficinaJsonId: 0,
     oficinaNombre: '',
-    tipoVehiculo: 'Furgoneta',
-    matriculaVehiculo: ''
+    vehiculoId: undefined
   });
 
   // Creación (alta de Repartidor/JefeReparto a partir de IdentityUser existente)
@@ -78,6 +78,7 @@ export class GestionRepartidoresComponent implements OnInit {
   ngOnInit(): void {
     this.cargar();
     this.cargarOficinas();
+    this.cargarVehiculos();
   }
 
   private cargarOficinas(): void {
@@ -87,6 +88,26 @@ export class GestionRepartidoresComponent implements OnInit {
         this.oficinas.set(ordenadas);
       },
       error: () => { /* silencioso: el select mostrará vacío */ }
+    });
+  }
+
+  private cargarVehiculos(): void {
+    this.cargandoVehiculos.set(true);
+    this.adminService.listarVehiculos().subscribe({
+      next: (lista) => {
+        this.vehiculos.set(lista);
+        this.cargandoVehiculos.set(false);
+
+        // Re-inicializar vehiculoId si ya hay un repartidor en edición
+        const r = this.editando();
+        if (r) {
+          const v = lista.find(vv => vv.repartidorAsignadoId === r.id);
+          this.formEdicion.update(f => ({ ...f, vehiculoId: v?.id }));
+        }
+      },
+      error: () => {
+        this.cargandoVehiculos.set(false);
+      }
     });
   }
 
@@ -130,14 +151,21 @@ export class GestionRepartidoresComponent implements OnInit {
   iniciarEdicion(r: RepartidorAdminDto): void {
     this.edicionError.set(null);
     this.editando.set(r);
+
+    // Buscar el vehículo actualmente asignado a este repartidor
+    const vehiculoActual = this.vehiculos().find(v => v.repartidorAsignadoId === r.id);
     this.formEdicion.set({
       nombreCompleto: r.nombreCompleto,
       telefono: r.telefono ?? '',
       oficinaJsonId: r.oficinaJsonId,
       oficinaNombre: r.oficinaNombre,
-      tipoVehiculo: r.tipoVehiculo,
-      matriculaVehiculo: ''
+      vehiculoId: vehiculoActual?.id
     });
+
+    // Cargar vehículos si aún no están cargados
+    if (this.vehiculos().length === 0 && !this.cargandoVehiculos()) {
+      this.cargarVehiculos();
+    }
   }
 
   cancelarEdicion(): void {
@@ -172,12 +200,13 @@ export class GestionRepartidoresComponent implements OnInit {
 
     this.adminService.editarRepartidor(target.id, {
       ...dto,
-      telefono: dto.telefono?.trim() || undefined,
-      matriculaVehiculo: dto.matriculaVehiculo?.trim() || undefined
+      telefono: dto.telefono?.trim() || undefined
     }).subscribe({
       next: (actualizado) => {
         // Reemplazar en la lista
         this.repartidores.update(list => list.map(r => r.id === actualizado.id ? actualizado : r));
+        // Refrescar lista de vehículos para reflejar la nueva asignación
+        this.cargarVehiculos();
         this.savingEdicion.set(false);
         this.editando.set(null);
       },

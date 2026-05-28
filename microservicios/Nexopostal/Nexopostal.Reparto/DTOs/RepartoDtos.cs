@@ -37,6 +37,9 @@ public class CrearRepartidorDto
 /// <summary>
 /// DTO para que un Admin/JefeReparto edite la ficha de un repartidor.
 /// Permite ajustar oficina, datos de contacto y vehículo. No cambia el IdentityUserId.
+/// Cuando se envía <see cref="VehiculoId"/> el servicio sincroniza automáticamente
+/// TipoVehiculo y MatriculaVehiculo desde la entidad Vehiculo, por lo que no es
+/// necesario enviarlos explícitamente.
 /// </summary>
 public class EditarRepartidorDto
 {
@@ -44,7 +47,12 @@ public class EditarRepartidorDto
     public string? Telefono { get; set; }
     public int OficinaJsonId { get; set; }
     public string OficinaNombre { get; set; } = string.Empty;
-    public string TipoVehiculo { get; set; } = "Furgoneta";
+    /// <summary>
+    /// Tipo de vehículo embebido. Opcional cuando se proporciona <see cref="VehiculoId"/>
+    /// (el servicio lo toma del vehículo de flota). Si se omite sin VehiculoId se mantiene
+    /// el valor actual del repartidor.
+    /// </summary>
+    public string? TipoVehiculo { get; set; }
     public string? MatriculaVehiculo { get; set; }
     /// <summary>Id del vehículo de la flota a asignar. Null = dejar como está. 0 = desasignar.</summary>
     public int? VehiculoId { get; set; }

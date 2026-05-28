@@ -22,6 +22,7 @@ public class CrearRepartidorDtoValidator : AbstractValidator<CrearRepartidorDto>
 
 /// <summary>
 /// Revisa la edición de la ficha de un repartidor sin tocar su identidad base.
+/// TipoVehiculo es opcional cuando se envía VehiculoId (el servicio lo toma del vehículo de flota).
 /// </summary>
 public class EditarRepartidorDtoValidator : AbstractValidator<EditarRepartidorDto>
 {
@@ -30,7 +31,9 @@ public class EditarRepartidorDtoValidator : AbstractValidator<EditarRepartidorDt
         RuleFor(x => x.NombreCompleto).NotEmpty().MaximumLength(200);
         RuleFor(x => x.OficinaJsonId).GreaterThan(0);
         RuleFor(x => x.OficinaNombre).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.TipoVehiculo).NotEmpty();
+        RuleFor(x => x.TipoVehiculo)
+            .NotEmpty()
+            .When(x => !x.VehiculoId.HasValue);
         RuleFor(x => x.Telefono).MaximumLength(20);
     }
 }

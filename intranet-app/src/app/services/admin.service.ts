@@ -177,8 +177,21 @@ export interface EditarRepartidorDto {
   telefono?: string;
   oficinaJsonId: number;
   oficinaNombre: string;
-  tipoVehiculo: string;
-  matriculaVehiculo?: string;
+  /** Id del vehículo de flota a asignar. 0 = desasignar. undefined = no cambiar. */
+  vehiculoId?: number;
+}
+
+export interface VehiculoResumenDto {
+  id: number;
+  matricula: string;
+  tipo: string;
+  tipoNombre: string;
+  marca?: string;
+  modelo?: string;
+  color?: string;
+  repartidorAsignadoId?: number;
+  repartidorAsignadoNombre?: string;
+  activo: boolean;
 }
 
 export interface CrearRepartidorDto {
@@ -347,6 +360,16 @@ export class AdminService {
 
   reactivarRepartidor(id: number): Observable<void> {
     return this.http.post<void>(`${this.REPARTIDORES_URL}/${id}/reactivar`, {});
+  }
+
+  // ─── Gestión administrativa de vehículos ───
+  private readonly VEHICULOS_URL = '/api/nexopostal/admin-vehiculos';
+
+  listarVehiculos(incluirInactivos = false, oficinaJsonId?: number): Observable<VehiculoResumenDto[]> {
+    let params = new HttpParams();
+    if (incluirInactivos) params = params.set('incluirInactivos', 'true');
+    if (oficinaJsonId !== undefined) params = params.set('oficinaJsonId', oficinaJsonId.toString());
+    return this.http.get<VehiculoResumenDto[]>(this.VEHICULOS_URL, { params });
   }
 
   // ─── Gestión administrativa de CTAs ───

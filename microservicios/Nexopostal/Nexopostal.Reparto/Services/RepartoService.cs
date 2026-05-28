@@ -175,16 +175,24 @@ public class RepartoService : IRepartoService
         if (repartidor == null)
             return (null, "Repartidor no encontrado.");
 
-        if (!Enum.TryParse<TipoVehiculo>(dto.TipoVehiculo, ignoreCase: true, out var tipo))
-            return (null, $"Tipo de vehículo no válido: {dto.TipoVehiculo}.");
-
         var nombreAnterior = repartidor.NombreCompleto;
         repartidor.NombreCompleto    = string.IsNullOrWhiteSpace(dto.NombreCompleto) ? repartidor.NombreCompleto : dto.NombreCompleto.Trim();
         repartidor.Telefono          = string.IsNullOrWhiteSpace(dto.Telefono) ? null : dto.Telefono.Trim();
         repartidor.OficinaJsonId     = dto.OficinaJsonId;
         repartidor.OficinaNombre     = dto.OficinaNombre?.Trim() ?? string.Empty;
-        repartidor.TipoVehiculo      = tipo;
-        repartidor.MatriculaVehiculo = string.IsNullOrWhiteSpace(dto.MatriculaVehiculo) ? null : dto.MatriculaVehiculo.Trim().ToUpperInvariant();
+
+        // TipoVehiculo y MatriculaVehiculo solo se actualizan manualmente cuando
+        // NO se proporciona VehiculoId (en ese caso los sincroniza AsignarAsync).
+        if (!dto.VehiculoId.HasValue)
+        {
+            if (!string.IsNullOrWhiteSpace(dto.TipoVehiculo))
+            {
+                if (!Enum.TryParse<TipoVehiculo>(dto.TipoVehiculo, ignoreCase: true, out var tipo))
+                    return (null, $"Tipo de vehículo no válido: {dto.TipoVehiculo}.");
+                repartidor.TipoVehiculo = tipo;
+            }
+            repartidor.MatriculaVehiculo = string.IsNullOrWhiteSpace(dto.MatriculaVehiculo) ? null : dto.MatriculaVehiculo.Trim().ToUpperInvariant();
+        }
 
         await _repartidorRepo.UpdateAsync(repartidor);
 

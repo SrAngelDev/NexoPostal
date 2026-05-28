@@ -11,6 +11,7 @@ import { AuthService } from '../../services/auth.service';
 import { PerfilService, DireccionFavoritaDto } from '../../services/perfil.service';
 import { TarifasService } from '../../services/tarifas.service';
 import { NavbarPublicoComponent } from '../../components/navbar-publico/navbar-publico.component';
+import { BuscadorOficinaInlineComponent } from '../../components/buscador-oficina-inline/buscador-oficina-inline.component';
 
 interface RateOption {
   tipoTarifa: 'Estandar' | 'Premium';
@@ -44,7 +45,7 @@ interface DatosPersona {
 @Component({
   selector: 'app-envio-paquete',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavbarPublicoComponent],
+  imports: [CommonModule, FormsModule, NavbarPublicoComponent, BuscadorOficinaInlineComponent],
   templateUrl: './envio-paquete.component.html',
   styleUrls: ['./envio-paquete.component.css']
 })
@@ -86,17 +87,9 @@ export class EnvioPaqueteComponent {
   });
 
   // Agenda de direcciones favoritas
-  direccionesGuardadas = signal<DireccionFavoritaDto[]>([]);
-  showSelectorRemitente = signal(false);
+  direccionesGuardadas    = signal<DireccionFavoritaDto[]>([]);
+  showSelectorRemitente   = signal(false);
   showSelectorDestinatario = signal(false);
-
-  // Búsqueda de oficinas
-  senderOficinaBusqueda = signal('');
-  recipientOficinaBusqueda = signal('');
-  senderOficinas = signal<Oficina[]>([]);
-  recipientOficinas = signal<Oficina[]>([]);
-  senderShowOficinas = signal(false);
-  recipientShowOficinas = signal(false);
 
   // Canarias: CP que empiezan por 35 (Las Palmas) o 38 (Sta. Cruz de Tenerife)
   requiereDni = computed(() => {
@@ -315,46 +308,18 @@ export class EnvioPaqueteComponent {
   setTipoEntrega(quien: 'remitente' | 'destinatario', tipo: TipoEntrega): void {
     // El remitente SIEMPRE entrega en oficina; no se permite cambiar a 'direccion'.
     if (quien === 'remitente') {
-      this.remitente.update(r => ({ ...r, tipoEntrega: 'oficina', oficina: null, direccion: '', codigoPostal: '', ciudad: '', provincia: '' }));
-      this.senderOficinaBusqueda.set('');
-      this.senderOficinas.set([]);
+      this.remitente.update(r => ({ ...r, tipoEntrega: 'oficina', oficina: null }));
       return;
     }
     this.destinatario.update(d => ({ ...d, tipoEntrega: tipo, oficina: null, direccion: '', codigoPostal: '', ciudad: '', provincia: '' }));
-    this.recipientOficinaBusqueda.set('');
-    this.recipientOficinas.set([]);
   }
 
-  buscarOficinas(quien: 'remitente' | 'destinatario'): void {
-    const query = quien === 'remitente' ? this.senderOficinaBusqueda() : this.recipientOficinaBusqueda();
-    if (!query || query.length < 2) {
-      if (quien === 'remitente') this.senderOficinas.set([]);
-      else this.recipientOficinas.set([]);
-      return;
-    }
-
-    this.oficinasService.buscarPorDireccion(query).subscribe(oficinas => {
-      const resultado = oficinas.slice(0, 10);
-      if (quien === 'remitente') {
-        this.senderOficinas.set(resultado);
-        this.senderShowOficinas.set(true);
-      } else {
-        this.recipientOficinas.set(resultado);
-        this.recipientShowOficinas.set(true);
-      }
-    });
+  seleccionarOficinaRemitente(oficina: Oficina | null): void {
+    this.remitente.update(r => ({ ...r, oficina }));
   }
 
-  seleccionarOficina(quien: 'remitente' | 'destinatario', oficina: Oficina): void {
-    if (quien === 'remitente') {
-      this.remitente.update(r => ({ ...r, oficina }));
-      this.senderOficinaBusqueda.set(oficina.nombre);
-      this.senderShowOficinas.set(false);
-    } else {
-      this.destinatario.update(d => ({ ...d, oficina }));
-      this.recipientOficinaBusqueda.set(oficina.nombre);
-      this.recipientShowOficinas.set(false);
-    }
+  seleccionarOficinaDestinatario(oficina: Oficina | null): void {
+    this.destinatario.update(d => ({ ...d, oficina }));
   }
 
   esCanarias(cp: string): boolean {

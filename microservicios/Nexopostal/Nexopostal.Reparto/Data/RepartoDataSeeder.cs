@@ -42,7 +42,10 @@ public static class RepartoDataSeeder
         {
             await SeedDevelopmentRepartidoresAsync(context, logger);
             await SeedPaquetesPendientesBcnAsync(context, logger);
+            await SeedDevelopmentVehiculosAsync(context, logger);
         }
+
+        await SeedVehiculosBaseAsync(context, logger);
 
         logger.LogInformation("Seed de Reparto completado");
     }
@@ -333,6 +336,311 @@ public static class RepartoDataSeeder
         else
         {
             logger.LogInformation("[DEV] Paquetes pendientes CTA-BCN ya existen, omitiendo seed");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Vehículos base — producción y desarrollo
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Siembra los vehículos de la flota base (producción + desarrollo),
+    /// asociados a los repartidores creados en <see cref="CrearRepartidores"/>.
+    /// Idempotente por matrícula.
+    /// </summary>
+    private static async Task SeedVehiculosBaseAsync(RepartoDbContext context, ILogger logger)
+    {
+        var ahora = DateTime.UtcNow;
+
+        // Obtener los repartidores base por código para mapear los IDs generados.
+        var rep001 = await context.Repartidores.FirstOrDefaultAsync(r => r.CodigoEmpleado == "REP001");
+        var jrp001 = await context.Repartidores.FirstOrDefaultAsync(r => r.CodigoEmpleado == "JRP001");
+        var rep002 = await context.Repartidores.FirstOrDefaultAsync(r => r.CodigoEmpleado == "REP002");
+        var jrp002 = await context.Repartidores.FirstOrDefaultAsync(r => r.CodigoEmpleado == "JRP002");
+
+        var vehiculos = new[]
+        {
+            // ── Madrid Principal ──
+            new Vehiculo
+            {
+                Matricula          = "1234-ABC",
+                Tipo               = TipoVehiculo.Furgoneta,
+                Marca              = "Renault",
+                Modelo             = "Trafic",
+                Color              = "Blanco",
+                AnioFabricacion    = 2021,
+                OficinaJsonId      = OficinaMadridPrincipal,
+                RepartidorAsignadoId   = rep001?.Id,
+                RepartidorAsignadoNombre = rep001?.NombreCompleto,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Vehículo asignado a REP001"
+            },
+            new Vehiculo
+            {
+                Matricula          = "9012-GHI",
+                Tipo               = TipoVehiculo.Furgoneta,
+                Marca              = "Mercedes",
+                Modelo             = "Sprinter",
+                Color              = "Blanco",
+                AnioFabricacion    = 2020,
+                OficinaJsonId      = OficinaMadridPrincipal,
+                RepartidorAsignadoId   = jrp001?.Id,
+                RepartidorAsignadoNombre = jrp001?.NombreCompleto,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Vehículo asignado a JRP001"
+            },
+            new Vehiculo
+            {
+                Matricula          = "MAD-0001",
+                Tipo               = TipoVehiculo.Furgoneta,
+                Marca              = "Volkswagen",
+                Modelo             = "Crafter",
+                Color              = "Gris",
+                AnioFabricacion    = 2022,
+                OficinaJsonId      = OficinaMadridPrincipal,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Vehículo libre - Madrid"
+            },
+            new Vehiculo
+            {
+                Matricula          = "MAD-0002",
+                Tipo               = TipoVehiculo.Moto,
+                Marca              = "Honda",
+                Modelo             = "Forza 350",
+                Color              = "Rojo",
+                AnioFabricacion    = 2023,
+                OficinaJsonId      = OficinaMadridPrincipal,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Moto libre - Madrid"
+            },
+            // ── Barcelona Principal ──
+            new Vehiculo
+            {
+                Matricula          = "5678-DEF",
+                Tipo               = TipoVehiculo.Moto,
+                Marca              = "Yamaha",
+                Modelo             = "NMAX 125",
+                Color              = "Azul",
+                AnioFabricacion    = 2022,
+                OficinaJsonId      = OficinaBarcelonaPrincipal,
+                RepartidorAsignadoId   = rep002?.Id,
+                RepartidorAsignadoNombre = rep002?.NombreCompleto,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Moto asignada a REP002"
+            },
+            new Vehiculo
+            {
+                Matricula          = "3456-JKL",
+                Tipo               = TipoVehiculo.Furgoneta,
+                Marca              = "Ford",
+                Modelo             = "Transit",
+                Color              = "Blanco",
+                AnioFabricacion    = 2021,
+                OficinaJsonId      = OficinaBarcelonaPrincipal,
+                RepartidorAsignadoId   = jrp002?.Id,
+                RepartidorAsignadoNombre = jrp002?.NombreCompleto,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Vehículo asignado a JRP002"
+            },
+            new Vehiculo
+            {
+                Matricula          = "BCN-0001",
+                Tipo               = TipoVehiculo.Furgoneta,
+                Marca              = "Opel",
+                Modelo             = "Vivaro",
+                Color              = "Blanco",
+                AnioFabricacion    = 2020,
+                OficinaJsonId      = OficinaBarcelonaPrincipal,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Vehículo libre - Barcelona"
+            },
+            new Vehiculo
+            {
+                Matricula          = "BCN-0002",
+                Tipo               = TipoVehiculo.Bicicleta,
+                Marca              = "Decathlon",
+                Modelo             = "Elops Speed 900",
+                Color              = "Negro",
+                AnioFabricacion    = 2023,
+                OficinaJsonId      = OficinaBarcelonaPrincipal,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Bicicleta libre - Barcelona (zona centro)"
+            }
+        };
+
+        var nuevos = 0;
+        foreach (var v in vehiculos)
+        {
+            if (await context.Vehiculos.AnyAsync(x => x.Matricula == v.Matricula)) continue;
+            context.Vehiculos.Add(v);
+            nuevos++;
+        }
+
+        if (nuevos > 0)
+        {
+            await context.SaveChangesAsync();
+            logger.LogInformation("Creados {Count} vehículos de flota base (producción)", nuevos);
+        }
+        else
+        {
+            logger.LogInformation("Vehículos de flota base ya existen, omitiendo seed");
+        }
+    }
+
+    /// <summary>
+    /// Vehículos extra para entorno de desarrollo (Bilbao y Sevilla).
+    /// Idempotente por matrícula.
+    /// </summary>
+    private static async Task SeedDevelopmentVehiculosAsync(RepartoDbContext context, ILogger logger)
+    {
+        var ahora = DateTime.UtcNow;
+
+        var rep003 = await context.Repartidores.FirstOrDefaultAsync(r => r.CodigoEmpleado == "REP003");
+        var rep004 = await context.Repartidores.FirstOrDefaultAsync(r => r.CodigoEmpleado == "REP004");
+        var jrp003 = await context.Repartidores.FirstOrDefaultAsync(r => r.CodigoEmpleado == "JRP003");
+
+        var vehiculos = new[]
+        {
+            // ── Bilbao Principal ──
+            new Vehiculo
+            {
+                Matricula          = "7890-MNO",
+                Tipo               = TipoVehiculo.Furgoneta,
+                Marca              = "Renault",
+                Modelo             = "Master",
+                Color              = "Blanco",
+                AnioFabricacion    = 2021,
+                OficinaJsonId      = OficinaBilbaoPrincipal,
+                RepartidorAsignadoId   = rep003?.Id,
+                RepartidorAsignadoNombre = rep003?.NombreCompleto,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Vehículo asignado a REP003"
+            },
+            new Vehiculo
+            {
+                Matricula          = "BIL-0001",
+                Tipo               = TipoVehiculo.Furgoneta,
+                Marca              = "Nissan",
+                Modelo             = "NV400",
+                Color              = "Azul",
+                AnioFabricacion    = 2022,
+                OficinaJsonId      = OficinaBilbaoPrincipal,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Vehículo libre - Bilbao"
+            },
+            new Vehiculo
+            {
+                Matricula          = "BIL-0002",
+                Tipo               = TipoVehiculo.Moto,
+                Marca              = "Kymco",
+                Modelo             = "Agility 125",
+                Color              = "Gris",
+                AnioFabricacion    = 2023,
+                OficinaJsonId      = OficinaBilbaoPrincipal,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Moto libre - Bilbao"
+            },
+            // ── Sevilla Principal ──
+            new Vehiculo
+            {
+                Matricula          = "4321-PQR",
+                Tipo               = TipoVehiculo.Moto,
+                Marca              = "Honda",
+                Modelo             = "PCX 125",
+                Color              = "Negro",
+                AnioFabricacion    = 2022,
+                OficinaJsonId      = OficinaSevillaPrincipal,
+                RepartidorAsignadoId   = rep004?.Id,
+                RepartidorAsignadoNombre = rep004?.NombreCompleto,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Moto asignada a REP004"
+            },
+            new Vehiculo
+            {
+                Matricula          = "6543-STU",
+                Tipo               = TipoVehiculo.Furgoneta,
+                Marca              = "Volkswagen",
+                Modelo             = "Transporter",
+                Color              = "Blanco",
+                AnioFabricacion    = 2020,
+                OficinaJsonId      = OficinaSevillaPrincipal,
+                RepartidorAsignadoId   = jrp003?.Id,
+                RepartidorAsignadoNombre = jrp003?.NombreCompleto,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Vehículo asignado a JRP003"
+            },
+            new Vehiculo
+            {
+                Matricula          = "SEV-0001",
+                Tipo               = TipoVehiculo.Furgoneta,
+                Marca              = "Citroën",
+                Modelo             = "Jumpy",
+                Color              = "Blanco",
+                AnioFabricacion    = 2021,
+                OficinaJsonId      = OficinaSevillaPrincipal,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Vehículo libre - Sevilla"
+            },
+            new Vehiculo
+            {
+                Matricula          = "SEV-0002",
+                Tipo               = TipoVehiculo.Bicicleta,
+                Marca              = "BH",
+                Modelo             = "Atom Pro",
+                Color              = "Verde",
+                AnioFabricacion    = 2023,
+                OficinaJsonId      = OficinaSevillaPrincipal,
+                Activo             = true,
+                FechaAlta          = ahora,
+                FechaModificacion  = ahora,
+                Notas              = "Bicicleta libre - Sevilla (zona casco histórico)"
+            }
+        };
+
+        var nuevos = 0;
+        foreach (var v in vehiculos)
+        {
+            if (await context.Vehiculos.AnyAsync(x => x.Matricula == v.Matricula)) continue;
+            context.Vehiculos.Add(v);
+            nuevos++;
+        }
+
+        if (nuevos > 0)
+        {
+            await context.SaveChangesAsync();
+            logger.LogInformation("[DEV] Creados {Count} vehículos de flota extra (Bilbao/Sevilla)", nuevos);
+        }
+        else
+        {
+            logger.LogInformation("[DEV] Vehículos de flota extra ya existen, omitiendo seed");
         }
     }
 }

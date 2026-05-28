@@ -137,41 +137,11 @@
 
           <div class="bg-gray-50 p-5 rounded-lg mb-5">
             <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Oficina de entrega del paquete *</h3>
-
-            <div class="flex flex-col gap-1 relative">
-              <label class="text-xs font-semibold text-gray-600">Busca por ciudad o código postal</label>
-              <div class="relative">
-                <input type="text" [ngModel]="senderOficinaBusqueda()" (ngModelChange)="senderOficinaBusqueda.set($event); buscarOficinas('remitente')"
-                  (focus)="senderShowOficinas.set(true)"
-                  placeholder="Ej: Madrid, 28001..."
-                  class="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
-                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-              </div>
-              @if (senderShowOficinas() && senderOficinas().length > 0) {
-                <div class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto mt-1">
-                  @for (ofi of senderOficinas(); track ofi.id) {
-                    <button type="button" (click)="seleccionarOficina('remitente', ofi)"
-                      class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0">
-                      <p class="text-sm font-semibold text-gray-800">{{ ofi.nombre }}</p>
-                      <p class="text-xs text-gray-500">{{ ofi.direccion }} — {{ ofi.codigoPostal }} {{ ofi.ciudad }}</p>
-                      <p class="text-xs text-gray-400">{{ ofi.horario }}</p>
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-            @if (remitente().oficina) {
-              <div class="mt-3 p-3 bg-green-50 border border-green-300 rounded-lg">
-                <div class="flex items-start gap-2">
-                  <span class="material-symbols-outlined text-green-600 text-lg">check_circle</span>
-                  <div>
-                    <p class="text-sm font-semibold text-green-800">{{ remitente().oficina!.nombre }}</p>
-                    <p class="text-xs text-gray-600">{{ remitente().oficina!.direccion }} — {{ remitente().oficina!.codigoPostal }} {{ remitente().oficina!.ciudad }}</p>
-                    <p class="text-xs text-gray-500 mt-1">{{ remitente().oficina!.horario }}</p>
-                  </div>
-                </div>
-              </div>
-            }
+            <app-buscador-oficina-inline
+              [permitirUbicacion]="true"
+              [oficinaInicial]="remitente().oficina"
+              (oficinaCambiada)="seleccionarOficinaRemitente($event)">
+            </app-buscador-oficina-inline>
           </div>
 
           <div class="flex justify-end mt-10 pt-5 border-t border-gray-200">
@@ -310,40 +280,11 @@
 
             @if (destinatario().tipoEntrega === 'oficina') {
               <div class="animate-fadeIn">
-                <div class="flex flex-col gap-1 relative">
-                  <label class="text-xs font-semibold text-gray-600">Buscar oficina por ciudad o código postal *</label>
-                  <div class="relative">
-                    <input type="text" [ngModel]="recipientOficinaBusqueda()" (ngModelChange)="recipientOficinaBusqueda.set($event); buscarOficinas('destinatario')"
-                      (focus)="recipientShowOficinas.set(true)"
-                      placeholder="Ej: Barcelona, 08001..."
-                      class="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1A237E]" />
-                    <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                  </div>
-                  @if (recipientShowOficinas() && recipientOficinas().length > 0) {
-                    <div class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto mt-1">
-                      @for (ofi of recipientOficinas(); track ofi.id) {
-                        <button type="button" (click)="seleccionarOficina('destinatario', ofi)"
-                          class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0">
-                          <p class="text-sm font-semibold text-gray-800">{{ ofi.nombre }}</p>
-                          <p class="text-xs text-gray-500">{{ ofi.direccion }} — {{ ofi.codigoPostal }} {{ ofi.ciudad }}</p>
-                          <p class="text-xs text-gray-400">{{ ofi.horario }}</p>
-                        </button>
-                      }
-                    </div>
-                  }
-                </div>
-                @if (destinatario().oficina) {
-                  <div class="mt-3 p-3 bg-green-50 border border-green-300 rounded-lg">
-                    <div class="flex items-start gap-2">
-                      <span class="material-symbols-outlined text-green-600 text-lg">check_circle</span>
-                      <div>
-                        <p class="text-sm font-semibold text-green-800">{{ destinatario().oficina!.nombre }}</p>
-                        <p class="text-xs text-gray-600">{{ destinatario().oficina!.direccion }} — {{ destinatario().oficina!.codigoPostal }} {{ destinatario().oficina!.ciudad }}</p>
-                        <p class="text-xs text-gray-500 mt-1">{{ destinatario().oficina!.horario }}</p>
-                      </div>
-                    </div>
-                  </div>
-                }
+                <app-buscador-oficina-inline
+                  [permitirUbicacion]="false"
+                  [oficinaInicial]="destinatario().oficina"
+                  (oficinaCambiada)="seleccionarOficinaDestinatario($event)">
+                </app-buscador-oficina-inline>
               </div>
             }
           </div>

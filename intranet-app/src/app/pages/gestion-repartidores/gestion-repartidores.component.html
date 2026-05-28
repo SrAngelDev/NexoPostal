@@ -295,24 +295,34 @@
               }
             </select>
           </div>
-          <div class="field">
-            <label class="field-label">Tipo de vehículo</label>
+          <div class="field field-full">
+            <label class="field-label">Vehículo asignado</label>
             <select
               class="select"
-              [ngModel]="formEdicion().tipoVehiculo"
-              (ngModelChange)="actualizarFormEdicion('tipoVehiculo', $event)">
-              @for (t of tiposVehiculo; track t) {
-                <option [value]="t">{{ t }}</option>
+              [ngModel]="formEdicion().vehiculoId"
+              (ngModelChange)="actualizarFormEdicion('vehiculoId', $event === '' ? undefined : +$event)"
+              [disabled]="cargandoVehiculos()">
+              <option [ngValue]="undefined">
+                @if (cargandoVehiculos()) {
+                  Cargando vehículos…
+                } @else {
+                  — Sin vehículo asignado —
+                }
+              </option>
+              @for (v of vehiculos(); track v.id) {
+                <option [ngValue]="v.id" [disabled]="!v.activo || (v.repartidorAsignadoId !== undefined && v.repartidorAsignadoId !== null && v.repartidorAsignadoId !== editando()!.id)">
+                  {{ v.matricula }} · {{ v.tipoNombre }}
+                  @if (v.marca || v.modelo) { — {{ v.marca }} {{ v.modelo }} }
+                  @if (v.repartidorAsignadoId && v.repartidorAsignadoId !== editando()!.id) {
+                    (asignado a {{ v.repartidorAsignadoNombre }})
+                  }
+                  @if (!v.activo) { (inactivo) }
+                </option>
               }
             </select>
-          </div>
-          <div class="field">
-            <label class="field-label">Matrícula</label>
-            <input
-              type="text"
-              class="input"
-              [ngModel]="formEdicion().matriculaVehiculo"
-              (ngModelChange)="actualizarFormEdicion('matriculaVehiculo', $event)" />
+            @if (!cargandoVehiculos() && vehiculos().length === 0) {
+              <p class="field-hint">No hay vehículos de flota registrados. Crea uno desde <strong>Gestión de Vehículos</strong>.</p>
+            }
           </div>
         </div>
 
