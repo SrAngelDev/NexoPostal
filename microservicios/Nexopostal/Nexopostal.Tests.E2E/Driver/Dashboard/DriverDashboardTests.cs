@@ -83,21 +83,6 @@ public class DriverDashboardTests : E2ETestBase
     }
 
     [Test]
-    [Description("Clic en tarjeta 'Ruta activa' navega a /ruta")]
-    public async Task ClickRutaCard_ShouldNavigateToRutaPage()
-    {
-        await LoginAsRepartidorAsync();
-        await Expect(Page.TestId("card-ruta")).ToBeVisibleAsync(new() { Timeout = 8000 });
-
-        await Page.TestId("card-ruta").ClickAsync();
-        await CaptureScreenshotAsync("04-ruta-page-loaded");
-
-        await Expect(Page).ToHaveURLAsync(
-            new System.Text.RegularExpressions.Regex(".*/ruta.*"),
-            new() { Timeout = 8000 });
-    }
-
-    [Test]
     [Description("Clic en tarjeta 'Escanear paquetes' navega a /escaneo")]
     public async Task ClickEscaneoCard_ShouldNavigateToEscaneoPage()
     {

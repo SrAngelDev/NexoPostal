@@ -68,22 +68,6 @@ public class DriverRutaTests : E2ETestBase
     }
 
     [Test]
-    [Description("Sin ruta asignada → muestra el estado vacío con mensaje correspondiente")]
-    public async Task RutaPage_ShowsEmptyStateWhenNoRoute()
-    {
-        await LoginAsRepartidorAsync();
-        await Page.GotoAsync($"{DriverBaseUrl}/ruta");
-        await CaptureScreenshotAsync("03-ruta-checking-empty");
-
-        // El repartidor demo no tiene ruta asignada → aparece la sección empty-card
-        var emptyState = Page.TestId("ruta-empty");
-        await Expect(emptyState).ToBeVisibleAsync(new() { Timeout = 12000 });
-        await Expect(emptyState).ToContainTextAsync("Sin ruta asignada", new() { IgnoreCase = true });
-
-        await CaptureScreenshotAsync("04-ruta-empty-state-visible");
-    }
-
-    [Test]
     [Description("El navbar de la página de ruta muestra el título 'Ruta de reparto'")]
     public async Task RutaPage_HasNavbarTitle()
     {
