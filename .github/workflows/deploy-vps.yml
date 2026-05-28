@@ -1,4 +1,4 @@
-name: CI/CD NexoPostal - Deploy to VPS
+name: NexoPostal — De código a producción con tranquilidad
 
 on:
   push:
@@ -25,37 +25,79 @@ env:
   GHCR_NAMESPACE: srangeldev
 
 jobs:
-  # Keep validation for PR and dev, but skip it on master deploy path.
-  build-backend:
-    name: Build Backend .NET
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master'
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # ✅  1. PRUEBAS UNITARIAS DEL BACKEND
+  #        Los más rápidos de todos: sin base de datos, sin red, sin excusas.
+  #        Si algo falla aquí, el resto del pipeline ni arranca.
+  # ══════════════════════════════════════════════════════════════════════════
+  tests-unitarios:
+    name: Pruebas unitarias del backend
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: microservicios/Nexopostal
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Bajar el código
+        uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Preparar el SDK de .NET ${{ env.DOTNET_VERSION }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Restaurar paquetes NuGet
+        run: dotnet restore Nexopostal.slnx
 
-      - name: Build all microservices
+      - name: Ejecutar pruebas unitarias
         run: |
-          dotnet build Nexopostal.Auth/Nexopostal.Auth.csproj --no-restore
-          dotnet build Nexopostal.Ciudadano/Nexopostal.Ciudadano.csproj --no-restore
-          dotnet build Nexopostal.Intranet/Nexopostal.Intranet.csproj --no-restore
-          dotnet build Nexopostal.Reparto/Nexopostal.Reparto.csproj --no-restore
-          dotnet build Nexopostal.Gateway/Nexopostal.Gateway.csproj --no-restore
+          dotnet test Nexopostal.Tests/Nexopostal.Tests.csproj \
+            --filter "FullyQualifiedName!~IntegrationTests" \
+            --no-restore \
+            --logger "console;verbosity=normal" \
+            --nologo
 
+  # ══════════════════════════════════════════════════════════════════════════
+  # 🔗  2. PRUEBAS DE INTEGRACIÓN DEL BACKEND
+  #        Aquí levantamos una base de datos real (efímera) con Testcontainers
+  #        para comprobar que los repositorios y los servicios se hablan bien.
+  #        Necesita Docker, que en ubuntu-latest ya viene de serie.
+  # ══════════════════════════════════════════════════════════════════════════
+  tests-integracion:
+    name: Pruebas de integración (con base de datos real)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: microservicios/Nexopostal
+
+    steps:
+      - name: Bajar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar el SDK de .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restaurar paquetes NuGet
+        run: dotnet restore Nexopostal.slnx
+
+      - name: Ejecutar pruebas de integración
+        run: |
+          dotnet test Nexopostal.Tests/Nexopostal.Tests.csproj \
+            --filter "FullyQualifiedName~IntegrationTests" \
+            --no-restore \
+            --logger "console;verbosity=normal" \
+            --nologo
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # 🏗️  3. COMPILAR LOS FRONTENDS ANGULAR
+  #        Tres apps en paralelo. Si alguna no compila, lo sabemos antes de
+  #        intentar construir la imagen Docker y perder el tiempo.
+  # ══════════════════════════════════════════════════════════════════════════
   build-frontend:
-    name: Build Frontend Angular
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master'
+    name: Compilar frontend Angular — ${{ matrix.app }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -63,26 +105,32 @@ jobs:
         app: [clientes-app, intranet-app, driver-app]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Bajar el código
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Preparar Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: ${{ matrix.app }}/package-lock.json
 
-      - name: Install dependencies
+      - name: Instalar dependencias npm
         working-directory: ${{ matrix.app }}
         run: npm ci --no-audit --prefer-offline
 
-      - name: Build
+      - name: Compilar para producción
         working-directory: ${{ matrix.app }}
         run: npm run build -- --configuration production
 
+  # ══════════════════════════════════════════════════════════════════════════
+  # 📦  4. CONSTRUIR Y PUBLICAR IMÁGENES DOCKER
+  #        Solo arranca si todas las pruebas anteriores han pasado sin fallos.
+  #        Las imágenes se suben a GHCR y quedan listas para el deploy.
+  # ══════════════════════════════════════════════════════════════════════════
   docker-build-push:
-    name: Build and Push ${{ matrix.service.name }}
-    needs: [build-backend, build-frontend]
+    name: Construir imagen — ${{ matrix.service.name }}
+    needs: [tests-unitarios, tests-integracion, build-frontend]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev')
     strategy:
@@ -115,19 +163,20 @@ jobs:
             dockerfile: driver-app/Dockerfile
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Bajar el código
+        uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
+      - name: Preparar Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GHCR
+      - name: Autenticarse en el registro de contenedores (GHCR)
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push ${{ matrix.service.name }}
+      - name: Construir y publicar — ${{ matrix.service.name }}
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.service.context }}
@@ -139,30 +188,191 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
 
-  deploy-vps:
-    name: Deploy to VPS DigitalOcean
+  # ══════════════════════════════════════════════════════════════════════════
+  # 🎭  5. PRUEBAS END-TO-END CON PLAYWRIGHT
+  #        Levantamos el stack completo con las imágenes recién publicadas
+  #        y ejecutamos Playwright contra las tres apps en un navegador real.
+  #        Si algo falla aquí, el deploy no ocurre. Sin excepciones.
+  # ══════════════════════════════════════════════════════════════════════════
+  tests-e2e:
+    name: Pruebas end-to-end (navegador real, stack completo)
     needs: docker-build-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Bajar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar el SDK de .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Autenticarse en GHCR para descargar las imágenes
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Preparar el entorno de pruebas
+        run: |
+          cat > .env <<EOF
+          ASPNETCORE_ENVIRONMENT=Production
+          IMAGE_TAG=${{ github.sha }}
+          GHCR_NAMESPACE=${{ env.GHCR_NAMESPACE }}
+
+          JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+          JWT_ISSUER=${{ secrets.JWT_ISSUER }}
+          JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
+          JWT_EXPIRY_MINUTES=60
+
+          POSTGRES_AUTH_HOST=postgres-auth
+          POSTGRES_AUTH_PORT=5432
+          POSTGRES_AUTH_DB=nexopostal_auth
+          POSTGRES_AUTH_USER=postgres
+          POSTGRES_AUTH_PASSWORD=${{ secrets.POSTGRES_AUTH_PASSWORD }}
+
+          POSTGRES_CIUDADANO_HOST=postgres-ciudadano
+          POSTGRES_CIUDADANO_PORT=5432
+          POSTGRES_CIUDADANO_DB=nexopostal_ciudadano
+          POSTGRES_CIUDADANO_USER=postgres
+          POSTGRES_CIUDADANO_PASSWORD=${{ secrets.POSTGRES_CIUDADANO_PASSWORD }}
+
+          POSTGRES_INTRANET_HOST=postgres-intranet
+          POSTGRES_INTRANET_PORT=5432
+          POSTGRES_INTRANET_DB=nexopostal_intranet
+          POSTGRES_INTRANET_USER=postgres
+          POSTGRES_INTRANET_PASSWORD=${{ secrets.POSTGRES_INTRANET_PASSWORD }}
+
+          POSTGRES_REPARTO_HOST=postgres-reparto
+          POSTGRES_REPARTO_PORT=5432
+          POSTGRES_REPARTO_DB=nexopostal_reparto
+          POSTGRES_REPARTO_USER=postgres
+          POSTGRES_REPARTO_PASSWORD=${{ secrets.POSTGRES_REPARTO_PASSWORD }}
+
+          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+
+          SMTP_HOST=${{ secrets.SMTP_HOST }}
+          SMTP_PORT=${{ secrets.SMTP_PORT }}
+          SMTP_USESSL=${{ secrets.SMTP_USESSL }}
+          SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM_NAME=NexoPostal
+          SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}
+
+          INTER_SERVICE_KEY=${{ secrets.INTER_SERVICE_KEY }}
+          INTRANET_BASE_URL=http://modulo-logistica:80
+
+          URL_MODULO_SEGURIDAD=http://modulo-seguridad:80
+          URL_MODULO_CIUDADANO=http://modulo-ciudadano:80
+          URL_MODULO_LOGISTICA=http://modulo-logistica:80
+          URL_MODULO_REPARTO=http://modulo-reparto:80
+          URL_API_GATEWAY=http://api-gateway:80
+
+          NGINX_HTTP_PORT=80
+          EOF
+
+      - name: Levantar el stack completo (imágenes recién publicadas)
+        run: |
+          docker compose --env-file ./.env -f docker-compose.ci-e2e.yml pull
+          docker compose --env-file ./.env -f docker-compose.ci-e2e.yml up -d
+
+      - name: Esperar a que las tres apps estén disponibles
+        run: |
+          set -euo pipefail
+          wait_for_url() {
+            local url=$1
+            local name=$2
+            local timeout=120
+            local elapsed=0
+            echo "Esperando a que $name esté lista en $url..."
+            until curl -fsS --max-time 5 "$url" > /dev/null 2>&1; do
+              if [ "$elapsed" -ge "$timeout" ]; then
+                echo "Tiempo de espera agotado para $name ($url)"
+                docker compose --env-file ./.env -f docker-compose.ci-e2e.yml logs
+                exit 1
+              fi
+              sleep 3
+              elapsed=$((elapsed + 3))
+            done
+            echo "  ✓ $name lista"
+          }
+          wait_for_url "http://localhost:80"   "Portal de clientes"
+          wait_for_url "http://localhost:8202" "Intranet"
+          wait_for_url "http://localhost:8201" "App de repartidores"
+
+      - name: Compilar el proyecto de tests E2E
+        working-directory: microservicios/Nexopostal/Nexopostal.Tests.E2E
+        run: dotnet build --configuration Release --nologo
+
+      - name: Instalar los navegadores de Playwright
+        working-directory: microservicios/Nexopostal/Nexopostal.Tests.E2E
+        run: pwsh bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Ejecutar pruebas end-to-end
+        working-directory: microservicios/Nexopostal/Nexopostal.Tests.E2E
+        env:
+          E2E_CLIENTES_URL: "http://localhost:80"
+          E2E_INTRANET_URL: "http://localhost:8202"
+          E2E_DRIVER_URL: "http://localhost:8201"
+          PLAYWRIGHT_HEADLESS: "1"
+        run: |
+          dotnet test Nexopostal.Tests.E2E.csproj \
+            --no-build \
+            --configuration Release \
+            --logger "console;verbosity=normal" \
+            --logger "trx;LogFileName=e2e-resultados.trx" \
+            --results-directory TestResults \
+            --nologo
+
+      - name: Guardar capturas y trazas como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artefactos-${{ github.sha }}
+          path: |
+            microservicios/Nexopostal/Nexopostal.Tests.E2E/TestResults/
+            microservicios/Nexopostal/Nexopostal.Tests.E2E/TestScreenshots/
+            microservicios/Nexopostal/Nexopostal.Tests.E2E/TestVideos/
+          retention-days: 7
+
+      - name: Apagar el stack de pruebas
+        if: always()
+        run: |
+          docker compose --env-file ./.env -f docker-compose.ci-e2e.yml down -v 2>/dev/null || true
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # 🚀  6. DESPLIEGUE AL SERVIDOR DE PRODUCCIÓN
+  #        Solo llegamos aquí si TODOS los tests han pasado sin un solo fallo.
+  #        Es la última puerta antes de que el código llegue a los usuarios.
+  # ══════════════════════════════════════════════════════════════════════════
+  deploy-vps:
+    name: Desplegar en el servidor de producción (DigitalOcean)
+    needs: tests-e2e
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     environment: production
 
     steps:
-      - name: Checkout code
+      - name: Bajar el código
         uses: actions/checkout@v4
 
-      - name: Setup SSH agent
+      - name: Configurar el agente SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
 
-      - name: Add VPS to known_hosts
+      - name: Añadir el servidor a known_hosts
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           ssh-keyscan -H "${{ env.VPS_HOST }}" >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Deploy via image pull and compose up
+      - name: Preparar el archivo de entorno para producción
         run: |
           set -euo pipefail
 
@@ -224,6 +434,10 @@ jobs:
           NGINX_HTTPS_PORT=443
           EOF
 
+      - name: Copiar archivos al servidor y desplegar
+        run: |
+          set -euo pipefail
+
           ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "mkdir -p ~/nexopostal/nginx ~/nexopostal/nginx/certs"
           rsync -az docker-compose.production.yml ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:~/nexopostal/
           rsync -az nginx/nginx.production.conf ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:~/nexopostal/nginx/
@@ -235,7 +449,7 @@ jobs:
 
           mkdir -p nginx/certs
           if [ ! -f nginx/certs/nexopostal.crt ] || [ ! -f nginx/certs/nexopostal.key ]; then
-            echo "[WARN] SSL certs no encontrados. Generando certificado temporal autofirmado."
+            echo "[AVISO] No se encontraron certificados SSL. Generando uno temporal autofirmado."
             openssl req -x509 -nodes -newkey rsa:2048 \
               -keyout nginx/certs/nexopostal.key \
               -out nginx/certs/nexopostal.crt \
@@ -243,20 +457,19 @@ jobs:
               -subj "/C=ES/ST=Madrid/L=Madrid/O=NexoPostal/CN=nexopostal.es"
           fi
 
-          # Prefer Compose V2 plugin (handles OCI images without ContainerConfig)
-          # Only fall back to legacy v1 if V2 is not available
+          # Compose V2 es preferible (maneja imágenes OCI sin ContainerConfig)
+          # Solo se cae al v1 si el plugin no está disponible
           if docker compose version >/dev/null 2>&1; then
             DC="docker compose"
           elif command -v docker-compose >/dev/null 2>&1; then
             DC="docker-compose"
           else
-            echo "ERROR: docker compose not available" && exit 1
+            echo "ERROR: docker compose no está disponible" && exit 1
           fi
 
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-          # Remove containers with stale names (e.g. left by docker-compose v1 with hash prefix)
-          # 'down' is idempotent: safe even if no containers are running
+          # 'down' es idempotente: no falla si no hay contenedores corriendo
           $DC --env-file ./.env -f docker-compose.production.yml down --remove-orphans 2>/dev/null || true
 
           $DC --env-file ./.env -f docker-compose.production.yml pull
@@ -265,12 +478,12 @@ jobs:
           docker image prune -f --filter "until=168h" || true
           ENDSSH
 
-      - name: Verify deployment
+      - name: Comprobar que los contenedores están corriendo
         run: |
           sleep 8
           ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
 
-      - name: Health check
+      - name: Verificar que la web responde correctamente
         run: |
           set -euo pipefail
           curl -fsS --max-time 20 "http://${{ env.VPS_HOST }}/"
