@@ -1,9 +1,11 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Nexopostal.Reparto.Data;
 using Nexopostal.Reparto.DTOs;
+using Nexopostal.Reparto.Hubs;
 using Nexopostal.Reparto.Models;
 using Nexopostal.Reparto.Services;
 using Xunit;
@@ -19,7 +21,8 @@ public class BandejaPendientesServiceTests
             .Options;
         var db = new RepartoDbContext(options);
         var reparto = new Mock<IRepartoService>();
-        var svc = new BandejaPendientesService(db, reparto.Object, NullLogger<BandejaPendientesService>.Instance);
+        var hub = new Mock<IHubContext<RepartoHub>>();
+        var svc = new BandejaPendientesService(db, reparto.Object, hub.Object, NullLogger<BandejaPendientesService>.Instance);
         return (svc, db, reparto);
     }
 

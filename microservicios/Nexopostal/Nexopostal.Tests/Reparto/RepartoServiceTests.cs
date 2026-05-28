@@ -20,6 +20,7 @@ public class RepartoServiceTests
     private readonly Mock<IUbicacionRepartidorRepository> _ubicacionRepo = new();
     private readonly Mock<IRepartoNotifier> _notifier = new();
     private readonly Mock<IVehiculoService> _vehiculoService = new();
+    private readonly Mock<IAuthUserSyncService> _authSync = new();
 
     private RepartoService BuildService() => new RepartoService(
         _repartidorRepo.Object,
@@ -28,6 +29,7 @@ public class RepartoServiceTests
         _ubicacionRepo.Object,
         _notifier.Object,
         _vehiculoService.Object,
+        _authSync.Object,
         NullLogger<RepartoService>.Instance);
 
     // ═══════════════════════════════════════════
