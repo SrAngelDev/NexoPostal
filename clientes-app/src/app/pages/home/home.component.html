@@ -1,328 +1,138 @@
 <div class="home" [class.scrolled]="scrolled()">
-  <!-- ============ NAVBAR (compartido) ============ -->
-  <app-navbar-publico
-    (loginClick)="openLoginModal()"
-    (registerClick)="openRegisterModal()" />
+  <app-navbar-publico [showLinks]="false" (loginClick)="openLoginModal()" (registerClick)="openRegisterModal()" />
 
-  <!-- ============ BANNER PERFIL INCOMPLETO ============ -->
   @if (perfilIncompleto()) {
-    <div class="perfil-banner fade-in">
-      <div class="perfil-banner-inner">
-        <span class="icon-tile icon-tile-sm icon-tile-warning">
-          <span class="material-symbols-outlined">warning</span>
-        </span>
+    <aside class="perfil-banner" aria-label="Perfil incompleto">
+      <div class="shell perfil-banner-inner">
+        <span class="material-symbols-outlined" aria-hidden="true">warning</span>
         <div class="perfil-text">
           <p class="perfil-title">Completa tu perfil para acceder a todas las funcionalidades</p>
           <p class="perfil-sub">Faltan: {{ camposFaltantes().join(', ') }}. Necesarios para realizar envíos.</p>
         </div>
         <div class="perfil-actions">
-          <button class="btn btn-sm btn-secondary" (click)="navigateToPanel()">Completar</button>
-          <button class="btn-ghost-icon" (click)="cerrarAvisoPerfil()" aria-label="Cerrar">
-            <span class="material-symbols-outlined">close</span>
-          </button>
+          <button class="btn btn-sm btn-secondary" type="button" (click)="navigateToPanel()">Completar perfil</button>
+          <button class="icon-button" type="button" (click)="cerrarAvisoPerfil()" aria-label="Cerrar aviso"><span class="material-symbols-outlined">close</span></button>
         </div>
       </div>
-    </div>
+    </aside>
   }
 
-  <!-- ============ HERO ============ -->
-  <header class="hero">
-    <div class="hero-bg" aria-hidden="true">
-      <div class="hero-orb hero-orb-1"></div>
-      <div class="hero-orb hero-orb-2"></div>
-      <div class="hero-grid"></div>
-    </div>
+  <main>
+    <header class="operations">
+      <div class="shell operations-grid">
+        <div class="operations-intro">
+          <p class="operations-kicker">Operador logístico nacional</p>
+          <h1>Todo tu envío, desde un mismo lugar.</h1>
+          <p class="operations-lead">Gestiona tus envíos, localiza tu paquete y consulta tarifas en tiempo real. Cobertura nacional, tecnología moderna y atención humana.</p>
 
-    <div class="hero-content">
-      <div class="hero-eyebrow">
-        <span class="dot"></span>
-        <span>Operador logístico nacional</span>
-      </div>
-      <h1 class="hero-title">
-        Tu envío,<br />
-        <span class="hero-title-accent">nuestro compromiso</span>
-      </h1>
-      <p class="hero-subtitle">
-        Gestiona tus envíos, localiza tu paquete y consulta tarifas en tiempo real.
-        Cobertura nacional, tecnología moderna y atención humana.
-      </p>
-
-      <!-- Search tracking integrado en hero -->
-      <div class="hero-search">
-        <form (ngSubmit)="onTrackingSubmit()" class="hero-search-form">
-          <div class="hero-search-input">
-            <span class="material-symbols-outlined">search</span>
-            <input
-              type="text"
-              data-testid="tracking-input"
-              [(ngModel)]="trackingCode"
-              name="trackingCode"
-              placeholder="Introduce tu código (Ej: NX55064591117ES)"
-              required
-              autocomplete="off"
-            />
+          <div class="operations-actions" aria-label="Acciones principales">
+            <button class="btn btn-accent btn-lg" type="button" (click)="navigateToWizard()"><span class="material-symbols-outlined" aria-hidden="true">add_box</span>Enviar paquete</button>
+            <button class="btn btn-outline-light btn-lg" type="button" (click)="navigateToCalculadora()"><span class="material-symbols-outlined" aria-hidden="true">calculate</span>Calcular tarifa</button>
           </div>
-          <button type="submit" data-testid="tracking-submit" class="btn btn-accent btn-lg hero-search-btn" [disabled]="isSearching()">
-            <span>{{ isSearching() ? 'Buscando…' : 'Localizar' }}</span>
-            @if (!isSearching()) {
-              <span class="material-symbols-outlined">arrow_forward</span>
-            } @else {
-              <span class="material-symbols-outlined spinning">progress_activity</span>
-            }
-          </button>
-        </form>
-        <p class="hero-search-hint">¿No tienes el código? Revisa tu correo o SMS de confirmación.</p>
 
-        @if (trackingResult()) {
-          <div class="tracking-result fade-in-up">
-            <div class="tracking-header">
-              <div>
-                <p class="tracking-label">Número de seguimiento</p>
-                <p class="tracking-code">{{ trackingResult()!.numeroSeguimiento }}</p>
-              </div>
-              <span class="chip chip-brand">
-                <span class="material-symbols-outlined">inventory_2</span>
-                {{ trackingResult()!.numeroBultos }} bulto{{ trackingResult()!.numeroBultos > 1 ? 's' : '' }}
-              </span>
+          <dl class="service-facts" aria-label="Datos del servicio">
+            <div><dt>Entregas a tiempo</dt><dd>98%</dd></div>
+            <div><dt>Entrega exprés</dt><dd>24h</dd></div>
+            <div><dt>Oficinas</dt><dd>+150</dd></div>
+          </dl>
+        </div>
+
+        <section class="tracking-console" aria-labelledby="tracking-title">
+          <div class="tracking-console-head">
+            <span class="material-symbols-outlined" aria-hidden="true">location_searching</span>
+            <div><p class="console-label">Seguimiento</p><h2 id="tracking-title">Localiza tu envío</h2></div>
+          </div>
+
+          <form (ngSubmit)="onTrackingSubmit()" class="tracking-form">
+            <label for="tracking-code">Código de seguimiento</label>
+            <div class="tracking-control">
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              <input id="tracking-code" type="text" data-testid="tracking-input" [(ngModel)]="trackingCode" name="trackingCode" placeholder="NX55064591117ES" required autocomplete="off" [attr.aria-invalid]="trackingError() ? 'true' : null" [attr.aria-describedby]="trackingError() ? 'tracking-feedback' : 'tracking-help'" />
+              <button type="submit" data-testid="tracking-submit" class="tracking-submit" [disabled]="isSearching()">
+                @if (isSearching()) { <span class="material-symbols-outlined spinning" aria-hidden="true">progress_activity</span><span>Buscando…</span> }
+                @else { <span>Localizar</span><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span> }
+              </button>
             </div>
+            <p class="tracking-help" id="tracking-help">El código está en tu correo o SMS de confirmación.</p>
+          </form>
 
-            <div class="tracking-body">
-              @if (!isEstadoError(trackingResult()!.estadoActual)) {
-                <div class="tracking-stepper">
-                  @for (step of trackingSteps; track step.key; let i = $index) {
-                    <div class="stepper-col" [class.flex-1]="i < trackingSteps.length - 1">
-                      <div class="stepper-row">
-                        <div class="stepper-icon-wrap"
-                          [class.icon-completed]="i < getStepIndex(trackingResult()!.estadoActual)"
-                          [class.icon-current]="i === getStepIndex(trackingResult()!.estadoActual)"
-                          [class.icon-pending]="i > getStepIndex(trackingResult()!.estadoActual)">
-                          @if (i === getStepIndex(trackingResult()!.estadoActual) && isEstadoFinal(trackingResult()!.estadoActual)) {
-                            <span class="material-symbols-outlined icon-symbol">check</span>
-                          } @else {
-                            <span class="material-symbols-outlined icon-symbol">{{ step.icon }}</span>
-                          }
+          <div id="tracking-feedback" aria-live="polite">
+            @if (trackingResult()) {
+              <div class="tracking-result">
+                <div class="tracking-header">
+                  <div><p class="tracking-label">Número de seguimiento</p><p class="tracking-code">{{ trackingResult()!.numeroSeguimiento }}</p></div>
+                  <span class="tracking-badge"><span class="material-symbols-outlined" aria-hidden="true">inventory_2</span>{{ trackingResult()!.numeroBultos }} bulto{{ trackingResult()!.numeroBultos > 1 ? 's' : '' }}</span>
+                </div>
+                <div class="tracking-body">
+                  @if (!isEstadoError(trackingResult()!.estadoActual)) {
+                    <div class="tracking-stepper" aria-label="Progreso del envío">
+                      @for (step of trackingSteps; track step.key; let i = $index) {
+                        <div class="stepper-col" [class.flex-1]="i < trackingSteps.length - 1">
+                          <div class="stepper-row">
+                            <div class="stepper-icon-wrap" [class.icon-completed]="i < getStepIndex(trackingResult()!.estadoActual)" [class.icon-current]="i === getStepIndex(trackingResult()!.estadoActual)" [class.icon-pending]="i > getStepIndex(trackingResult()!.estadoActual)">
+                              @if (i === getStepIndex(trackingResult()!.estadoActual) && isEstadoFinal(trackingResult()!.estadoActual)) { <span class="material-symbols-outlined icon-symbol">check</span> }
+                              @else { <span class="material-symbols-outlined icon-symbol">{{ step.icon }}</span> }
+                            </div>
+                            @if (i < trackingSteps.length - 1) { <div class="stepper-connector" [class.connector-done]="i < getStepIndex(trackingResult()!.estadoActual)"></div> }
+                          </div>
+                          <p class="stepper-label" [class.label-active]="i <= getStepIndex(trackingResult()!.estadoActual)" [class.label-pending]="i > getStepIndex(trackingResult()!.estadoActual)">{{ step.label }}</p>
                         </div>
-                        @if (i < trackingSteps.length - 1) {
-                          <div class="stepper-connector" [class.connector-done]="i < getStepIndex(trackingResult()!.estadoActual)"></div>
-                        }
-                      </div>
-                      <p class="stepper-label"
-                        [class.label-active]="i <= getStepIndex(trackingResult()!.estadoActual)"
-                        [class.label-pending]="i > getStepIndex(trackingResult()!.estadoActual)">
-                        {{ step.label }}
-                      </p>
+                      }
                     </div>
+                  } @else {
+                    <div class="tracking-error-state"><span class="material-symbols-outlined" aria-hidden="true">{{ trackingResult()!.estadoActual === 'Devuelto' ? 'undo' : 'report_problem' }}</span><p>{{ formatearEstado(trackingResult()!.estadoActual) }}</p></div>
                   }
+                  <p class="tracking-desc">{{ trackingResult()!.descripcion }}</p>
                 </div>
-              } @else {
-                <div class="tracking-error-state">
-                  <div class="stepper-icon-wrap icon-error">
-                    <span class="material-symbols-outlined icon-symbol">
-                      {{ trackingResult()!.estadoActual === 'Devuelto' ? 'undo' : 'report_problem' }}
-                    </span>
-                  </div>
-                  <p>{{ formatearEstado(trackingResult()!.estadoActual) }}</p>
-                </div>
-              }
-              <p class="tracking-desc">{{ trackingResult()!.descripcion }}</p>
-            </div>
+              </div>
+            }
+            @if (trackingError()) { <div class="tracking-alert" data-testid="tracking-error" role="alert"><span class="material-symbols-outlined" aria-hidden="true">error</span><span>{{ trackingError() }}</span></div> }
           </div>
-        }
-
-        @if (trackingError()) {
-          <div class="tracking-alert fade-in" data-testid="tracking-error">
-            <span class="material-symbols-outlined">error</span>
-            <span>{{ trackingError() }}</span>
-          </div>
-        }
+        </section>
       </div>
+    </header>
 
-      <div class="hero-cta-row">
-        <button class="btn btn-accent btn-lg" (click)="navigateToWizard()">
-          <span class="material-symbols-outlined">add_box</span>
-          Enviar paquete
-        </button>
-        <button class="btn-outline-light btn-lg" (click)="navigateToCalculadora()">
-          <span class="material-symbols-outlined">calculate</span>
-          Calcular tarifa
-        </button>
-      </div>
-
-      <div class="hero-trust">
-        <div class="trust-item">
-          <span class="trust-num">98%</span>
-          <span class="trust-label">Entregas a tiempo</span>
-        </div>
-        <div class="trust-divider"></div>
-        <div class="trust-item">
-          <span class="trust-num">24h</span>
-          <span class="trust-label">Entrega exprés</span>
-        </div>
-        <div class="trust-divider"></div>
-        <div class="trust-item">
-          <span class="trust-num">+150</span>
-          <span class="trust-label">Oficinas</span>
+    <section class="service-index" aria-labelledby="services-title">
+      <div class="shell">
+        <div class="section-heading"><div><p class="section-label">Servicios</p><h2 id="services-title">¿Qué necesitas hacer?</h2></div><p>Accede directamente a la gestión que buscas.</p></div>
+        <div class="service-list">
+          <button class="service-row" type="button" (click)="navigateToWizard()"><span class="service-number">01</span><span class="service-icon material-symbols-outlined" aria-hidden="true">inventory_2</span><span class="service-copy"><strong>Enviar paquete</strong><small>Configura el envío y genera tu etiqueta.</small></span><span class="service-action">Empezar <span class="material-symbols-outlined">arrow_forward</span></span></button>
+          <button class="service-row" type="button" (click)="navigateToCalculadora()"><span class="service-number">02</span><span class="service-icon material-symbols-outlined" aria-hidden="true">calculate</span><span class="service-copy"><strong>Calcular una tarifa</strong><small>Consulta el precio según peso, dimensiones y destino.</small></span><span class="service-action">Calcular <span class="material-symbols-outlined">arrow_forward</span></span></button>
+          <button class="service-row" type="button" (click)="navigateToBuscadorOficinas()"><span class="service-number">03</span><span class="service-icon material-symbols-outlined" aria-hidden="true">storefront</span><span class="service-copy"><strong>Encontrar una oficina</strong><small>Localiza el punto de entrega o recogida más cercano.</small></span><span class="service-action">Ver mapa <span class="material-symbols-outlined">arrow_forward</span></span></button>
         </div>
       </div>
-    </div>
+    </section>
 
-    <button class="hero-scroll" (click)="scrollToSection('como-funciona')" aria-label="Bajar">
-      <span class="material-symbols-outlined">expand_more</span>
-    </button>
-  </header>
-
-  <!-- ============ CÓMO FUNCIONA ============ -->
-  <section class="section" id="como-funciona">
-    <div class="section-inner">
-      <div class="section-head reveal">
-        <span class="eyebrow">Cómo funciona</span>
-        <h2 class="section-h2">Enviar es así de sencillo</h2>
-        <p class="section-lead">Tres pasos. Sin sorpresas, sin papeleo, sin esperas.</p>
+    <section class="workflow" id="como-funciona" aria-labelledby="workflow-title">
+      <div class="shell workflow-layout">
+        <div class="workflow-heading"><p class="section-label">Cómo funciona</p><h2 id="workflow-title">Del origen a la entrega.</h2><p>Tres pasos claros, sin papeleo ni esperas innecesarias.</p></div>
+        <ol class="workflow-steps">
+          <li><span class="workflow-number">1.0</span><div><span class="material-symbols-outlined" aria-hidden="true">edit_note</span><h3>Configura tu envío</h3><p>Indica origen, destino, peso y dimensiones. Calculamos la tarifa al instante.</p></div></li>
+          <li><span class="workflow-number">2.0</span><div><span class="material-symbols-outlined" aria-hidden="true">qr_code_2</span><h3>Genera tu etiqueta</h3><p>Recíbela y deposita el paquete en cualquiera de nuestras +150 oficinas.</p></div></li>
+          <li><span class="workflow-number">3.0</span><div><span class="material-symbols-outlined" aria-hidden="true">my_location</span><h3>Sigue su trayecto</h3><p>Consulta la trazabilidad hasta la entrega y recibe notificaciones por correo.</p></div></li>
+        </ol>
       </div>
+    </section>
 
-      <ol class="steps">
-        <li class="step reveal">
-          <span class="step-num">01</span>
-          <span class="icon-tile icon-tile-lg">
-            <span class="material-symbols-outlined">edit_note</span>
-          </span>
-          <h3 class="step-title">Configura tu envío</h3>
-          <p class="step-desc">Origen, destino, peso y dimensiones. Calculamos la tarifa al instante.</p>
-        </li>
-        <li class="step reveal">
-          <span class="step-num">02</span>
-          <span class="icon-tile icon-tile-lg icon-tile-accent">
-            <span class="material-symbols-outlined">qr_code_2</span>
-          </span>
-          <h3 class="step-title">Genera tu etiqueta</h3>
-          <p class="step-desc">Recibe la etiqueta y deposítala en cualquiera de nuestras +150 oficinas.</p>
-        </li>
-        <li class="step reveal">
-          <span class="step-num">03</span>
-          <span class="icon-tile icon-tile-lg icon-tile-success">
-            <span class="material-symbols-outlined">my_location</span>
-          </span>
-          <h3 class="step-title">Sigue su trayecto</h3>
-          <p class="step-desc">Trazabilidad en tiempo real hasta la entrega. Notificaciones por email.</p>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <!-- ============ ACCIONES RÁPIDAS ============ -->
-  <section class="section section-muted">
-    <div class="section-inner">
-      <div class="section-head reveal">
-        <span class="eyebrow">Servicios</span>
-        <h2 class="section-h2">¿Qué quieres hacer hoy?</h2>
+    <section class="audiences" aria-labelledby="audiences-title">
+      <div class="shell">
+        <div class="section-heading"><div><h2 id="audiences-title">Una red, dos formas de trabajar.</h2></div><p>Servicios adaptados a envíos puntuales y operaciones profesionales.</p></div>
+        <div class="audience-list">
+          <button class="audience-row audience-row-primary" type="button" (click)="navigateTo('/particulares')"><span class="audience-type">Particulares</span><span class="audience-copy"><strong>Envía a quien quieras, donde quieras</strong><small>Tarifas claras, etiquetas en segundos y seguimiento detallado.</small></span><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
+          <button class="audience-row audience-row-accent" type="button" (click)="navigateTo('/empresas')"><span class="audience-type">Empresas</span><span class="audience-copy"><strong>Logística profesional para tu operativa</strong><small>Volumen, facturación y rutas optimizadas para el trabajo diario.</small></span><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
+        </div>
       </div>
+    </section>
 
-      <div class="action-grid">
-        <button class="action-card reveal" (click)="navigateToWizard()">
-          <span class="icon-tile icon-tile-lg">
-            <span class="material-symbols-outlined">inventory_2</span>
-          </span>
-          <h3>Enviar paquete</h3>
-          <p>Configura tu envío, calcula tarifas y genera tu etiqueta al instante.</p>
-          <span class="action-link">
-            Empezar envío
-            <span class="material-symbols-outlined">arrow_right_alt</span>
-          </span>
-        </button>
-
-        <button class="action-card reveal" (click)="navigateToCalculadora()">
-          <span class="icon-tile icon-tile-lg icon-tile-accent">
-            <span class="material-symbols-outlined">calculate</span>
-          </span>
-          <h3>Calculadora de tarifas</h3>
-          <p>Consulta precios según peso, dimensiones y destino (Península/Islas).</p>
-          <span class="action-link">
-            Ver tarifas
-            <span class="material-symbols-outlined">arrow_right_alt</span>
-          </span>
-        </button>
-
-        <button class="action-card reveal" (click)="navigateToBuscadorOficinas()">
-          <span class="icon-tile icon-tile-lg icon-tile-info">
-            <span class="material-symbols-outlined">storefront</span>
-          </span>
-          <h3>Buscador de oficinas</h3>
-          <p>Encuentra el punto de entrega o recogida más cercano a tu ubicación.</p>
-          <span class="action-link">
-            Ver mapa
-            <span class="material-symbols-outlined">arrow_right_alt</span>
-          </span>
-        </button>
+    <section class="final-action" aria-labelledby="final-action-title">
+      <div class="shell final-action-inner">
+        <div><h2 id="final-action-title">Prepara tu próximo envío.</h2></div>
+        <div class="final-action-buttons"><button class="btn btn-accent btn-lg" type="button" (click)="navigateToWizard()">Empezar envío</button>@if (!currentUser()) { <button class="btn btn-outline-light btn-lg" type="button" (click)="openRegisterModal()">Crear cuenta</button> }</div>
       </div>
-    </div>
-  </section>
-
-  <!-- ============ PARA TI ============ -->
-  <section class="section">
-    <div class="section-inner">
-      <div class="section-head reveal">
-        <span class="eyebrow">Soluciones</span>
-        <h2 class="section-h2">Pensado para ti</h2>
-        <p class="section-lead">Particulares y empresas; un único operador, dos experiencias adaptadas.</p>
-      </div>
-
-      <div class="audience-grid">
-        <article class="audience-card reveal" (click)="navigateTo('/particulares')">
-          <div class="audience-bg audience-bg-brand"></div>
-          <div class="audience-body">
-            <span class="chip chip-brand">Particulares</span>
-            <h3>Envía a quien quieras, donde quieras</h3>
-            <p>Tarifas claras, etiquetas en segundos y seguimiento al detalle. Sin fidelidades.</p>
-            <span class="audience-link">
-              Conocer más
-              <span class="material-symbols-outlined">arrow_right_alt</span>
-            </span>
-          </div>
-        </article>
-
-        <article class="audience-card reveal" (click)="navigateTo('/empresas')">
-          <div class="audience-bg audience-bg-accent"></div>
-          <div class="audience-body">
-            <span class="chip chip-accent">Empresas</span>
-            <h3>Logística profesional sin fricciones</h3>
-            <p>Volumen, integraciones, facturación y rutas optimizadas para tu operativa diaria.</p>
-            <span class="audience-link">
-              Plan empresa
-              <span class="material-symbols-outlined">arrow_right_alt</span>
-            </span>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ CTA FINAL ============ -->
-  <section class="cta-final reveal">
-    <div class="cta-final-inner">
-      <h2>Listo para tu próximo envío</h2>
-      <p>Crea tu primer envío en menos de 2 minutos.</p>
-      <div class="cta-actions">
-        <button class="btn btn-accent btn-lg" (click)="navigateToWizard()">
-          <span class="material-symbols-outlined">rocket_launch</span>
-          Empezar ahora
-        </button>
-        @if (!currentUser()) {
-          <button class="btn-outline-light btn-lg" (click)="openRegisterModal()">
-            Crear cuenta
-          </button>
-        }
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ FOOTER (compartido) ============ -->
+    </section>
+  </main>
   <app-footer-publico />
 </div>
 
-<!-- Modales -->
-@if (showLoginModal()) {
-  <app-login (close)="closeLoginModal()" (switchToRegister)="switchToRegister()"></app-login>
-}
-@if (showRegisterModal()) {
-  <app-register (close)="closeRegisterModal()" (switchToLogin)="switchToLogin()"></app-register>
-}
+@if (showLoginModal()) { <app-login (close)="closeLoginModal()" (switchToRegister)="switchToRegister()"></app-login> }
+@if (showRegisterModal()) { <app-register (close)="closeRegisterModal()" (switchToLogin)="switchToLogin()"></app-register> }

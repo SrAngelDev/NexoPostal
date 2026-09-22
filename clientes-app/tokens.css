@@ -1,0 +1,69 @@
+:root {
+  --color-paper: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-muted: var(--surface-muted);
+  --color-ink: var(--text);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
+  --color-rule: var(--border-strong);
+  --color-rule-soft: var(--border-soft);
+  --color-brand: var(--brand-primary);
+  --color-brand-strong: var(--brand-primary-strong);
+  --color-brand-wash: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+  --color-accent: var(--brand-accent);
+  --color-accent-ink: var(--text-on-accent);
+  --color-on-brand: var(--text-on-brand);
+  --color-on-brand-muted: color-mix(in srgb, var(--text-on-brand) 76%, transparent);
+  --color-on-brand-rule: color-mix(in srgb, var(--text-on-brand) 18%, transparent);
+  --color-on-brand-wash: color-mix(in srgb, var(--text-on-brand) 10%, transparent);
+  --color-on-accent: var(--text-on-accent);
+  --color-focus: var(--brand-accent);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --font-display: var(--font-sans);
+  --font-body: var(--font-sans);
+
+  --space-3xs: 0.125rem;
+  --space-2xs: var(--space-1);
+  --space-xs: var(--space-2);
+  --space-sm: var(--space-3);
+  --space-md: var(--space-4);
+  --space-lg: var(--space-6);
+  --space-xl: var(--space-10);
+  --space-2xl: var(--space-16);
+  --space-3xl: 6rem;
+  --space-4xl: 9rem;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.375rem;
+  --text-xl: clamp(1.6rem, 3vw, 2.2rem);
+  --text-2xl: clamp(2rem, 4vw, 3.25rem);
+  --text-display: clamp(2.75rem, 6vw, 5.25rem);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  --rule-thin: 1px;
+  --rule-thick: 2px;
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --radius-panel: var(--radius-xl);
+  --radius-pill: 999px;
+  --control-height: 2.75rem;
+  --control-height-lg: 3.25rem;
+  --nav-height: 4.5rem;
+  --page-gutter: clamp(1rem, 4vw, 2rem);
+  --page-max: 74rem;
+}
