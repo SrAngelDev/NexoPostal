@@ -20,8 +20,6 @@ concurrency:
 env:
   DOTNET_VERSION: '10.0.x'
   NODE_VERSION: '22'
-  VPS_HOST: ${{ secrets.VPS_HOST }}
-  VPS_USER: ${{ secrets.VPS_USER || 'deploy' }}
   GHCR_NAMESPACE: srangeldev
 
 jobs:
@@ -344,149 +342,24 @@ jobs:
         run: |
           docker compose --env-file ./.env -f docker-compose.ci-e2e.yml down -v 2>/dev/null || true
 
-  # ══════════════════════════════════════════════════════════════════════════
-  # 🚀  6. DESPLIEGUE AL SERVIDOR DE PRODUCCIÓN
-  #        Solo llegamos aquí si TODOS los tests han pasado sin un solo fallo.
-  #        Es la última puerta antes de que el código llegue a los usuarios.
-  # ══════════════════════════════════════════════════════════════════════════
-  deploy-vps:
-    name: Desplegar en el servidor de producción (DigitalOcean)
+  # El runner y el Compose de producción viven en GasanzTech-CI-CD.
+  # Este repositorio publica las imágenes y comunica la versión validada.
+  solicitar-despliegue:
+    name: Solicitar despliegue al repositorio de infraestructura
     needs: tests-e2e
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    environment: production
-
     steps:
-      - name: Bajar el código
-        uses: actions/checkout@v4
-
-      - name: Configurar el agente SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-
-      - name: Añadir el servidor a known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          ssh-keyscan -H "${{ env.VPS_HOST }}" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Preparar el archivo de entorno para producción
+      - name: Notificar la nueva versión a GasanzTech-CI-CD
+        env:
+          DISPATCH_TOKEN: ${{ secrets.GASANZ_DISPATCH_TOKEN }}
         run: |
           set -euo pipefail
-
-          cat > .env <<EOF
-          ASPNETCORE_ENVIRONMENT=Production
-          IMAGE_TAG=${{ github.sha }}
-          GHCR_NAMESPACE=${{ env.GHCR_NAMESPACE }}
-
-          JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
-          JWT_ISSUER=${{ secrets.JWT_ISSUER }}
-          JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
-          JWT_EXPIRY_MINUTES=60
-
-          POSTGRES_AUTH_HOST=postgres-auth
-          POSTGRES_AUTH_PORT=5432
-          POSTGRES_AUTH_DB=nexopostal_auth
-          POSTGRES_AUTH_USER=postgres
-          POSTGRES_AUTH_PASSWORD=${{ secrets.POSTGRES_AUTH_PASSWORD }}
-
-          POSTGRES_CIUDADANO_HOST=postgres-ciudadano
-          POSTGRES_CIUDADANO_PORT=5432
-          POSTGRES_CIUDADANO_DB=nexopostal_ciudadano
-          POSTGRES_CIUDADANO_USER=postgres
-          POSTGRES_CIUDADANO_PASSWORD=${{ secrets.POSTGRES_CIUDADANO_PASSWORD }}
-
-          POSTGRES_INTRANET_HOST=postgres-intranet
-          POSTGRES_INTRANET_PORT=5432
-          POSTGRES_INTRANET_DB=nexopostal_intranet
-          POSTGRES_INTRANET_USER=postgres
-          POSTGRES_INTRANET_PASSWORD=${{ secrets.POSTGRES_INTRANET_PASSWORD }}
-
-          POSTGRES_REPARTO_HOST=postgres-reparto
-          POSTGRES_REPARTO_PORT=5432
-          POSTGRES_REPARTO_DB=nexopostal_reparto
-          POSTGRES_REPARTO_USER=postgres
-          POSTGRES_REPARTO_PASSWORD=${{ secrets.POSTGRES_REPARTO_PASSWORD }}
-
-          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
-
-          SMTP_HOST=${{ secrets.SMTP_HOST }}
-          SMTP_PORT=${{ secrets.SMTP_PORT }}
-          SMTP_USESSL=${{ secrets.SMTP_USESSL }}
-          SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
-          SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
-          SMTP_FROM_NAME=NexoPostal
-          SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}
-
-          INTER_SERVICE_KEY=${{ secrets.INTER_SERVICE_KEY }}
-          INTRANET_BASE_URL=http://modulo-logistica:80
-
-          URL_MODULO_SEGURIDAD=http://modulo-seguridad:80
-          URL_MODULO_CIUDADANO=http://modulo-ciudadano:80
-          URL_MODULO_LOGISTICA=http://modulo-logistica:80
-          URL_MODULO_REPARTO=http://modulo-reparto:80
-          URL_API_GATEWAY=http://api-gateway:80
-
-          NGINX_HTTP_PORT=80
-          NGINX_HTTPS_PORT=443
-          EOF
-
-      - name: Copiar archivos al servidor y desplegar
-        run: |
-          set -euo pipefail
-
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "mkdir -p ~/nexopostal/nginx ~/nexopostal/nginx/certs"
-          rsync -az docker-compose.production.yml ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:~/nexopostal/
-          rsync -az nginx/nginx.production.conf ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:~/nexopostal/nginx/
-          rsync -az .env ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:~/nexopostal/.env
-
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} << 'ENDSSH'
-          set -euo pipefail
-          cd ~/nexopostal
-
-          mkdir -p nginx/certs
-          if [ ! -f nginx/certs/nexopostal.crt ] || [ ! -f nginx/certs/nexopostal.key ]; then
-            echo "[AVISO] No se encontraron certificados SSL. Generando uno temporal autofirmado."
-            openssl req -x509 -nodes -newkey rsa:2048 \
-              -keyout nginx/certs/nexopostal.key \
-              -out nginx/certs/nexopostal.crt \
-              -days 365 \
-              -subj "/C=ES/ST=Madrid/L=Madrid/O=NexoPostal/CN=nexopostal.es"
-          fi
-
-          # Compose V2 es preferible (maneja imágenes OCI sin ContainerConfig)
-          # Solo se cae al v1 si el plugin no está disponible
-          if docker compose version >/dev/null 2>&1; then
-            DC="docker compose"
-          elif command -v docker-compose >/dev/null 2>&1; then
-            DC="docker-compose"
-          else
-            echo "ERROR: docker compose no está disponible" && exit 1
-          fi
-
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-          # 'down' es idempotente: no falla si no hay contenedores corriendo
-          $DC --env-file ./.env -f docker-compose.production.yml down --remove-orphans 2>/dev/null || true
-
-          $DC --env-file ./.env -f docker-compose.production.yml pull
-          $DC --env-file ./.env -f docker-compose.production.yml up -d --no-build --remove-orphans
-          $DC --env-file ./.env -f docker-compose.production.yml restart reverse-proxy
-          docker image prune -f --filter "until=168h" || true
-          ENDSSH
-
-      - name: Comprobar que los contenedores están corriendo
-        run: |
-          sleep 8
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
-
-      - name: Verificar que la web responde correctamente
-        run: |
-          set -euo pipefail
-          curl -fsS --max-time 20 "http://${{ env.VPS_HOST }}/"
-          curl -kfsS --max-time 20 "https://${{ env.VPS_HOST }}/" -H "Host: nexopostal.es"
-          curl -kfsS --max-time 20 "https://${{ env.VPS_HOST }}/" -H "Host: intranet.nexopostal.es"
-          curl -kfsS --max-time 20 "https://${{ env.VPS_HOST }}/" -H "Host: driver.nexopostal.es"
+          test -n "$DISPATCH_TOKEN"
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $DISPATCH_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/SrAngelDev/GasanzTech-CI-CD/dispatches \
+            --data '{"event_type":"deploy-nexopostal","client_payload":{"image_tag":"${{ github.sha }}"}}'
