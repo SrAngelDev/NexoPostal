@@ -4,8 +4,7 @@ namespace Nexopostal.Gateway.Controllers;
 
 /// <summary>
 /// Proxy directo para Nominatim (OpenStreetMap geocoding).
-/// Evita que el gateway pierda los query params en GET
-/// (q, format, limit, countrycodes, etc.) que Nominatim necesita.
+/// Conserva la consulta pública, el User-Agent y el Accept específicos del proveedor.
 /// </summary>
 [Route("api/nexopostal/nominatim")]
 [ApiController]

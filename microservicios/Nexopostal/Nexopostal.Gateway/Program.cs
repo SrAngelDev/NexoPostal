@@ -1,6 +1,4 @@
-using AspNetCore.ApiGateway;
 using Nexopostal.Gateway.Extensions;
-using Nexopostal.Gateway.Middleware;
 using Nexopostal.Shared.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,21 +7,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddGatewayCors(builder.Configuration)
     .AddJwtAuthentication(builder.Configuration)
-    .AddGatewayServices();
+    .AddGatewayServices(builder.Configuration);
 
 var app = builder.Build();
 
 // PIPELINE
 app.UseGlobalExceptionHandler();
-app.UseGatewayErrorHandling();
-app.UseCors("NexoPostalPolicy");
-app.UseUrlRewrite();
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseCors("NexoPostalPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseApiGateway(orchestrator => ApiOrchestrationConfig.ConfigureRoutes(orchestrator, app.Configuration));
 app.MapControllers();
+app.MapReverseProxy();
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
 app.Run();

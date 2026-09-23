@@ -2,8 +2,6 @@ using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
-using AspNetCore.ApiGateway;
-using AspNetCore.ApiGateway.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -101,6 +99,13 @@ public static class ServiceCollectionExtensions
 
             options.Events = new JwtBearerEvents
             {
+                OnChallenge = async context =>
+                {
+                    context.HandleResponse();
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    context.Response.Headers.WWWAuthenticate = "Bearer";
+                    await context.Response.WriteAsJsonAsync(GatewayAuthorizationService.UnauthorizedResponse(context.HttpContext));
+                },
                 OnTokenValidated = async context =>
                 {
                     var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -133,27 +138,14 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
-    /// Registra IGatewayAuthorization + AddApiGateway + AddControllers.
-    /// IGatewayAuthorization se registra ANTES de AddApiGateway (requisito de la librería).
-    /// </summary>
-    public static IServiceCollection AddGatewayServices(this IServiceCollection services)
+    /// <summary>Registra YARP y conserva los adaptadores específicos existentes.</summary>
+    public static IServiceCollection AddGatewayServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpContextAccessor();
-        services.AddScoped<IGatewayAuthorization, GatewayAuthorizationService>();
-        services.AddTransient<Middleware.ErrorPropagationHandler>();
-        services.AddApiGateway();
         services.AddControllers();
-
-        // Registrar el DelegatingHandler en TODOS los HttpClient del contenedor.
-        // Esto intercepta las llamadas HTTP de la librería ApiGateway antes de que
-        // esta invoque EnsureSuccessStatusCode(), permitiendo capturar el body y
-        // el status code real del microservicio.
-        services.ConfigureHttpClientDefaults(builder =>
-        {
-            builder.AddHttpMessageHandler<Middleware.ErrorPropagationHandler>();
-        });
-
+        services.AddReverseProxy()
+            .LoadFromMemory(YarpGatewayConfig.CreateRoutes(), YarpGatewayConfig.CreateClusters(configuration))
+            .AddTransforms(YarpGatewayConfig.ConfigureTransforms);
         return services;
     }
 }

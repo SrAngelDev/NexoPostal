@@ -7,8 +7,8 @@ namespace Nexopostal.Gateway.Controllers;
 /// Proxy directo para:
 ///   GET  /api/nexopostal/reparto/entregas?rutaId=...
 ///   POST /api/nexopostal/reparto/confirmar?entregaId=...
-/// AspNetCore.ApiGateway pierde la query string en GET y en POST,
-/// por lo que estos endpoints van por proxy controller propio.
+/// Adaptador histórico conservado para los consumidores /api/nexopostal.
+/// Las rutas /api/reparto equivalentes se atienden directamente con YARP.
 /// </summary>
 [Route("api/nexopostal/reparto")]
 [ApiController]
@@ -134,7 +134,7 @@ public class RepartoEntregasProxyController : ControllerBase
     /// <summary>
     /// POST /api/nexopostal/reparto/confirmar?entregaId=N
     /// Reenvía cuerpo JSON + query string al backend de reparto.
-    /// El gateway library no preserva query params en POST.
+    /// Conserva el contrato del adaptador anterior a YARP.
     /// </summary>
     [HttpPost("confirmar")]
     public async Task<IActionResult> PostConfirmar()

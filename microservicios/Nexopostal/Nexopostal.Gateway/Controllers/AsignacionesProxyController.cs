@@ -6,8 +6,7 @@ namespace Nexopostal.Gateway.Controllers;
 /// <summary>
 /// Proxy directo para endpoints de asignaciones que necesitan preservar la query string.
 ///
-/// La librería AspNetCore.ApiGateway pierde los query params en GET (mismo motivo
-/// que <see cref="TarifasProxyController"/> u <see cref="OficinasProxyController"/>).
+/// Adaptador histórico conservado con su autorización por roles durante la migración a YARP.
 /// Cuando el operario escanea un código en la pantalla "Confirmar paso con escáner",
 /// la intranet llama a <c>GET /api/asignaciones/buscar?codigo=...</c> y necesitamos
 /// que ese <c>?codigo=</c> llegue íntegro al microservicio Logistica.

@@ -1,23 +1,7 @@
-using AspNetCore.ApiGateway.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
-
 namespace Nexopostal.Gateway.Services;
 
-/// <summary>
-/// Filtro de autorización del Gateway basado en IGatewayAuthorization
-///
-/// Se ejecuta ANTES de cada petición al GatewayController.
-/// Recibe el apiKey y routeKey para decidir si la ruta es pública o protegida.
-///
-/// Flujo:
-///   1. UseAuthentication() ya leyó el token JWT y pobló HttpContext.User
-///   2. Este filtro se ejecuta (GatewayAuthorizeAttribute → IGatewayAuthorization)
-///   3. Si la ruta es pública → deja pasar
-///   4. Si la ruta es protegida y NO hay usuario autenticado → 401
-///   5. Si la ruta es protegida y SÍ hay usuario → deja pasar al GatewayController
-/// </summary>
-public class GatewayAuthorizationService : IGatewayAuthorization
+/// <summary>Contratos públicos históricos y respuesta de autenticación compartida con JWT/YARP.</summary>
+public sealed class GatewayAuthorizationService
 {
     /// <summary>
     /// Rutas que NO requieren token JWT.
@@ -49,41 +33,20 @@ public class GatewayAuthorizationService : IGatewayAuthorization
         ("oficinas", "listar"),
     ];
 
-    public async Task AuthorizeAsync(
-        AuthorizationFilterContext context,
-        string apiKey,
-        string routeKey,
-        string verb)
+    public static bool IsPublic(string api, string route) =>
+        PublicRoutes.Contains((api.ToLowerInvariant(), route.ToLowerInvariant()));
+
+    public static object UnauthorizedResponse(HttpContext context)
     {
-        // Ruta pública: no requiere autenticación
-        if (PublicRoutes.Contains((apiKey.ToLower(), routeKey.ToLower())))
+        var blocked = string.Equals(context.Items["GatewayAuthErrorCode"] as string, "USER_BLOCKED", StringComparison.OrdinalIgnoreCase);
+        return new
         {
-            await Task.CompletedTask;
-            return;
-        }
-
-        // Ruta protegida: verificar que el usuario está autenticado vía JWT
-        if (context.HttpContext.User.Identity?.IsAuthenticated != true)
-        {
-            var errorCode = context.HttpContext.Items.TryGetValue("GatewayAuthErrorCode", out var codeObj)
-                ? codeObj as string
-                : null;
-            var userBlocked = string.Equals(errorCode, "USER_BLOCKED", StringComparison.OrdinalIgnoreCase);
-
-            context.Result = new JsonResult(new
-            {
-                error = userBlocked ? "Cuenta bloqueada" : "Acceso denegado",
-                code = userBlocked ? "USER_BLOCKED" : "UNAUTHORIZED",
-                message = userBlocked
-                    ? "Tu cuenta ha sido bloqueada por un administrador."
-                    : "Token JWT requerido o invalido para acceder a este recurso.",
-                timestamp = DateTime.UtcNow
-            })
-            {
-                StatusCode = StatusCodes.Status401Unauthorized
-            };
-        }
-
-        await Task.CompletedTask;
+            error = blocked ? "Cuenta bloqueada" : "Acceso denegado",
+            code = blocked ? "USER_BLOCKED" : "UNAUTHORIZED",
+            message = blocked ? "Tu cuenta ha sido bloqueada por un administrador."
+                : "Token JWT requerido o invalido para acceder a este recurso.",
+            timestamp = DateTime.UtcNow
+        };
     }
+
 }

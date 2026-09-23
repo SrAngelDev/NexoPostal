@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Nexopostal.Gateway.Controllers;
 
 /// <summary>
-/// Proxy directo para oficinas (evita que el gateway pierda query params).
+/// Adaptador público de oficinas conservado para compatibilidad durante la migración a YARP.
 /// </summary>
 [Route("api/nexopostal/oficinas")]
 [ApiController]

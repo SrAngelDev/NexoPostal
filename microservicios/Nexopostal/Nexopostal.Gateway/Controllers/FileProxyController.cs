@@ -6,18 +6,14 @@ namespace Nexopostal.Gateway.Controllers;
 /// Controlador que actúa como proxy directo para la descarga de archivos binarios
 /// (PDFs de etiquetas y facturas) desde los microservicios.
 ///
-/// La librería AspNetCore.ApiGateway no maneja correctamente respuestas binarias
-/// (las convierte a texto/JSON), por lo que este controlador las puentea directamente
-/// usando HttpClient.
+/// Adaptador histórico conservado para mantener el nombre de descarga y el contrato
+/// de /api/nexopostal. Las rutas REST equivalentes también admiten binarios con YARP.
 /// </summary>
 [Route("api/nexopostal")]
 [ApiController]
 public class FileProxyController : ControllerBase
 {
     // HttpClient estático para evitar socket exhaustion.
-    // NO pasa por IHttpClientFactory para evitar el ErrorPropagationHandler
-    // registrado en ConfigureHttpClientDefaults, que lee el body como string
-    // y destruiría el contenido binario en caso de error.
     internal static HttpClient _httpClient = new();
     private readonly string _ciudadanoUrl;
 

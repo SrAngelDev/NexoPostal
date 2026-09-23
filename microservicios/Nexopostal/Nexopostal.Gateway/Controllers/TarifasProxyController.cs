@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Nexopostal.Gateway.Controllers;
 
 /// <summary>
-/// Proxy directo para tarifas (evita que el gateway pierda query params en GET).
+/// Adaptador público de tarifas conservado para compatibilidad durante la migración a YARP.
 ///
 /// Endpoint público (sin autenticación) para consultar precios desde la
 /// calculadora pública de nexopostal.es y desde el flujo de envío.
