@@ -59,10 +59,12 @@ public class HomePublicTests : E2ETestBase
     }
 
     [Test]
-    [Description("Navegar a 'Tarifas' desde el navbar funciona correctamente")]
+    [Description("Navegar a 'Tarifas' desde el pie funciona correctamente")]
     public async Task NavbarTarifas_ShouldNavigateToTarifasPage()
     {
-        await Page.Locator("a:has-text('Tarifas'), button:has-text('Tarifas')").First.ClickAsync();
+        // En home el navbar oculta sus links (showLinks=false); el enlace real está en el footer.
+        // Un locator sin acotar coincide primero con el copy "Tarifas claras..." del hero.
+        await Page.Locator("footer a:has-text('Tarifas'), footer button:has-text('Tarifas')").First.ClickAsync();
         await CaptureScreenshotAsync("05-tarifas-page");
 
         await Expect(Page).ToHaveURLAsync(
@@ -71,10 +73,10 @@ public class HomePublicTests : E2ETestBase
     }
 
     [Test]
-    [Description("Navegar a 'Ayuda' desde el navbar funciona correctamente")]
+    [Description("Navegar a 'Ayuda' desde el pie funciona correctamente")]
     public async Task NavbarAyuda_ShouldNavigateToAyudaPage()
     {
-        await Page.Locator("a:has-text('Ayuda'), button:has-text('Ayuda')").First.ClickAsync();
+        await Page.Locator("footer a:has-text('Ayuda'), footer button:has-text('Ayuda')").First.ClickAsync();
         await CaptureScreenshotAsync("06-ayuda-page");
 
         await Expect(Page).ToHaveURLAsync(
