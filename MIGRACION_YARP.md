@@ -100,7 +100,30 @@ Se utiliza el pipeline existente, sin omitir puertas de validación:
 5. Solicitud `deploy-nexopostal` al repositorio `SrAngelDev/GasanzTech-CI-CD` con el SHA validado.
 6. Actualización de contenedores por el runner de infraestructura y comprobaciones posteriores.
 
-Estado de la publicación y evidencias de producción: se completarán tras finalizar la ejecución del pipeline.
+**Estado final: desplegado y verificado en producción.**
+
+- Commit de aplicación e imágenes: `9320e0d698127fd57737dbf610e02dee1fcfacb4`.
+- [Pipeline de aplicación 35895872676](https://github.com/SrAngelDev/NexoPostal/actions/runs/35895872676): **success**. Resultado: **931 pruebas unitarias, 30 de integración y 46 E2E correctas**, sin fallos; las tres compilaciones Angular y las ocho publicaciones de imágenes también finalizaron correctamente.
+- [Despliegue de infraestructura 35896500076](https://github.com/SrAngelDev/GasanzTech-CI-CD/actions/runs/35896500076): **success**. Recibió el SHA anterior, descargó esas imágenes y mostró los ocho contenedores de aplicación arrancados con esa versión. Verificación de Nginx satisfactoria. Actualización realizada el 23/09/2026 aproximadamente a las **19:34, Europe/Madrid**.
+- El artefacto `e2e-artefactos-9320e0d698127fd57737dbf610e02dee1fcfacb4` contiene el resultado TRX: **46 ejecutadas, 46 correctas, 0 fallidas, 0 omitidas**. Su retención depende del workflow (7 días).
+
+Tras completar el despliegue se realizaron **15 comprobaciones HTTP adicionales sobre producción**, todas con el resultado esperado:
+
+| Comprobación | Resultado |
+| --- | --- |
+| Portadas `nexopostal.es`, `intranet.nexopostal.es`, `driver.nexopostal.es` | 3 × HTTP 200 |
+| Oficinas: `/api/oficinas` y `/api/nexopostal/oficinas/listar` | 2 × HTTP 200, JSON |
+| Búsqueda de oficinas por `codigoPostal=28001`, con ambos prefijos | 2 × HTTP 200, JSON |
+| Tarifas: `/api/tarifas/consultar?peso=2.5` y variante `/api/nexopostal/` | 2 × HTTP 200; `pesoReal=2.5` comprobado en ambas respuestas |
+| `GET` y `POST /api/reparto/rutas` sin token | 2 × HTTP 401 |
+| `POST /api/nexopostal/reparto/crear-ruta` sin token | HTTP 401 |
+| `GET /api/nexopostal/admin-usuarios` sin token | HTTP 401 |
+| Tracking de un código de comprobación inexistente | HTTP 404 conservado |
+| Preflight CORS para `POST /api/reparto/rutas` desde el dominio driver | HTTP 204 y `Access-Control-Allow-Origin` correcto |
+
+Las comprobaciones en producción fueron de lectura o peticiones rechazadas sin autenticación; no crearon envíos, rutas ni pagos. Las operaciones autenticadas se verificaron en las suites de integración y E2E sobre entornos de prueba, no modificando datos de producción.
+
+La migración también se aplicó a la carpeta original `C:/Users/angel/Desktop/PROYECTOS/NexoPostal` mediante un parche previamente comprobado, preservando todos los cambios locales anteriores. El historial de esa carpeta no se forzó ni se limpiaron sus modificaciones. La publicación se realizó desde la copia aislada basada en el último `origin/master`.
 
 ## Reversión
 
