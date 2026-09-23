@@ -18,10 +18,10 @@ public class RepartoControllerIntegrationTests : IClassFixture<CustomRepartoWebA
     public RepartoControllerIntegrationTests(CustomRepartoWebApplicationFactory factory)
     {
         _factory = factory;
-        RepartoTestAuthHandler.DefaultRole = "Admin";
-        RepartoTestAuthHandler.DefaultIdentityUserId = "test-reparto-admin-id";
         _client = factory.CreateClient();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
+        _client.DefaultRequestHeaders.Add("X-Test-Role", "Admin");
+        _client.DefaultRequestHeaders.Add("X-Test-Identity-User-Id", "test-reparto-admin-id");
     }
 
     // ═══════════════════════════════════════════
@@ -59,10 +59,10 @@ public class RepartoControllerIntegrationTests : IClassFixture<CustomRepartoWebA
     [Fact]
     public async Task ObtenerMiPerfil_RepartidorAutenticadoSinPerfil_DeberiaRetornar404()
     {
-        RepartoTestAuthHandler.DefaultRole = "Repartidor";
-        RepartoTestAuthHandler.DefaultIdentityUserId = "repartidor-sin-perfil-id";
         var client = _factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
+        client.DefaultRequestHeaders.Add("X-Test-Role", "Repartidor");
+        client.DefaultRequestHeaders.Add("X-Test-Identity-User-Id", "repartidor-sin-perfil-id");
 
         var response = await client.GetAsync("/api/reparto/mi-perfil");
 

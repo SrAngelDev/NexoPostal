@@ -23,6 +23,7 @@ namespace Nexopostal.Tests.Reparto;
 /// </summary>
 public class RepartoTestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
+    // Valores por defecto usados cuando el request no envía cabeceras de test explícitas.
     public static string DefaultRole { get; set; } = "Admin";
     public static int DefaultOficinaJsonId { get; set; } = 1;
     public static string DefaultIdentityUserId { get; set; } = "test-reparto-user-id";
@@ -41,13 +42,26 @@ public class RepartoTestAuthHandler : AuthenticationHandler<AuthenticationScheme
         if (!Request.Headers.ContainsKey("Authorization"))
             return Task.FromResult(AuthenticateResult.NoResult());
 
+        // El rol/usuario se leen por-request (cabeceras propias del test) en lugar de un
+        // estado estático compartido, para evitar condiciones de carrera cuando xUnit
+        // ejecuta varias clases de test en paralelo contra el mismo handler.
+        var role = Request.Headers.TryGetValue("X-Test-Role", out var roleHeader)
+            ? roleHeader.ToString()
+            : DefaultRole;
+        var identityUserId = Request.Headers.TryGetValue("X-Test-Identity-User-Id", out var userHeader)
+            ? userHeader.ToString()
+            : DefaultIdentityUserId;
+        var oficinaJsonId = Request.Headers.TryGetValue("X-Test-Oficina-Json-Id", out var oficinaHeader)
+            ? oficinaHeader.ToString()
+            : DefaultOficinaJsonId.ToString();
+
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, DefaultIdentityUserId),
-            new Claim("sub", DefaultIdentityUserId),
+            new Claim(ClaimTypes.NameIdentifier, identityUserId),
+            new Claim("sub", identityUserId),
             new Claim(ClaimTypes.Name, "test-reparto@nexopostal.com"),
-            new Claim(ClaimTypes.Role, DefaultRole),
-            new Claim("OficinaJsonId", DefaultOficinaJsonId.ToString())
+            new Claim(ClaimTypes.Role, role),
+            new Claim("OficinaJsonId", oficinaJsonId)
         };
         var identity = new ClaimsIdentity(claims, "Test");
         var principal = new ClaimsPrincipal(identity);

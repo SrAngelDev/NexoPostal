@@ -19,10 +19,10 @@ public class RepartoFlowIntegrationTests : IClassFixture<CustomRepartoWebApplica
 
     public RepartoFlowIntegrationTests(CustomRepartoWebApplicationFactory factory)
     {
-        RepartoTestAuthHandler.DefaultRole = "Admin";
-        RepartoTestAuthHandler.DefaultIdentityUserId = "flow-admin-id";
         _client = factory.CreateClient();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
+        _client.DefaultRequestHeaders.Add("X-Test-Role", "Admin");
+        _client.DefaultRequestHeaders.Add("X-Test-Identity-User-Id", "flow-admin-id");
     }
 
     // ═══════════════════════════════════════════
