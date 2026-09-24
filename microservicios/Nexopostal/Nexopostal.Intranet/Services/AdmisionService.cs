@@ -15,14 +15,9 @@ namespace Nexopostal.Intranet.Services;
 ///   3. Si CP origen ≠ CP destino → se crea movimiento troncal
 ///   4. Se notifica vía SignalR a los OperarioLogisticos del CTA destino
 /// </summary>
-public interface IAdmisionService
+public interface IAdmisionService : Nexopostal.Intranet.Application.Admision.IAdmisionCommands
 {
-    /// <summary>
-    /// Admite un paquete en la red logística:
-    /// resuelve el CTA por código postal, crea el movimiento si es necesario
-    /// y notifica en tiempo real al CTA destino.
-    /// </summary>
-    Task<AdmisionPaqueteResponseDto> AdmitirPaquete(AdmisionPaqueteDto dto);
+
 }
 
 public class AdmisionService : IAdmisionService

@@ -8,9 +8,9 @@ namespace Nexopostal.Intranet.Services;
 /// Se monta sobre el IntranetHub. Emite siempre el evento "NotificacionBroadcast"
 /// con un payload genérico que el front interpreta.
 /// </summary>
-public interface IBroadcastService
+public interface IBroadcastService : Nexopostal.Intranet.Application.Broadcast.IBroadcastCommands
 {
-    Task BroadcastAsync(BroadcastRequest req);
+
 }
 
 public class BroadcastRequest

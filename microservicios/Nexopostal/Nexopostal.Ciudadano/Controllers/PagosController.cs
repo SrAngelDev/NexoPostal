@@ -1,3 +1,5 @@
+using MediatR;
+using Nexopostal.Ciudadano.Application.Pagos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Ciudadano.DTOs;
@@ -16,37 +18,13 @@ namespace Nexopostal.Ciudadano.Controllers;
 [ApiController]
 public class PagosController : ControllerBase
 {
-    private readonly IEnvioRepository _envioRepo;
-    private readonly IStripeService _stripeService;
-    private readonly IEtiquetaPdfService _etiquetaPdfService;
-    private readonly IFacturaPdfService _facturaPdfService;
-    private readonly IEmailService _emailService;
-    private readonly ITrackingNumberGenerator _trackingGenerator;
-    private readonly ILogisticaNotifierService _logisticaNotifier;
-    private readonly ITarifasService _tarifasService;
+    private readonly ISender _sender;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PagosController> _logger;
 
-    public PagosController(
-        IEnvioRepository envioRepo,
-        IStripeService stripeService,
-        IEtiquetaPdfService etiquetaPdfService,
-        IFacturaPdfService facturaPdfService,
-        IEmailService emailService,
-        ITrackingNumberGenerator trackingGenerator,
-        ILogisticaNotifierService logisticaNotifier,
-        ITarifasService tarifasService,
-        IConfiguration configuration,
-        ILogger<PagosController> logger)
+    public PagosController(ISender sender, IConfiguration configuration, ILogger<PagosController> logger)
     {
-        _envioRepo = envioRepo;
-        _stripeService = stripeService;
-        _etiquetaPdfService = etiquetaPdfService;
-        _facturaPdfService = facturaPdfService;
-        _emailService = emailService;
-        _trackingGenerator = trackingGenerator;
-        _logisticaNotifier = logisticaNotifier;
-        _tarifasService = tarifasService;
+        _sender = sender;
         _configuration = configuration;
         _logger = logger;
     }
@@ -61,6 +39,7 @@ public class PagosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CrearSesionPago([FromBody] CrearSesionPagoDto dto)
     {
+
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
@@ -84,77 +63,7 @@ public class PagosController : ControllerBase
         if (tipoEntrega == TipoEntrega.Domicilio && dto.OficinaDestinoId is not null)
             return BadRequest(new { mensaje = "OficinaDestinoId debe ser null cuando TipoEntrega == Domicilio." });
 
-        var dimensiones = _tarifasService.ParseDimensiones(dto.Dimensiones);
-        var tarifa = _tarifasService.Calcular(new TarifaCalculoInput(
-            dto.Peso,
-            dimensiones.Largo,
-            dimensiones.Ancho,
-            dimensiones.Alto,
-            dto.CodigoPostalOrigen,
-            dto.CodigoPostalDestino,
-            dto.TipoTarifa));
-
-        // 1. Crear el envío en estado PendientePago
-        var envio = new Envio
-        {
-            NumeroSeguimiento = _trackingGenerator.Generate(),
-            NumeroExpedicion = _trackingGenerator.GenerateExpedicion(),
-            IdentityUserId = userId,
-            PesoKg = dto.Peso,
-            Dimensiones = dto.Dimensiones,
-            CodigoPostalOrigen = dto.CodigoPostalOrigen,
-            CodigoPostalDestino = dto.CodigoPostalDestino,
-            Origen = dto.DireccionOrigen,
-            Destino = dto.DireccionDestino,
-            NombreRemitente = dto.NombreRemitente,
-            ApellidosRemitente = dto.ApellidosRemitente,
-            TelefonoRemitente = dto.TelefonoRemitente,
-            EmailRemitente = dto.EmailRemitente,
-            DniRemitente = dto.DniRemitente,
-            NombreDestinatario = dto.NombreDestinatario,
-            ApellidosDestinatario = dto.ApellidosDestinatario,
-            TelefonoDestinatario = dto.TelefonoDestinatario,
-            EmailDestinatario = dto.EmailDestinatario,
-            DniDestinatario = dto.DniDestinatario,
-            TipoTarifa = tarifa.TipoTarifa,
-            TiempoEntregaEstimado = tarifa.TiempoEntregaEstimado,
-            CosteCalculado = tarifa.PrecioTotal,
-            OficinaOrigenId = dto.OficinaOrigenId,
-            OficinaDestinoId = dto.OficinaDestinoId,
-            TipoEntrega = tipoEntrega,
-            EstadoActual = EstadoEnvio.PendientePago,
-            EstadoInternoActual = EstadoInterno.PendientePago,
-            Pagado = false,
-            FechaCreacion = DateTime.UtcNow
-        };
-
-        await _envioRepo.CreateAsync(envio);
-
-        _logger.LogInformation(
-            "Envío {NumeroSeguimiento} creado en estado PendientePago por usuario {UserId}",
-            envio.NumeroSeguimiento, userId);
-
-        // 2. Crear sesión de Stripe Checkout
-        var successUrl = $"{dto.UrlBase.TrimEnd('/')}/pago-exitoso?session_id={{CHECKOUT_SESSION_ID}}";
-        var cancelUrl = $"{dto.UrlBase.TrimEnd('/')}/pago-cancelado?envio={envio.NumeroSeguimiento}";
-
-        var (sessionUrl, sessionId) = await _stripeService.CrearSesionCheckout(
-            envio, successUrl, cancelUrl);
-
-        // 3. Guardar el ID de sesión de Stripe en el envío
-        envio.StripeSessionId = sessionId;
-        await _envioRepo.UpdateAsync(envio);
-
-        return Ok(new SesionPagoCreadaDto
-        {
-            SessionUrl = sessionUrl,
-            SessionId = sessionId,
-            NumeroSeguimiento = envio.NumeroSeguimiento,
-            PrecioCalculado = tarifa.PrecioTotal,
-            TiempoEntregaEstimado = tarifa.TiempoEntregaEstimado,
-            Zona = tarifa.Zona,
-            TipoTarifa = tarifa.TipoTarifa
-        });
+        return Ok(await _sender.Send(new CrearSesionPagoCommand(dto, userId, tipoEntrega), HttpContext?.RequestAborted ?? CancellationToken.None));
     }
 
     /// <summary>
@@ -167,35 +76,13 @@ public class PagosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> VerificarPago(string sessionId)
     {
+
         var userId = ObtenerUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized("Token inválido");
 
-        // Buscar el envío por sessionId y verificar que pertenece al usuario
-        var envio = await _envioRepo.GetByStripeSessionAsync(sessionId);
-
-        if (envio == null || envio.IdentityUserId != userId)
-        {
-            _logger.LogWarning("No se encontró envío con sessionId {SessionId} para usuario {UserId}",
-                sessionId, userId);
-            return NotFound(new { mensaje = "Sesión de pago no encontrada" });
-        }
-
-        // Si ya está procesado, devolver directamente el resultado
-        if (envio.Pagado)
-        {
-            return Ok(MapToVerificarDto(envio));
-        }
-
-        // Verificar con Stripe
-        var pagado = await _stripeService.VerificarPagoSesion(sessionId);
-
-        if (pagado)
-        {
-            await ProcesarPagoExitoso(envio);
-        }
-
-        return Ok(MapToVerificarDto(envio));
+        var resultado = await _sender.Send(new VerificarPagoCommand(sessionId, userId), HttpContext?.RequestAborted ?? CancellationToken.None);
+        return resultado is null ? NotFound(new { mensaje = "Sesión de pago no encontrada" }) : Ok(resultado);
     }
 
     /// <summary>
@@ -209,6 +96,7 @@ public class PagosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ReintentarPago(string numero, [FromBody] ReintentarPagoDto dto)
     {
+
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
@@ -216,38 +104,13 @@ public class PagosController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized("Token inválido");
 
-        var envio = await _envioRepo.GetByTrackingAndUserAsync(numero, userId);
-
-        if (envio == null)
-            return NotFound(new { mensaje = "Envío no encontrado" });
-
-        if (envio.Pagado || envio.EstadoActual != EstadoEnvio.PendientePago)
-            return BadRequest(new { mensaje = "Este envío ya ha sido pagado o no está en estado pendiente" });
-
-        // Crear nueva sesión de Stripe
-        var successUrl = $"{dto.UrlBase.TrimEnd('/')}/pago-exitoso?session_id={{CHECKOUT_SESSION_ID}}";
-        var cancelUrl = $"{dto.UrlBase.TrimEnd('/')}/pago-cancelado?envio={envio.NumeroSeguimiento}";
-
-        var (sessionUrl, sessionId) = await _stripeService.CrearSesionCheckout(
-            envio, successUrl, cancelUrl);
-
-        envio.StripeSessionId = sessionId;
-        await _envioRepo.UpdateAsync(envio);
-
-        _logger.LogInformation(
-            "Reintento de pago para envío {NumeroSeguimiento}: nueva sesión {SessionId}",
-            envio.NumeroSeguimiento, sessionId);
-
-        return Ok(new SesionPagoCreadaDto
+        var resultado = await _sender.Send(new ReintentarPagoCommand(numero, userId, dto), HttpContext?.RequestAborted ?? CancellationToken.None);
+        return resultado.Error switch
         {
-            SessionUrl = sessionUrl,
-            SessionId = sessionId,
-            NumeroSeguimiento = envio.NumeroSeguimiento,
-            PrecioCalculado = envio.CosteCalculado,
-            TiempoEntregaEstimado = envio.TiempoEntregaEstimado,
-            Zona = string.Empty,
-            TipoTarifa = envio.TipoTarifa ?? string.Empty
-        });
+            ErrorReintento.EnvioNoEncontrado => NotFound(new { mensaje = "Envío no encontrado" }),
+            ErrorReintento.EstadoNoPendiente => BadRequest(new { mensaje = "Este envío ya ha sido pagado o no está en estado pendiente" }),
+            _ => Ok(resultado.Sesion)
+        };
     }
 
     /// <summary>
@@ -286,15 +149,7 @@ public class PagosController : ControllerBase
                 var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
                 if (session != null)
                 {
-                    var envio = await _envioRepo.GetByStripeSessionAsync(session.Id);
-
-                    if (envio != null && !envio.Pagado)
-                    {
-                        await ProcesarPagoExitoso(envio);
-                        _logger.LogInformation(
-                            "Webhook: pago procesado para envío {NumeroSeguimiento}",
-                            envio.NumeroSeguimiento);
-                    }
+                    await _sender.Send(new ConfirmarPagoWebhookCommand(session.Id), HttpContext?.RequestAborted ?? CancellationToken.None);
                 }
             }
 
@@ -310,80 +165,8 @@ public class PagosController : ControllerBase
     // ===== MÉTODOS AUXILIARES =====
 
     /// <summary>
-    /// Procesa un pago exitoso: actualiza estado, genera PDFs y envía email
+    /// Obtiene el usuario autenticado para limitar cada operación a sus envíos.
     /// </summary>
-    private async Task ProcesarPagoExitoso(Envio envio)
-    {
-        envio.Pagado = true;
-        envio.FechaPago = DateTime.UtcNow;
-        envio.EstadoActual = EstadoEnvio.Admitido;
-        envio.EstadoInternoActual = EstadoInterno.PendienteRecogida;
-        await _envioRepo.UpdateAsync(envio);
-
-        _logger.LogInformation(
-            "Pago confirmado para envío {NumeroSeguimiento}. Generando documentos...",
-            envio.NumeroSeguimiento);
-
-        // Generación de PDFs + envío de email (best-effort).
-        // Si falla cualquier paso, el pago ya está confirmado en BD: no debemos devolver HTTP 500
-        // ni bloquear el alta del paquete en la red logística.
-        try
-        {
-            var etiquetaPdf = _etiquetaPdfService.GenerarEtiqueta(envio);
-            var facturaPdf = _facturaPdfService.GenerarFactura(envio);
-
-            await _emailService.EnviarConfirmacionEnvio(envio, facturaPdf, etiquetaPdf);
-
-            _logger.LogInformation(
-                "Documentos generados y email enviado para envío {NumeroSeguimiento}",
-                envio.NumeroSeguimiento);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex,
-                "❌ Error generando documentos o enviando email para {NumeroSeguimiento}. " +
-                "El pago ya está confirmado; se podrá reenviar manualmente.",
-                envio.NumeroSeguimiento);
-        }
-
-        // 📡 Notificar al microservicio de logística (Intranet) para que
-        // resuelva el CTA por código postal y notifique vía SignalR
-        var esUrgente = envio.TipoTarifa?.Contains("Premium", StringComparison.OrdinalIgnoreCase) == true;
-        var remitente = $"{envio.NombreRemitente} {envio.ApellidosRemitente}".Trim();
-        var destinatario = $"{envio.NombreDestinatario} {envio.ApellidosDestinatario}".Trim();
-
-        await _logisticaNotifier.NotificarAdmisionAsync(
-            envio.NumeroExpedicion,
-            envio.CodigoPostalDestino,
-            envio.CodigoPostalOrigen,
-            remitente,
-            destinatario,
-            esUrgente,
-            envio.NumeroSeguimiento,
-            envio.Destino,
-            null,
-            envio.TelefonoDestinatario,
-            envio.OficinaOrigenId,
-            envio.OficinaDestinoId,
-            envio.TipoEntrega.ToString());
-    }
-
-    private VerificarPagoResultadoDto MapToVerificarDto(Envio envio)
-    {
-        return new VerificarPagoResultadoDto
-        {
-            Pagado = envio.Pagado,
-            NumeroSeguimiento = envio.NumeroSeguimiento,
-            Estado = envio.EstadoActual.ToString(),
-            Precio = envio.CosteCalculado,
-            Destino = envio.Destino,
-            TipoTarifa = envio.TipoTarifa,
-            TiempoEntregaEstimado = envio.TiempoEntregaEstimado,
-            EmailRemitente = envio.EmailRemitente,
-            FechaPago = envio.FechaPago
-        };
-    }
-
     private string? ObtenerUserId()
     {
         return User.FindFirst(ClaimTypes.NameIdentifier)?.Value

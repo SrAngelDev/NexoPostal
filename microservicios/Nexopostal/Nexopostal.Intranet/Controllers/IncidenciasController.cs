@@ -4,9 +4,9 @@ using Nexopostal.Intranet.DTOs;
 using Nexopostal.Intranet.Models;
 using Nexopostal.Intranet.Services;
 using System.Security.Claims;
+using MediatR;
 
 namespace Nexopostal.Intranet.Controllers;
-
 /// <summary>
 /// Controlador para la gestión de incidencias en CTAs.
 /// 
@@ -22,13 +22,9 @@ namespace Nexopostal.Intranet.Controllers;
 [Authorize(Roles = "Admin,Supervisor")]
 public class IncidenciasController : ControllerBase
 {
-    private readonly IIncidenciaService _incidenciaService;
-    private readonly IOperarioService _operarioService;
-
-    public IncidenciasController(IIncidenciaService incidenciaService, IOperarioService operarioService)
+    public IncidenciasController(ISender sender)
     {
-        _incidenciaService = incidenciaService;
-        _operarioService = operarioService;
+        _sender = sender;
     }
 
     /// <summary>
@@ -40,17 +36,16 @@ public class IncidenciasController : ControllerBase
     public async Task<ActionResult<IncidenciaDetalleDto>> Crear([FromBody] CrearIncidenciaDto dto)
     {
         var operario = await ObtenerOperarioActual();
-        if (operario == null) return Forbid();
-
+        if (operario == null)
+            return Forbid();
         if (operario.Rol != RolOperario.Supervisor && !User.IsInRole("Admin"))
             return Forbid();
-
         try
         {
-            var incidencia = await _incidenciaService.CrearIncidencia(dto, operario.Id, operario.CentroTratamientoId);
+            var incidencia = await _sender.Send(new Nexopostal.Intranet.Application.Incidencia.CrearIncidenciaCommand(dto, operario.Id, operario.CentroTratamientoId), HttpContext?.RequestAborted ?? CancellationToken.None);
             return CreatedAtAction(nameof(ObtenerDetalle), new { id = incidencia.Id }, incidencia);
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        catch (Exception ex)when (ex is ArgumentException or InvalidOperationException)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -59,34 +54,31 @@ public class IncidenciasController : ControllerBase
     /// <summary>
     /// Endpoint reservado a operarios (OperarioCTA / OperarioOficina) para reportar
     /// que han escaneado un paquete fuera de sus tareas asignadas. Crea siempre una
-    /// incidencia tipo <see cref="TipoIncidencia.PaqueteFueraDeTareas"/>.
+    /// incidencia tipo <see cref = "TipoIncidencia.PaqueteFueraDeTareas"/>.
     /// </summary>
     [HttpPost("reportar-fuera-tareas")]
     [Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
     [ProducesResponseType(typeof(IncidenciaDetalleDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IncidenciaDetalleDto>> ReportarFueraDeTareas(
-        [FromBody] ReportarFueraTareasDto dto)
+    public async Task<ActionResult<IncidenciaDetalleDto>> ReportarFueraDeTareas([FromBody] ReportarFueraTareasDto dto)
     {
         var operario = await ObtenerOperarioActual();
-        if (operario == null) return Forbid();
-
+        if (operario == null)
+            return Forbid();
         if (string.IsNullOrWhiteSpace(dto.NumeroExpedicion) || string.IsNullOrWhiteSpace(dto.Motivo))
             return BadRequest(new { message = "Número de expedición y motivo obligatorios" });
-
         var crearDto = new CrearIncidenciaDto
         {
             NumeroExpedicion = dto.NumeroExpedicion.Trim(),
             Tipo = TipoIncidencia.PaqueteFueraDeTareas.ToString(),
             Descripcion = dto.Motivo.Trim()
         };
-
         try
         {
-            var incidencia = await _incidenciaService.CrearIncidencia(crearDto, operario.Id, operario.CentroTratamientoId);
+            var incidencia = await _sender.Send(new Nexopostal.Intranet.Application.Incidencia.CrearIncidenciaCommand(crearDto, operario.Id, operario.CentroTratamientoId), HttpContext?.RequestAborted ?? CancellationToken.None);
             return CreatedAtAction(nameof(ObtenerDetalle), new { id = incidencia.Id }, incidencia);
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        catch (Exception ex)when (ex is ArgumentException or InvalidOperationException)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -97,14 +89,12 @@ public class IncidenciasController : ControllerBase
     /// </summary>
     [HttpGet("cta/{ctaId:int}")]
     [ProducesResponseType(typeof(List<IncidenciaResumenDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<IncidenciaResumenDto>>> ObtenerPorCta(
-        int ctaId, [FromQuery] string? estado = null)
+    public async Task<ActionResult<List<IncidenciaResumenDto>>> ObtenerPorCta(int ctaId, [FromQuery] string? estado = null)
     {
         EstadoIncidencia? filtro = null;
         if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoIncidencia>(estado, true, out var e))
             filtro = e;
-
-        var incidencias = await _incidenciaService.ObtenerIncidenciasCta(ctaId, filtro);
+        var incidencias = await _sender.Send(new Nexopostal.Intranet.Application.Incidencia.ObtenerIncidenciasCtaQuery(ctaId, filtro), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(incidencias);
     }
 
@@ -114,20 +104,15 @@ public class IncidenciasController : ControllerBase
     [HttpGet("global")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(List<IncidenciaResumenDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<IncidenciaResumenDto>>> ObtenerGlobales(
-        [FromQuery] string? estado = null,
-        [FromQuery] int? ctaId = null,
-        [FromQuery] string? tipo = null)
+    public async Task<ActionResult<List<IncidenciaResumenDto>>> ObtenerGlobales([FromQuery] string? estado = null, [FromQuery] int? ctaId = null, [FromQuery] string? tipo = null)
     {
         EstadoIncidencia? filtroEstado = null;
         if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoIncidencia>(estado, true, out var e))
             filtroEstado = e;
-
         TipoIncidencia? filtroTipo = null;
         if (!string.IsNullOrEmpty(tipo) && Enum.TryParse<TipoIncidencia>(tipo, true, out var t))
             filtroTipo = t;
-
-        var incidencias = await _incidenciaService.ObtenerIncidenciasGlobales(filtroEstado, ctaId, filtroTipo);
+        var incidencias = await _sender.Send(new Nexopostal.Intranet.Application.Incidencia.ObtenerIncidenciasGlobalesQuery(filtroEstado, ctaId, filtroTipo), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(incidencias);
     }
 
@@ -139,8 +124,9 @@ public class IncidenciasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IncidenciaDetalleDto>> ObtenerDetalle(int id)
     {
-        var detalle = await _incidenciaService.ObtenerDetalle(id);
-        if (detalle == null) return NotFound(new { message = "Incidencia no encontrada" });
+        var detalle = await _sender.Send(new Nexopostal.Intranet.Application.Incidencia.ObtenerDetalleQuery(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (detalle == null)
+            return NotFound(new { message = "Incidencia no encontrada" });
         return Ok(detalle);
     }
 
@@ -151,7 +137,7 @@ public class IncidenciasController : ControllerBase
     [ProducesResponseType(typeof(List<IncidenciaResumenDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<IncidenciaResumenDto>>> ObtenerPorPaquete(string numeroExpedicion)
     {
-        var incidencias = await _incidenciaService.ObtenerIncidenciasPaquete(numeroExpedicion);
+        var incidencias = await _sender.Send(new Nexopostal.Intranet.Application.Incidencia.ObtenerIncidenciasPaqueteQuery(numeroExpedicion), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(incidencias);
     }
 
@@ -166,22 +152,25 @@ public class IncidenciasController : ControllerBase
     {
         try
         {
-            var resultado = await _incidenciaService.ActualizarIncidencia(id, dto);
-            if (resultado == null) return NotFound(new { message = "Incidencia no encontrada" });
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Incidencia.ActualizarIncidenciaCommand(id, dto), HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (resultado == null)
+                return NotFound(new { message = "Incidencia no encontrada" });
             return Ok(resultado);
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        catch (Exception ex)when (ex is ArgumentException or InvalidOperationException)
         {
             return BadRequest(new { message = ex.Message });
         }
     }
 
     // === Helper privado ===
-
     private async Task<OperarioCta?> ObtenerOperarioActual()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return null;
-        return await _operarioService.ObtenerPorIdentityUserId(userId);
+        if (string.IsNullOrEmpty(userId))
+            return null;
+        return await _sender.Send(new Nexopostal.Intranet.Application.Operario.ObtenerPorIdentityUserIdQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None);
     }
+
+    private readonly ISender _sender;
 }

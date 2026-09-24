@@ -12,22 +12,9 @@ namespace Nexopostal.Reparto.Services;
 /// ha marcado como "DisponibleParaReparto" y que están a la espera de ser
 /// añadidos a una ruta concreta por el JefeReparto.
 /// </summary>
-public interface IBandejaPendientesService
+public interface IBandejaPendientesService : Nexopostal.Reparto.Application.BandejaPendientes.IBandejaPendientesCommands, Nexopostal.Reparto.Application.BandejaPendientes.IBandejaPendientesQueries
 {
-    /// <summary>
-    /// Registra un paquete en la bandeja del CTA. Idempotente por número de expedición:
-    /// si ya existía una entrada no asignada, devuelve la existente con Idempotente=true.
-    /// </summary>
-    Task<RegistrarPaqueteBandejaResponseDto> RegistrarPaqueteAsync(RegistrarPaqueteBandejaRequestDto dto);
 
-    /// <summary>Lista los pendientes de un CTA. Por defecto solo los no asignados.</summary>
-    Task<List<PaqueteBandejaDto>> ListarPendientesAsync(int? ctaId, bool incluirAsignados = false);
-
-    /// <summary>Añade un pendiente a una ruta planificada y crea la EntregaPaquete asociada.</summary>
-    Task<(PaqueteBandejaDto? Pendiente, EntregaPaqueteDto? Entrega, string? Error)> AsignarARutaAsync(
-        int pendienteId,
-        AsignarPendienteARutaDto dto,
-        string? asignadoPorIdentityUserId);
 }
 
 public class BandejaPendientesService : IBandejaPendientesService

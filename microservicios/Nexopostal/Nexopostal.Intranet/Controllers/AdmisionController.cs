@@ -5,9 +5,9 @@ using Nexopostal.Intranet.Models;
 using Nexopostal.Intranet.Repositories;
 using Nexopostal.Intranet.Services;
 using System.Security.Claims;
+using MediatR;
 
 namespace Nexopostal.Intranet.Controllers;
-
 /// <summary>
 /// Controlador para la admisión de paquetes en la red logística de NexoPostal.
 /// 
@@ -29,21 +29,15 @@ namespace Nexopostal.Intranet.Controllers;
 [Authorize(Roles = "Admin,OperarioCTA")]
 public class AdmisionController : ControllerBase
 {
-    private readonly IAdmisionService _admisionService;
     private readonly ICiudadanoEnvioAltaService _envioAltaService;
     private readonly IOperarioOficinaRepository _operarioOficinaRepo;
     private readonly IConfiguration _configuration;
-
-    public AdmisionController(
-        IAdmisionService admisionService,
-        ICiudadanoEnvioAltaService envioAltaService,
-        IOperarioOficinaRepository operarioOficinaRepo,
-        IConfiguration configuration)
+    public AdmisionController(ICiudadanoEnvioAltaService envioAltaService, IOperarioOficinaRepository operarioOficinaRepo, IConfiguration configuration, ISender sender)
     {
-        _admisionService = admisionService;
         _envioAltaService = envioAltaService;
         _operarioOficinaRepo = operarioOficinaRepo;
         _configuration = configuration;
+        _sender = sender;
     }
 
     /// <summary>
@@ -55,7 +49,7 @@ public class AdmisionController : ControllerBase
     /// Si se proporciona el código postal de origen y corresponde a un CTA diferente,
     /// se crea automáticamente un movimiento troncal con el tipo de transporte óptimo.
     /// </summary>
-    /// <param name="dto">Datos del paquete a admitir</param>
+    /// <param name = "dto">Datos del paquete a admitir</param>
     /// <returns>Información del enrutamiento y CTA asignado</returns>
     [HttpPost("paquete")]
     [ProducesResponseType(typeof(AdmisionPaqueteResponseDto), StatusCodes.Status200OK)]
@@ -64,7 +58,7 @@ public class AdmisionController : ControllerBase
     {
         try
         {
-            var resultado = await _admisionService.AdmitirPaquete(dto);
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Admision.AdmitirPaqueteCommand(dto), HttpContext?.RequestAborted ?? CancellationToken.None);
             return Ok(resultado);
         }
         catch (ArgumentException ex)
@@ -92,7 +86,6 @@ public class AdmisionController : ControllerBase
         // Validar service key para comunicación inter-servicio
         var expectedKey = _configuration["InterServiceSettings:ServiceKey"] ?? "nexopostal-internal-service-key-2025";
         var providedKey = Request.Headers["X-Service-Key"].FirstOrDefault();
-
         if (string.IsNullOrEmpty(providedKey) || providedKey != expectedKey)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { message = "Service key inválida" });
@@ -100,7 +93,7 @@ public class AdmisionController : ControllerBase
 
         try
         {
-            var resultado = await _admisionService.AdmitirPaquete(dto);
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Admision.AdmitirPaqueteCommand(dto), HttpContext?.RequestAborted ?? CancellationToken.None);
             return Ok(resultado);
         }
         catch (ArgumentException ex)
@@ -126,48 +119,33 @@ public class AdmisionController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<AltaEnvioOficinaResponseDto>> AltaPresencialOficina(
-        [FromBody] AltaEnvioOficinaIntranetDto dto,
-        CancellationToken ct)
+    public async Task<ActionResult<AltaEnvioOficinaResponseDto>> AltaPresencialOficina([FromBody] AltaEnvioOficinaIntranetDto dto, CancellationToken ct)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-
         // 1. Resolver OperarioOficina autenticado
-        var identityUserId =
-            User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value;
-
+        var identityUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
         if (string.IsNullOrEmpty(identityUserId))
             return Unauthorized(new { message = "Token inválido (sin sub)." });
-
         OperarioOficina? operario = null;
-
         // Admin puede operar como cualquier oficina si manda header
         var esAdmin = User.IsInRole("Admin");
         if (!esAdmin)
         {
             operario = await _operarioOficinaRepo.GetByIdentityUserIdAsync(identityUserId);
             if (operario is null)
-                return StatusCode(StatusCodes.Status409Conflict,
-                    new { message = "Tu usuario no está vinculado a ningún operario de oficina." });
+                return StatusCode(StatusCodes.Status409Conflict, new { message = "Tu usuario no está vinculado a ningún operario de oficina." });
             if (!operario.Activo)
-                return StatusCode(StatusCodes.Status409Conflict,
-                    new { message = "El operario está dado de baja." });
+                return StatusCode(StatusCodes.Status409Conflict, new { message = "El operario está dado de baja." });
         }
 
-        var oficinaOrigenId = operario?.OficinaJsonId
-            ?? (int.TryParse(Request.Headers["X-Oficina-Origen-Id"].FirstOrDefault(), out var ofiHdr) ? ofiHdr : 0);
-
+        var oficinaOrigenId = operario?.OficinaJsonId ?? (int.TryParse(Request.Headers["X-Oficina-Origen-Id"].FirstOrDefault(), out var ofiHdr) ? ofiHdr : 0);
         if (oficinaOrigenId <= 0)
             return BadRequest(new { message = "No se pudo determinar OficinaOrigenId." });
-
         // 2. Crear envío en Ciudadano
         var creado = await _envioAltaService.CrearAsync(dto, oficinaOrigenId, ct);
         if (creado is null)
-            return StatusCode(StatusCodes.Status502BadGateway,
-                new { message = "No se pudo crear el envío en Ciudadano." });
-
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = "No se pudo crear el envío en Ciudadano." });
         // 3. Admitir paquete con YaRecogidoEnOrigen=true → genera tarea SalidaOficinaACta
         var admisionDto = new AdmisionPaqueteDto
         {
@@ -186,37 +164,19 @@ public class AdmisionController : ControllerBase
             YaRecogidoEnOrigen = true,
             OperarioOficinaId = operario?.Id
         };
-
         AdmisionPaqueteResponseDto? admision;
         try
         {
-            admision = await _admisionService.AdmitirPaquete(admisionDto);
+            admision = await _sender.Send(new Nexopostal.Intranet.Application.Admision.AdmitirPaqueteCommand(admisionDto), HttpContext?.RequestAborted ?? CancellationToken.None);
         }
         catch (ArgumentException ex)
         {
             // El envío sí está creado en Ciudadano pero no se pudo enrutar.
-            return Ok(new AltaEnvioOficinaResponseDto
-            {
-                NumeroExpedicion = creado.NumeroExpedicion,
-                NumeroSeguimiento = creado.NumeroSeguimiento,
-                CosteCalculado = creado.CosteCalculado,
-                TipoEntrega = creado.TipoEntrega,
-                OficinaOrigenId = creado.OficinaOrigenId,
-                OficinaDestinoId = creado.OficinaDestinoId,
-                Mensaje = "Envío creado, pero la admisión logística falló: " + ex.Message
-            });
+            return Ok(new AltaEnvioOficinaResponseDto { NumeroExpedicion = creado.NumeroExpedicion, NumeroSeguimiento = creado.NumeroSeguimiento, CosteCalculado = creado.CosteCalculado, TipoEntrega = creado.TipoEntrega, OficinaOrigenId = creado.OficinaOrigenId, OficinaDestinoId = creado.OficinaDestinoId, Mensaje = "Envío creado, pero la admisión logística falló: " + ex.Message });
         }
 
-        return Ok(new AltaEnvioOficinaResponseDto
-        {
-            NumeroExpedicion = creado.NumeroExpedicion,
-            NumeroSeguimiento = creado.NumeroSeguimiento,
-            CosteCalculado = creado.CosteCalculado,
-            TipoEntrega = creado.TipoEntrega,
-            OficinaOrigenId = creado.OficinaOrigenId,
-            OficinaDestinoId = creado.OficinaDestinoId,
-            CtaDestinoCodigo = admision.CtaDestinoCodigo,
-            Mensaje = "Envío dado de alta y tarea SalidaOficinaACta asignada al operario."
-        });
+        return Ok(new AltaEnvioOficinaResponseDto { NumeroExpedicion = creado.NumeroExpedicion, NumeroSeguimiento = creado.NumeroSeguimiento, CosteCalculado = creado.CosteCalculado, TipoEntrega = creado.TipoEntrega, OficinaOrigenId = creado.OficinaOrigenId, OficinaDestinoId = creado.OficinaDestinoId, CtaDestinoCodigo = admision.CtaDestinoCodigo, Mensaje = "Envío dado de alta y tarea SalidaOficinaACta asignada al operario." });
     }
+
+    private readonly ISender _sender;
 }

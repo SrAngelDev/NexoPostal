@@ -1,3 +1,5 @@
+using MediatR;
+using Nexopostal.Ciudadano.Application.Envios;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Ciudadano.DTOs;
@@ -20,6 +22,7 @@ namespace Nexopostal.Ciudadano.Controllers;
 [ApiController]
 public class EnviosController : ControllerBase
 {
+    private readonly ISender _sender;
     private readonly IEnvioRepository _envioRepo;
     private readonly ITrackingNumberGenerator _trackingGenerator;
     private readonly IFacturaPdfService _facturaPdfService;
@@ -37,7 +40,7 @@ public class EnviosController : ControllerBase
         ITarifasService tarifasService,
         ITrackingNotificacionService trackingNotificacionService,
         IConfiguration configuration,
-        ILogger<EnviosController> logger)
+        ILogger<EnviosController> logger, ISender sender)
     {
         _envioRepo = envioRepo;
         _trackingGenerator = trackingGenerator;
@@ -47,6 +50,7 @@ public class EnviosController : ControllerBase
         _trackingNotificacionService = trackingNotificacionService;
         _configuration = configuration;
         _logger = logger;
+        _sender = sender;
     }
 
     /// <summary>
@@ -103,6 +107,7 @@ public class EnviosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CrearEnvio([FromBody] CrearEnvioDto dto)
     {
+
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
@@ -130,69 +135,8 @@ public class EnviosController : ControllerBase
             return Unauthorized("Token inválido");
         }
 
-        var dimensiones = _tarifasService.ParseDimensiones(dto.Dimensiones);
-        var tarifa = _tarifasService.Calcular(new TarifaCalculoInput(
-            dto.Peso,
-            dimensiones.Largo,
-            dimensiones.Ancho,
-            dimensiones.Alto,
-            dto.CodigoPostalOrigen,
-            dto.CodigoPostalDestino,
-            "Estandar"));
-
-        // Creamos el envío
-        var envio = new Envio
-        {
-            NumeroSeguimiento = _trackingGenerator.Generate(),
-            NumeroExpedicion = _trackingGenerator.GenerateExpedicion(),
-            IdentityUserId = userId,
-            PesoKg = dto.Peso,
-            Dimensiones = dto.Dimensiones,
-            Origen = dto.Origen,
-            Destino = dto.Destino,
-            CodigoPostalOrigen = dto.CodigoPostalOrigen,
-            CodigoPostalDestino = dto.CodigoPostalDestino,
-            OficinaOrigenId = dto.OficinaOrigenId,
-            OficinaDestinoId = dto.OficinaDestinoId,
-            TipoEntrega = tipoEntrega,
-            EstadoActual = EstadoEnvio.Admitido,
-            EstadoInternoActual = EstadoInterno.PendienteRecogida,
-            FechaCreacion = DateTime.UtcNow,
-            CosteCalculado = tarifa.PrecioTotal,
-            TipoTarifa = tarifa.TipoTarifa,
-            TiempoEntregaEstimado = tarifa.TiempoEntregaEstimado,
-            Pagado = false,
-            Observaciones = dto.Observaciones,
-            NombreRemitente = dto.NombreRemitente,
-            TelefonoRemitente = dto.TelefonoRemitente ?? string.Empty,
-            NombreDestinatario = dto.NombreDestinatario,
-            TelefonoDestinatario = dto.TelefonoDestinatario ?? string.Empty
-        };
-
-        await _envioRepo.CreateAsync(envio);
-
-        _logger.LogInformation(
-            "Envío creado: {NumeroSeguimiento} por usuario {UserId} (TipoEntrega={TipoEntrega}, OficinaOrigen={OO}, OficinaDestino={OD})",
-            envio.NumeroSeguimiento, userId, tipoEntrega, dto.OficinaOrigenId, dto.OficinaDestinoId);
-
-        // Construimos la respuesta
-        var respuesta = new EnvioCreadoDto
-        {
-            NumeroSeguimiento = envio.NumeroSeguimiento,
-            NumeroExpedicion = envio.NumeroExpedicion,
-            CosteCalculado = envio.CosteCalculado,
-            EstadoActual = envio.EstadoActual.ToString(),
-            TipoEntrega = envio.TipoEntrega.ToString(),
-            OficinaOrigenId = envio.OficinaOrigenId,
-            OficinaDestinoId = envio.OficinaDestinoId,
-            FechaCreacion = envio.FechaCreacion,
-            UrlEtiqueta = $"/api/etiquetas/{envio.NumeroSeguimiento}"
-        };
-
-        return CreatedAtAction(
-            nameof(GetEnvioPorNumero),
-            new { numero = envio.NumeroSeguimiento },
-            respuesta);
+        var respuesta = await _sender.Send(new CrearEnvioCommand(dto, userId, tipoEntrega), HttpContext?.RequestAborted ?? CancellationToken.None);
+        return CreatedAtAction(nameof(GetEnvioPorNumero), new { numero = respuesta.NumeroSeguimiento }, respuesta);
     }
 
     /// <summary>
@@ -206,26 +150,8 @@ public class EnviosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEnvioPorNumero(string numero)
     {
-        var envio = await _envioRepo.GetByTrackingAsync(numero);
-
-        if (envio == null)
-        {
-            _logger.LogWarning("Intento de tracking de envío inexistente: {Numero}", numero);
-            return NotFound(new { mensaje = "Envío no encontrado" });
-        }
-
-        var resultado = new EnvioTrackingDto
-        {
-            NumeroSeguimiento = envio.NumeroSeguimiento,
-            EstadoActual = envio.EstadoActual.ToString(),
-            EstadoInterno = envio.EstadoInternoActual.ToString(),
-            Descripcion = ObtenerDescripcionEstado(envio.EstadoActual),
-            FechaCreacion = envio.FechaCreacion,
-            FechaEntrega = envio.EstadoActual == EstadoEnvio.Entregado ? envio.FechaPago : null,
-            NumeroBultos = 1
-        };
-
-        return Ok(resultado);
+        var resultado = await _sender.Send(new ObtenerTrackingQuery(numero), HttpContext?.RequestAborted ?? CancellationToken.None);
+        return resultado is null ? NotFound(new { mensaje = "Envío no encontrado" }) : Ok(resultado);
     }
 
     /// <summary>
@@ -237,6 +163,7 @@ public class EnviosController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<EnvioResumenDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMisEnvios()
     {
+
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
                      ?? User.FindFirst("sub")?.Value
                      ?? User.FindFirst("uid")?.Value;
@@ -244,19 +171,7 @@ public class EnviosController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized("Token inválido");
 
-        var enviosList = await _envioRepo.GetByUserAsync(userId);
-        var envios = enviosList.Select(e => new EnvioResumenDto
-        {
-            NumeroSeguimiento = e.NumeroSeguimiento,
-            Estado = e.EstadoActual.ToString(),
-            FechaCreacion = e.FechaCreacion,
-            Destino = e.Destino,
-            Precio = e.CosteCalculado,
-            Pagado = e.Pagado,
-            TipoTarifa = e.TipoTarifa
-        }).ToList();
-
-        return Ok(envios);
+        return Ok(await _sender.Send(new ObtenerMisEnviosQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None));
     }
 
     /// <summary>
@@ -885,18 +800,7 @@ public class EnviosController : ControllerBase
     /// Devuelve una descripción pública genérica del estado del envío
     /// sin revelar datos sensibles (origen, destino, direcciones).
     /// </summary>
-    private static string ObtenerDescripcionEstado(EstadoEnvio estado) => estado switch
-    {
-        EstadoEnvio.PendientePago => "Envío pendiente de confirmación de pago",
-        EstadoEnvio.Admitido => "Envío admitido en oficina de NexoPostal",
-        EstadoEnvio.EnTransito => "Envío en tránsito hacia destino",
-        EstadoEnvio.EnOficina => "Envío disponible en oficina de destino",
-        EstadoEnvio.EnReparto => "Envío en reparto — pendiente de entrega",
-        EstadoEnvio.Entregado => "Envío entregado al destinatario o autorizado en oficina",
-        EstadoEnvio.Incidencia => "Incidencia registrada — contacte con atención al cliente",
-        EstadoEnvio.Devuelto => "Envío devuelto al remitente",
-        _ => "Estado desconocido"
-    };
+
 
     /// <summary>
     /// Devuelve una descripción detallada del estado interno del envío.

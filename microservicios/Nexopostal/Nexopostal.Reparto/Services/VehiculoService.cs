@@ -13,16 +13,9 @@ namespace Nexopostal.Reparto.Services;
 /// <see cref="Repartidor.TipoVehiculo"/> + <see cref="Repartidor.MatriculaVehiculo"/>:
 /// al asignar/desasignar un vehículo se actualizan esos campos en el Repartidor.
 /// </summary>
-public interface IVehiculoService
+public interface IVehiculoService : Nexopostal.Reparto.Application.Vehiculos.IVehiculoCommands, Nexopostal.Reparto.Application.Vehiculos.IVehiculoQueries
 {
-    Task<List<Vehiculo>> ListarAsync(bool incluirInactivos = false, int? oficinaJsonId = null, int? repartidorId = null);
-    Task<Vehiculo?> ObtenerAsync(int id);
-    Task<(Vehiculo? vehiculo, string? error)> CrearAsync(CrearVehiculoDto dto, string? userId);
-    Task<(Vehiculo? vehiculo, string? error)> ActualizarAsync(int id, ActualizarVehiculoDto dto, string? userId);
-    Task<(bool ok, string? error)> DesactivarAsync(int id, string? userId);
-    Task<(bool ok, string? error)> ReactivarAsync(int id, string? userId);
-    Task<(Vehiculo? vehiculo, string? error)> AsignarAsync(int vehiculoId, int? repartidorId, string? userId);
-    Task<ImportarDesdeRepartidoresResultDto> ImportarDesdeRepartidoresAsync(string? userId);
+
 }
 
 public class VehiculoService : IVehiculoService

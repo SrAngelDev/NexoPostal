@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Reparto.DTOs;
 using Nexopostal.Reparto.Models;
 using Nexopostal.Reparto.Services;
+using MediatR;
 
 namespace Nexopostal.Reparto.Controllers;
-
 /// <summary>
 /// Endpoint de solo lectura que permite al JefeReparto (y al Admin) listar
 /// los vehículos activos de su flota, para asignarlos a repartidores desde
@@ -20,13 +20,9 @@ namespace Nexopostal.Reparto.Controllers;
 [Authorize(Roles = "Admin,JefeReparto")]
 public class JefeVehiculosController : ControllerBase
 {
-    private readonly IVehiculoService _vehiculoService;
-    private readonly IRepartoService _repartoService;
-
-    public JefeVehiculosController(IVehiculoService vehiculoService, IRepartoService repartoService)
+    public JefeVehiculosController(ISender sender)
     {
-        _vehiculoService = vehiculoService;
-        _repartoService = repartoService;
+        _sender = sender;
     }
 
     [HttpGet]
@@ -35,32 +31,20 @@ public class JefeVehiculosController : ControllerBase
         // JefeReparto: forzar filtro a su propia oficina
         if (User.IsInRole("JefeReparto"))
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                         ?? User.FindFirst("sub")?.Value
-                         ?? User.FindFirst("nameid")?.Value;
-
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(new { mensaje = "No se pudo identificar al usuario" });
-
-            var perfil = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
+            var perfil = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRepartidorPorIdentityIdQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None);
             if (perfil == null)
                 return Unauthorized(new { mensaje = "Perfil de jefe no encontrado" });
-
             oficinaJsonId = perfil.OficinaJsonId;
         }
 
-        var lista = await _vehiculoService.ListarAsync(incluirInactivos: false, oficinaJsonId: oficinaJsonId);
-        return Ok(lista.Select(v => new VehiculoFlotaDto
-        {
-            Id          = v.Id,
-            Matricula   = v.Matricula,
-            Tipo        = v.Tipo.ToString(),
-            Marca       = v.Marca,
-            Modelo      = v.Modelo,
-            Color       = v.Color,
-            RepartidorAsignadoNombre = v.RepartidorAsignadoNombre
-        }).ToList());
+        var lista = await _sender.Send(new Nexopostal.Reparto.Application.Vehiculos.ListarQuery(IncluirInactivos: false, OficinaJsonId: oficinaJsonId), HttpContext?.RequestAborted ?? CancellationToken.None);
+        return Ok(lista.Select(v => new VehiculoFlotaDto { Id = v.Id, Matricula = v.Matricula, Tipo = v.Tipo.ToString(), Marca = v.Marca, Modelo = v.Modelo, Color = v.Color, RepartidorAsignadoNombre = v.RepartidorAsignadoNombre }).ToList());
     }
+
+    private readonly ISender _sender;
 }
 
 /// <summary>DTO liviano para el selector de flota en la driver-app.</summary>

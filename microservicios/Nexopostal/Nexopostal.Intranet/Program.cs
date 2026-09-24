@@ -1,3 +1,4 @@
+using Nexopostal.Intranet.Application;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Nexopostal.Shared.Middleware;
@@ -13,6 +14,7 @@ using System.Reflection;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddIntranetCqrs();
 
 static string ResolveConfigValue(string? value)
 {

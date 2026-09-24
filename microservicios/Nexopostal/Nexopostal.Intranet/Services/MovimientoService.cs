@@ -9,31 +9,9 @@ namespace Nexopostal.Intranet.Services;
 /// Los camiones viajan de noche entre áreas zonales.
 /// Los paquetes urgentes tienen espacio asegurado en el primer transporte.
 /// </summary>
-public interface IMovimientoService
+public interface IMovimientoService : Nexopostal.Intranet.Application.Movimiento.IMovimientoCommands, Nexopostal.Intranet.Application.Movimiento.IMovimientoQueries
 {
-    /// <summary>Crea un movimiento entre CTAs</summary>
-    Task<MovimientoDetalleDto> CrearMovimiento(CrearMovimientoDto dto);
 
-    /// <summary>Marca un movimiento como despachado (Programado → EnTransito)</summary>
-    Task<MovimientoDetalleDto?> DespacharMovimiento(int movimientoId);
-
-    /// <summary>Marca un movimiento como recibido (EnTransito → Recibido)</summary>
-    Task<MovimientoDetalleDto?> RecibirMovimiento(int movimientoId);
-
-    /// <summary>Cancela un movimiento</summary>
-    Task<bool> CancelarMovimiento(int movimientoId);
-
-    /// <summary>Obtiene los movimientos de un CTA (como origen o destino)</summary>
-    Task<List<MovimientoResumenDto>> ObtenerMovimientosCta(int ctaId, EstadoMovimiento? filtroEstado = null);
-
-    /// <summary>Lista global de movimientos (Admin).</summary>
-    Task<List<MovimientoResumenDto>> ObtenerMovimientosGlobales(EstadoMovimiento? filtroEstado = null, int? ctaOrigenId = null, int? ctaDestinoId = null);
-
-    /// <summary>Obtiene el detalle de un movimiento</summary>
-    Task<MovimientoDetalleDto?> ObtenerDetalle(int movimientoId);
-
-    /// <summary>Obtiene el historial de movimientos de un paquete</summary>
-    Task<List<MovimientoResumenDto>> ObtenerHistorialPaquete(string numeroExpedicion);
 }
 
 public class MovimientoService : IMovimientoService

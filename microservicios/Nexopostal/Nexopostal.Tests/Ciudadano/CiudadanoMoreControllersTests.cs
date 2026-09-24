@@ -344,9 +344,8 @@ public class PagosControllerTests
     public PagosControllerTests()
     {
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
-        _ctrl = new PagosController(
-            _envioRepo.Object, _stripe.Object, _etiqueta.Object, _factura.Object,
-            _email.Object, _tracking.Object, _logistica.Object, _tarifas.Object,
+        _ctrl = new PagosController(Nexopostal.Tests.Cqrs.CqrsTestServices.CreateSender(_envioRepo.Object, _stripe.Object, _etiqueta.Object, _factura.Object,
+            _email.Object, _tracking.Object, _logistica.Object, _tarifas.Object),
             config, NullLogger<PagosController>.Instance);
         WireUser("user-1");
     }

@@ -12,18 +12,9 @@ namespace NexoPostal.Auth.Services;
 /// Gestión administrativa de usuarios. Devuelve <see cref="Result{T,DomainError}"/> /
 /// <see cref="UnitResult{DomainError}"/> para que el controller mapee a HTTP de forma uniforme.
 /// </summary>
-public interface IAdminUserService
+public interface IAdminUserService : NexoPostal.Auth.Application.AdminUser.IAdminUserCommands, NexoPostal.Auth.Application.AdminUser.IAdminUserQueries
 {
-    Task<List<AdminUsuarioListItemDto>> ListarUsuariosAsync(Rol? rol, bool? bloqueado, string? q, bool incluirEliminados = false);
-    Task<Result<AdminUsuarioListItemDto, DomainError>> ObtenerDetalleAsync(string id);
-    Task<UnitResult<DomainError>> CambiarRolAsync(string id, Rol nuevoRol, string adminId);
-    Task<UnitResult<DomainError>> BloquearAsync(string id, string adminId);
-    Task<UnitResult<DomainError>> DesbloquearAsync(string id);
-    Task<UnitResult<DomainError>> ResetPasswordAsync(string id, string nuevaPassword);
-    Task<Result<AdminUsuarioListItemDto, DomainError>> CrearEmpleadoAsync(AdminCrearEmpleadoDto dto);
-    Task<Result<AdminUsuarioListItemDto, DomainError>> EditarEmpleadoAsync(string id, AdminEditarEmpleadoDto dto, string adminId);
-    Task<UnitResult<DomainError>> EliminarAsync(string id, string adminId);
-    Task<UnitResult<DomainError>> RestaurarAsync(string id);
+
 }
 
 public class AdminUserService(IUserRepository userRepository) : IAdminUserService

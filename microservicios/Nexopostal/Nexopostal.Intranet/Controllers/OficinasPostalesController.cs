@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Intranet.DTOs;
 using Nexopostal.Intranet.Services;
+using MediatR;
 
 namespace Nexopostal.Intranet.Controllers;
-
 /// <summary>
 /// Controlador para la consulta y resolución de oficinas postales.
 /// 
@@ -23,10 +23,10 @@ namespace Nexopostal.Intranet.Controllers;
 public class OficinasPostalesController : ControllerBase
 {
     private readonly IOficinaPostalService _oficinaService;
-
-    public OficinasPostalesController(IOficinaPostalService oficinaService)
+    public OficinasPostalesController(IOficinaPostalService oficinaService, ISender sender)
     {
         _oficinaService = oficinaService;
+        _sender = sender;
     }
 
     /// <summary>
@@ -43,29 +43,27 @@ public class OficinasPostalesController : ControllerBase
     /// <summary>
     /// Busca oficinas por código postal o texto libre.
     /// </summary>
-    /// <param name="codigoPostal">Código postal (exacto o parcial)</param>
-    /// <param name="query">Texto libre (nombre, dirección, ciudad)</param>
+    /// <param name = "codigoPostal">Código postal (exacto o parcial)</param>
+    /// <param name = "query">Texto libre (nombre, dirección, ciudad)</param>
     [HttpGet("buscar")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(List<OficinaJsonDto>), 200)]
     public IActionResult Buscar([FromQuery] string? codigoPostal, [FromQuery] string? query)
     {
         List<OficinaJsonDto> resultados;
-
         if (!string.IsNullOrWhiteSpace(codigoPostal))
             resultados = _oficinaService.BuscarPorCodigoPostal(codigoPostal);
         else if (!string.IsNullOrWhiteSpace(query))
             resultados = _oficinaService.BuscarPorTexto(query);
         else
             return BadRequest(new { mensaje = "Debe indicar 'codigoPostal' o 'query'." });
-
         return Ok(resultados);
     }
 
     /// <summary>
     /// Obtiene una oficina por su ID del JSON.
     /// </summary>
-    /// <param name="id">ID de la oficina en el JSON</param>
+    /// <param name = "id">ID de la oficina en el JSON</param>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(OficinaJsonDto), 200)]
     [ProducesResponseType(404)]
@@ -84,13 +82,13 @@ public class OficinasPostalesController : ControllerBase
     /// Ejemplo: GET /api/oficinaspostales/resolver/28919
     ///   → { OficinaId: 1042, OficinaNombre: "NexoPostal Leganés", CtaCodigo: "CTA-MAD", ... }
     /// </summary>
-    /// <param name="codigoPostal">Código postal del origen o destino del envío</param>
+    /// <param name = "codigoPostal">Código postal del origen o destino del envío</param>
     [HttpGet("resolver/{codigoPostal}")]
     [ProducesResponseType(typeof(ResolverOficinaCtaResponseDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> ResolverOficinaPorCp(string codigoPostal)
     {
-        var resultado = await _oficinaService.ResolverOficinaPorCp(codigoPostal);
+        var resultado = await _sender.Send(new Nexopostal.Intranet.Application.OficinaPostal.ResolverOficinaPorCpQuery(codigoPostal), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (resultado == null)
             return NotFound(new { mensaje = $"No se encontró oficina ni CTA para el CP {codigoPostal}." });
         return Ok(resultado);
@@ -99,12 +97,12 @@ public class OficinasPostalesController : ControllerBase
     /// <summary>
     /// Obtiene los operarios asignados a una oficina.
     /// </summary>
-    /// <param name="oficinaJsonId">ID de la oficina en el JSON</param>
+    /// <param name = "oficinaJsonId">ID de la oficina en el JSON</param>
     [HttpGet("{oficinaJsonId:int}/operarios")]
     [ProducesResponseType(typeof(List<OperarioOficinaResumenDto>), 200)]
     public async Task<IActionResult> ObtenerOperarios(int oficinaJsonId)
     {
-        var operarios = await _oficinaService.ObtenerOperariosOficina(oficinaJsonId);
+        var operarios = await _sender.Send(new Nexopostal.Intranet.Application.OficinaPostal.ObtenerOperariosOficinaQuery(oficinaJsonId), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(operarios);
     }
 
@@ -113,12 +111,14 @@ public class OficinasPostalesController : ControllerBase
     /// Usado por el escáner para mostrar al operario las oficinas válidas
     /// dentro del CTA en el que está trabajando.
     /// </summary>
-    /// <param name="ctaId">ID del Centro de Tratamiento</param>
+    /// <param name = "ctaId">ID del Centro de Tratamiento</param>
     [HttpGet("por-cta/{ctaId:int}")]
     [ProducesResponseType(typeof(List<OficinaJsonDto>), 200)]
     public async Task<IActionResult> ObtenerPorCta(int ctaId)
     {
-        var resultado = await _oficinaService.ObtenerOficinasPorCta(ctaId);
+        var resultado = await _sender.Send(new Nexopostal.Intranet.Application.OficinaPostal.ObtenerOficinasPorCtaQuery(ctaId), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(resultado);
     }
+
+    private readonly ISender _sender;
 }

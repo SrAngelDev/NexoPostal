@@ -1,3 +1,4 @@
+using Nexopostal.Reparto.Application;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Nexopostal.Shared.Middleware;
@@ -11,6 +12,7 @@ using Nexopostal.Reparto.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddRepartoCqrs();
 
 static string ResolveConfigValue(string? value)
 {

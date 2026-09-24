@@ -14,16 +14,9 @@ namespace NexoPostal.Auth.Services;
 /// Servicio de autenticación. Todas las operaciones devuelven <see cref="Result{T,DomainError}"/>
 /// o <see cref="UnitResult{DomainError}"/> siguiendo el patrón Railway Oriented Programming.
 /// </summary>
-public interface IAuthService
+public interface IAuthService : NexoPostal.Auth.Application.Auth.IAuthCommands, NexoPostal.Auth.Application.Auth.IAuthQueries
 {
-    Task<Result<TokenResponseDto, DomainError>> LoginAsync(LoginDto dto);
-    Task<Result<TokenResponseDto, DomainError>> RegisterAsync(RegisterDto dto);
-    Task<Result<TokenResponseDto, DomainError>> RefreshTokenAsync(RefreshTokenRequestDto dto);
-    Task<Result<UsuarioInfoDto, DomainError>> GetUserInfoAsync(string userId);
-    Task<Result<UsuarioInfoDto, DomainError>> UpdateProfileAsync(string userId, ActualizarUsuarioDto dto);
-    Task<UnitResult<DomainError>> ChangePasswordAsync(string userId, CambiarPasswordDto dto);
-    Task SolicitarResetPasswordAsync(string email, string frontendUrl);
-    Task<UnitResult<DomainError>> ResetPasswordAsync(ResetPasswordDto dto);
+
 }
 
 /// <summary>

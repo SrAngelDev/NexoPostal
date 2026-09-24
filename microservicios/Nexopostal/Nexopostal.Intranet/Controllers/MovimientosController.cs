@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Intranet.DTOs;
 using Nexopostal.Intranet.Models;
 using Nexopostal.Intranet.Services;
+using MediatR;
 
 namespace Nexopostal.Intranet.Controllers;
-
 /// <summary>
 /// Controlador para la gestión de movimientos de paquetes entre CTAs (rutas troncales).
 /// 
@@ -23,11 +23,9 @@ namespace Nexopostal.Intranet.Controllers;
 [Authorize(Roles = "Admin,OperarioCTA")]
 public class MovimientosController : ControllerBase
 {
-    private readonly IMovimientoService _movimientoService;
-
-    public MovimientosController(IMovimientoService movimientoService)
+    public MovimientosController(ISender sender)
     {
-        _movimientoService = movimientoService;
+        _sender = sender;
     }
 
     /// <summary>
@@ -42,10 +40,10 @@ public class MovimientosController : ControllerBase
     {
         try
         {
-            var movimiento = await _movimientoService.CrearMovimiento(dto);
+            var movimiento = await _sender.Send(new Nexopostal.Intranet.Application.Movimiento.CrearMovimientoCommand(dto), HttpContext?.RequestAborted ?? CancellationToken.None);
             return CreatedAtAction(nameof(ObtenerDetalle), new { id = movimiento.Id }, movimiento);
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        catch (Exception ex)when (ex is ArgumentException or InvalidOperationException)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -57,14 +55,12 @@ public class MovimientosController : ControllerBase
     /// </summary>
     [HttpGet("cta/{ctaId:int}")]
     [ProducesResponseType(typeof(List<MovimientoResumenDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<MovimientoResumenDto>>> ObtenerPorCta(
-        int ctaId, [FromQuery] string? estado = null)
+    public async Task<ActionResult<List<MovimientoResumenDto>>> ObtenerPorCta(int ctaId, [FromQuery] string? estado = null)
     {
         EstadoMovimiento? filtro = null;
         if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoMovimiento>(estado, true, out var e))
             filtro = e;
-
-        var movimientos = await _movimientoService.ObtenerMovimientosCta(ctaId, filtro);
+        var movimientos = await _sender.Send(new Nexopostal.Intranet.Application.Movimiento.ObtenerMovimientosCtaQuery(ctaId, filtro), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(movimientos);
     }
 
@@ -74,16 +70,12 @@ public class MovimientosController : ControllerBase
     [HttpGet("global")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(List<MovimientoResumenDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<MovimientoResumenDto>>> ObtenerGlobales(
-        [FromQuery] string? estado = null,
-        [FromQuery] int? ctaOrigenId = null,
-        [FromQuery] int? ctaDestinoId = null)
+    public async Task<ActionResult<List<MovimientoResumenDto>>> ObtenerGlobales([FromQuery] string? estado = null, [FromQuery] int? ctaOrigenId = null, [FromQuery] int? ctaDestinoId = null)
     {
         EstadoMovimiento? filtroEstado = null;
         if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoMovimiento>(estado, true, out var e))
             filtroEstado = e;
-
-        var movimientos = await _movimientoService.ObtenerMovimientosGlobales(filtroEstado, ctaOrigenId, ctaDestinoId);
+        var movimientos = await _sender.Send(new Nexopostal.Intranet.Application.Movimiento.ObtenerMovimientosGlobalesQuery(filtroEstado, ctaOrigenId, ctaDestinoId), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(movimientos);
     }
 
@@ -95,8 +87,9 @@ public class MovimientosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<MovimientoDetalleDto>> ObtenerDetalle(int id)
     {
-        var detalle = await _movimientoService.ObtenerDetalle(id);
-        if (detalle == null) return NotFound(new { message = "Movimiento no encontrado" });
+        var detalle = await _sender.Send(new Nexopostal.Intranet.Application.Movimiento.ObtenerDetalleQuery(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (detalle == null)
+            return NotFound(new { message = "Movimiento no encontrado" });
         return Ok(detalle);
     }
 
@@ -107,7 +100,7 @@ public class MovimientosController : ControllerBase
     [ProducesResponseType(typeof(List<MovimientoResumenDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<MovimientoResumenDto>>> ObtenerHistorial(string numeroExpedicion)
     {
-        var historial = await _movimientoService.ObtenerHistorialPaquete(numeroExpedicion);
+        var historial = await _sender.Send(new Nexopostal.Intranet.Application.Movimiento.ObtenerHistorialPaqueteQuery(numeroExpedicion), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(historial);
     }
 
@@ -122,8 +115,9 @@ public class MovimientosController : ControllerBase
     {
         try
         {
-            var resultado = await _movimientoService.DespacharMovimiento(id);
-            if (resultado == null) return NotFound(new { message = "Movimiento no encontrado" });
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Movimiento.DespacharMovimientoCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (resultado == null)
+                return NotFound(new { message = "Movimiento no encontrado" });
             return Ok(resultado);
         }
         catch (InvalidOperationException ex)
@@ -143,8 +137,9 @@ public class MovimientosController : ControllerBase
     {
         try
         {
-            var resultado = await _movimientoService.RecibirMovimiento(id);
-            if (resultado == null) return NotFound(new { message = "Movimiento no encontrado" });
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Movimiento.RecibirMovimientoCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (resultado == null)
+                return NotFound(new { message = "Movimiento no encontrado" });
             return Ok(resultado);
         }
         catch (InvalidOperationException ex)
@@ -163,8 +158,9 @@ public class MovimientosController : ControllerBase
     {
         try
         {
-            var resultado = await _movimientoService.CancelarMovimiento(id);
-            if (!resultado) return NotFound(new { message = "Movimiento no encontrado" });
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Movimiento.CancelarMovimientoCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (!resultado)
+                return NotFound(new { message = "Movimiento no encontrado" });
             return NoContent();
         }
         catch (InvalidOperationException ex)
@@ -172,4 +168,6 @@ public class MovimientosController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    private readonly ISender _sender;
 }

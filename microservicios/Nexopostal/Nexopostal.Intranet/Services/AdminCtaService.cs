@@ -8,12 +8,9 @@ namespace Nexopostal.Intranet.Services;
 /// Operaciones administrativas sobre el catálogo de Centros de Tratamiento Automatizado (CTAs).
 /// Solo accesible por rol Admin.
 /// </summary>
-public interface IAdminCtaService
+public interface IAdminCtaService : Nexopostal.Intranet.Application.AdminCta.IAdminCtaCommands
 {
-    Task<(CtaDetalleDto? cta, string? error)> CrearCta(CrearCtaDto dto);
-    Task<(CtaDetalleDto? cta, string? error)> EditarCta(int id, EditarCtaDto dto);
-    Task<(bool ok, string? error)> DesactivarCta(int id);
-    Task<(bool ok, string? error)> ReactivarCta(int id);
+
 }
 
 public class AdminCtaService : IAdminCtaService

@@ -9,30 +9,9 @@ namespace Nexopostal.Intranet.Services;
 /// Registra cada cambio de estado/ubicación y proporciona consultas para
 /// tracking público (clientes) y auditoría interna (operarios).
 /// </summary>
-public interface IHistorialService
+public interface IHistorialService : Nexopostal.Intranet.Application.Historial.IHistorialCommands, Nexopostal.Intranet.Application.Historial.IHistorialQueries
 {
-    /// <summary>
-    /// Registra un nuevo evento de trazabilidad en el historial.
-    /// Se llama cada vez que un paquete cambia de estado o ubicación.
-    /// </summary>
-    Task<HistorialEventoInternoDto> RegistrarEvento(CrearHistorialEventoDto dto);
 
-    /// <summary>
-    /// Obtiene el historial completo de un paquete por número de expedición (vista interna).
-    /// Incluye todos los eventos, visibles y no visibles para el cliente.
-    /// </summary>
-    Task<List<HistorialEventoInternoDto>> ObtenerHistorialInterno(string numeroExpedicion);
-
-    /// <summary>
-    /// Obtiene el historial público de un paquete por número de seguimiento.
-    /// Solo incluye eventos marcados como visibles para el cliente.
-    /// </summary>
-    Task<List<HistorialEventoDto>> ObtenerHistorialPublico(string numeroSeguimiento);
-
-    /// <summary>
-    /// Obtiene el último evento registrado de un paquete.
-    /// </summary>
-    Task<HistorialEventoInternoDto?> ObtenerUltimoEvento(string numeroExpedicion);
 }
 
 public class HistorialService : IHistorialService

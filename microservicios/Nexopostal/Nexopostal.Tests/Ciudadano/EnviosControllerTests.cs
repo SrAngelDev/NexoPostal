@@ -57,7 +57,7 @@ public class EnviosControllerTests
         var ctrl = new EnviosController(
             _repo.Object, _gen.Object, _factura.Object, _etiqueta.Object,
             _tarifas.Object, _notif.Object, _config,
-            NullLogger<EnviosController>.Instance);
+            NullLogger<EnviosController>.Instance, Nexopostal.Tests.Cqrs.CqrsTestServices.CreateSender(_repo.Object, _gen.Object, _tarifas.Object));
 
         var claims = new List<Claim>();
         if (userId != null) claims.Add(new Claim(ClaimTypes.NameIdentifier, userId));

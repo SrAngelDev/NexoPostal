@@ -8,25 +8,9 @@ namespace Nexopostal.Intranet.Services;
 /// Servicio de clasificación y enrutamiento de paquetes.
 /// Determina el CTA de destino según el código postal y el tipo de transporte.
 /// </summary>
-public interface IClasificacionService
+public interface IClasificacionService : Nexopostal.Intranet.Application.Clasificacion.IClasificacionQueries
 {
-    /// <summary>Resuelve el CTA de destino para un código postal dado</summary>
-    Task<ResolverCtaResponseDto?> ResolverCtaDestino(string codigoPostal);
 
-    /// <summary>Determina el tipo de transporte óptimo entre dos CTAs</summary>
-    Task<TipoTransporte> DeterminarTipoTransporte(int ctaOrigenId, int ctaDestinoId, bool esUrgente);
-
-    /// <summary>Obtiene todos los CTAs</summary>
-    Task<List<CtaResumenDto>> ObtenerTodosCtas();
-
-    /// <summary>Obtiene el detalle de un CTA con sus operarios y rutas</summary>
-    Task<CtaDetalleDto?> ObtenerCtaDetalle(int ctaId);
-
-    /// <summary>Obtiene el dashboard de estadísticas de un CTA</summary>
-    Task<DashboardCtaDto?> ObtenerDashboardCta(int ctaId);
-
-    /// <summary>Obtiene el dashboard global de administración agregando todos los CTAs</summary>
-    Task<DashboardAdminDto> ObtenerDashboardAdmin();
 }
 
 public class ClasificacionService : IClasificacionService

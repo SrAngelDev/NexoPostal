@@ -7,43 +7,9 @@ namespace Nexopostal.Reparto.Services;
 // ============================================================
 //  Interfaz del servicio de Reparto
 // ============================================================
-public interface IRepartoService
+public interface IRepartoService : Nexopostal.Reparto.Application.Reparto.IRepartoCommands, Nexopostal.Reparto.Application.Reparto.IRepartoQueries
 {
-    // ─── Repartidores ───
-    Task<List<RepartidorResumenDto>> ObtenerRepartidores(int? oficinaJsonId = null, bool incluirInactivos = false);
-    Task<RepartidorResumenDto?> ObtenerRepartidorPorIdentityId(string identityUserId);
-    Task<RepartidorResumenDto> CrearRepartidor(CrearRepartidorDto dto);
-    Task<(RepartidorResumenDto? Repartidor, string? Error)> EditarRepartidor(int id, EditarRepartidorDto dto);
-    Task<(bool Ok, string? Error)> DesactivarRepartidor(int id);
-    Task<(bool Ok, string? Error)> ReactivarRepartidor(int id);
 
-    // ─── Rutas ───
-    Task<List<RutaRepartoResumenDto>> ObtenerRutas(DateOnly? fecha = null, int? repartidorId = null, int? oficinaJsonId = null);
-    Task<RutaRepartoDetalleDto?> ObtenerRutaPorId(int id);
-    Task<RutaRepartoDetalleDto?> ObtenerRutaPorCodigo(string codigo);
-    Task<RutaRepartoDetalleDto> CrearRuta(CrearRutaRepartoDto dto);
-    Task<RutaRepartoDetalleDto?> IniciarRuta(int rutaId);
-    Task<RutaRepartoDetalleDto?> FinalizarRuta(int rutaId, string? observaciones = null);
-    Task<(bool Ok, string? Error)> CancelarRuta(int rutaId);
-    Task<(bool Ok, string? Error)> ReactivarRuta(int rutaId);
-
-    // ─── Entregas ───
-    Task<EntregaPaqueteDto?> AgregarEntregaARuta(int rutaId, AgregarEntregaDto dto);
-    Task<EntregaPaqueteDto?> RegistrarEntrega(int entregaId, RegistrarEntregaDto dto);
-    Task<List<EntregaPaqueteDto>> ObtenerEntregasPorRuta(int rutaId);
-    Task<List<EntregaPaqueteDto>> ObtenerEntregasPorSeguimiento(string numeroSeguimiento);
-    Task<AutoAsignacionEntregaResultDto> AutoAsignarEntregaDesdeAdmision(AutoAsignacionEntregaDesdeAdmisionDto dto);
-
-    // ─── Dashboard ───
-    Task<DashboardRepartoDto> ObtenerDashboard(int? oficinaJsonId = null);
-
-    // ─── Tracking en tiempo real (JefeReparto) ───
-    Task RegistrarUbicacionRepartidor(string identityUserId, double latitud, double longitud, int? rutaActivaId);
-    Task<List<UbicacionActivaDto>> ObtenerUbicacionesActivas(int? oficinaJsonId = null, int ventanaMinutos = 10);
-
-    // ─── Asignación manual de paradas (JefeReparto) ───
-    Task<List<EntregaPendienteAsignacionDto>> ObtenerEntregasPendientesAsignacion(int? oficinaJsonId = null);
-    Task<EntregaPaqueteDto?> ReasignarEntregaARuta(int entregaId, int nuevaRutaId);
 }
 
 // ============================================================

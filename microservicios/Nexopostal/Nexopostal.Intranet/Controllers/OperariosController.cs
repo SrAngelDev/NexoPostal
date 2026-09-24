@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Intranet.DTOs;
 using Nexopostal.Intranet.Services;
 using System.Security.Claims;
+using MediatR;
 
 namespace Nexopostal.Intranet.Controllers;
-
 /// <summary>
 /// Controlador para la gestión de operarios de CTA.
 /// Permite consultar información propia, listar operarios del CTA y crear nuevos.
@@ -19,18 +19,9 @@ namespace Nexopostal.Intranet.Controllers;
 [Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
 public class OperariosController : ControllerBase
 {
-    private readonly IOperarioService _operarioService;
-    private readonly IClasificacionService _clasificacionService;
-    private readonly IOficinaPostalService _oficinaService;
-
-    public OperariosController(
-        IOperarioService operarioService,
-        IClasificacionService clasificacionService,
-        IOficinaPostalService oficinaService)
+    public OperariosController(ISender sender)
     {
-        _operarioService = operarioService;
-        _clasificacionService = clasificacionService;
-        _oficinaService = oficinaService;
+        _sender = sender;
     }
 
     /// <summary>
@@ -46,31 +37,18 @@ public class OperariosController : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "Usuario no autenticado" });
-
         if (User.IsInRole("Admin"))
         {
-            var ctas = await _clasificacionService.ObtenerTodosCtas();
+            var ctas = await _sender.Send(new Nexopostal.Intranet.Application.Clasificacion.ObtenerTodosCtasQuery(), HttpContext?.RequestAborted ?? CancellationToken.None);
             var primero = ctas.FirstOrDefault();
             if (primero == null)
                 return NotFound(new { message = "No hay CTAs disponibles" });
-
-            return Ok(new MiCtaInfoDto
-            {
-                OperarioId = 0,
-                NombreCompleto = GetNombreUsuario() ?? "Administrador",
-                CodigoEmpleado = "ADMIN",
-                Rol = "Admin",
-                CtaId = primero.Id,
-                CtaCodigo = primero.Codigo,
-                CtaNombre = primero.Nombre,
-                Area = primero.Area
-            });
+            return Ok(new MiCtaInfoDto { OperarioId = 0, NombreCompleto = GetNombreUsuario() ?? "Administrador", CodigoEmpleado = "ADMIN", Rol = "Admin", CtaId = primero.Id, CtaCodigo = primero.Codigo, CtaNombre = primero.Nombre, Area = primero.Area });
         }
 
-        var info = await _operarioService.ObtenerMiCtaInfo(userId);
+        var info = await _sender.Send(new Nexopostal.Intranet.Application.Operario.ObtenerMiCtaInfoQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (info == null)
             return NotFound(new { message = "No estás asignado a ningún CTA" });
-
         return Ok(info);
     }
 
@@ -86,40 +64,28 @@ public class OperariosController : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "Usuario no autenticado" });
-
         if (User.IsInRole("Admin"))
         {
-            var ctas = await _clasificacionService.ObtenerTodosCtas();
+            var ctas = await _sender.Send(new Nexopostal.Intranet.Application.Clasificacion.ObtenerTodosCtasQuery(), HttpContext?.RequestAborted ?? CancellationToken.None);
             var infoAdmin = new MisCtasInfoDto
             {
                 NombreCompleto = GetNombreUsuario() ?? "Administrador",
                 CodigoEmpleado = "ADMIN",
                 Rol = "Admin",
-                Ctas = ctas.Select(c => new CtaAsignacionDto
-                {
-                    OperarioCtaId = 0,
-                    CtaId = c.Id,
-                    CtaCodigo = c.Codigo,
-                    CtaNombre = c.Nombre,
-                    Area = c.Area
-                }).ToList()
+                Ctas = ctas.Select(c => new CtaAsignacionDto { OperarioCtaId = 0, CtaId = c.Id, CtaCodigo = c.Codigo, CtaNombre = c.Nombre, Area = c.Area }).ToList()
             };
-
             return Ok(infoAdmin);
         }
 
-        var info = await _operarioService.ObtenerMisCtasInfo(userId);
+        var info = await _sender.Send(new Nexopostal.Intranet.Application.Operario.ObtenerMisCtasInfoQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (info == null)
             return NotFound(new { message = "No estás asignado a ningún CTA" });
-
         return Ok(info);
     }
 
     private string? GetNombreUsuario()
     {
-        return User.FindFirstValue("Nombre")
-               ?? User.FindFirstValue(ClaimTypes.Name)
-               ?? User.FindFirstValue("name");
+        return User.FindFirstValue("Nombre") ?? User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue("name");
     }
 
     /// <summary>
@@ -129,7 +95,7 @@ public class OperariosController : ControllerBase
     [ProducesResponseType(typeof(List<OperarioResumenDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<OperarioResumenDto>>> ObtenerOperariosCta(int ctaId)
     {
-        var operarios = await _operarioService.ObtenerOperariosCta(ctaId);
+        var operarios = await _sender.Send(new Nexopostal.Intranet.Application.Operario.ObtenerOperariosCtaQuery(ctaId), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(operarios);
     }
 
@@ -141,8 +107,9 @@ public class OperariosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OperarioDetalleDto>> ObtenerDetalle(int id)
     {
-        var operario = await _operarioService.ObtenerDetalle(id);
-        if (operario == null) return NotFound(new { message = "Operario no encontrado" });
+        var operario = await _sender.Send(new Nexopostal.Intranet.Application.Operario.ObtenerDetalleQuery(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (operario == null)
+            return NotFound(new { message = "Operario no encontrado" });
         return Ok(operario);
     }
 
@@ -155,10 +122,9 @@ public class OperariosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AdminOperarioDetalleDto>> ObtenerDetalleAdmin(string identityUserId)
     {
-        var detalle = await _operarioService.ObtenerDetalleAdminPorIdentityUserId(identityUserId);
+        var detalle = await _sender.Send(new Nexopostal.Intranet.Application.Operario.ObtenerDetalleAdminPorIdentityUserIdQuery(identityUserId), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (detalle == null)
             return NotFound(new { message = "El usuario no tiene asignaciones CTA activas." });
-
         return Ok(detalle);
     }
 
@@ -174,14 +140,10 @@ public class OperariosController : ControllerBase
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-
-        var (ok, error, conflict) = await _operarioService.ActualizarCtaAdmin(identityUserId, dto);
+        var(ok, error, conflict) = await _sender.Send(new Nexopostal.Intranet.Application.Operario.ActualizarCtaAdminCommand(identityUserId, dto), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (ok)
             return NoContent();
-
-        return conflict
-            ? Conflict(new { message = error })
-            : BadRequest(new { message = error });
+        return conflict ? Conflict(new { message = error }) : BadRequest(new { message = error });
     }
 
     /// <summary>
@@ -196,9 +158,9 @@ public class OperariosController : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "Usuario no autenticado" });
-
-        var info = await _oficinaService.ObtenerMiOficina(userId);
-        if (info == null) return NoContent();
+        var info = await _sender.Send(new Nexopostal.Intranet.Application.OficinaPostal.ObtenerMiOficinaQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (info == null)
+            return NoContent();
         return Ok(info);
     }
 
@@ -211,8 +173,9 @@ public class OperariosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<ActionResult<MiOficinaInfoDto>> ObtenerOficinaAdmin(string identityUserId)
     {
-        var info = await _oficinaService.ObtenerOficinaAdmin(identityUserId);
-        if (info == null) return NoContent();
+        var info = await _sender.Send(new Nexopostal.Intranet.Application.OficinaPostal.ObtenerOficinaAdminQuery(identityUserId), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (info == null)
+            return NoContent();
         return Ok(info);
     }
 
@@ -227,11 +190,9 @@ public class OperariosController : ControllerBase
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-
-        var (ok, error, resultado) = await _oficinaService.ActualizarOficinaAdmin(identityUserId, dto);
+        var(ok, error, resultado) = await _sender.Send(new Nexopostal.Intranet.Application.OficinaPostal.ActualizarOficinaAdminCommand(identityUserId, dto), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (!ok)
             return BadRequest(new { message = error });
-
         return Ok(resultado);
     }
 
@@ -247,10 +208,10 @@ public class OperariosController : ControllerBase
     {
         try
         {
-            var operario = await _operarioService.CrearOperario(dto);
+            var operario = await _sender.Send(new Nexopostal.Intranet.Application.Operario.CrearOperarioCommand(dto), HttpContext?.RequestAborted ?? CancellationToken.None);
             return CreatedAtAction(nameof(ObtenerDetalle), new { id = operario.Id }, operario);
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        catch (Exception ex)when (ex is ArgumentException or InvalidOperationException)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -266,8 +227,9 @@ public class OperariosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Desactivar(int id)
     {
-        var resultado = await _operarioService.DesactivarOperario(id);
-        if (!resultado) return NotFound(new { message = "Operario no encontrado" });
+        var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Operario.DesactivarOperarioCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (!resultado)
+            return NotFound(new { message = "Operario no encontrado" });
         return NoContent();
     }
 
@@ -281,8 +243,11 @@ public class OperariosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Reactivar(int id)
     {
-        var resultado = await _operarioService.ReactivarOperario(id);
-        if (!resultado) return NotFound(new { message = "Operario no encontrado" });
+        var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Operario.ReactivarOperarioCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (!resultado)
+            return NotFound(new { message = "Operario no encontrado" });
         return NoContent();
     }
+
+    private readonly ISender _sender;
 }

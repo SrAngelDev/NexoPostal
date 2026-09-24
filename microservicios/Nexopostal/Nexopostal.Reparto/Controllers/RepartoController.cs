@@ -5,9 +5,9 @@ using Nexopostal.Reparto.Services;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using MediatR;
 
 namespace Nexopostal.Reparto.Controllers;
-
 /// <summary>
 /// Controlador para la gestión de rutas de reparto.
 /// Usado por la intranet y la app de conductores.
@@ -17,30 +17,20 @@ namespace Nexopostal.Reparto.Controllers;
 [Authorize]
 public class RepartoController : ControllerBase
 {
-    private readonly IRepartoService _repartoService;
     private readonly ICiudadanoTrackingNotifierService _ciudadanoTrackingNotifier;
-    private readonly IBandejaPendientesService _bandejaService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<RepartoController> _logger;
-
-    public RepartoController(
-        IRepartoService repartoService,
-        ICiudadanoTrackingNotifierService ciudadanoTrackingNotifier,
-        IBandejaPendientesService bandejaService,
-        IConfiguration configuration,
-        ILogger<RepartoController> logger)
+    public RepartoController(ICiudadanoTrackingNotifierService ciudadanoTrackingNotifier, IConfiguration configuration, ILogger<RepartoController> logger, ISender sender)
     {
-        _repartoService = repartoService;
         _ciudadanoTrackingNotifier = ciudadanoTrackingNotifier;
-        _bandejaService = bandejaService;
         _configuration = configuration;
         _logger = logger;
+        _sender = sender;
     }
 
     // ═══════════════════════════════════════════
     //  REPARTIDORES
     // ═══════════════════════════════════════════
-
     /// <summary>
     /// Obtiene la lista de repartidores, opcionalmente filtrada por oficina.
     /// Si el caller es JefeReparto (no Admin) se fuerza el filtro a su propia oficina.
@@ -52,8 +42,7 @@ public class RepartoController : ControllerBase
         var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
         if (oficinaJefe.HasValue)
             oficinaJsonId = oficinaJefe.Value;
-
-        var repartidores = await _repartoService.ObtenerRepartidores(oficinaJsonId, incluirInactivos);
+        var repartidores = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRepartidoresQuery(oficinaJsonId, incluirInactivos), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(repartidores);
     }
 
@@ -64,7 +53,7 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> ObtenerRepartidorPorIdentity(string userId)
     {
-        var repartidor = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
+        var repartidor = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRepartidorPorIdentityIdQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (repartidor == null)
             return NotFound(new { message = "No existe perfil de repartidor para ese usuario" });
         return Ok(repartidor);
@@ -79,16 +68,12 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Repartidor,JefeReparto")]
     public async Task<IActionResult> ObtenerMiPerfil()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst("sub")?.Value
-                     ?? User.FindFirst("nameid")?.Value;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "No se pudo identificar al usuario" });
-
-        var repartidor = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
+        var repartidor = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRepartidorPorIdentityIdQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (repartidor == null)
             return NotFound(new { message = "No existe perfil de repartidor para este usuario" });
-
         return Ok(repartidor);
     }
 
@@ -105,8 +90,7 @@ public class RepartoController : ControllerBase
             var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
             if (oficinaJefe.HasValue && dto.OficinaJsonId != oficinaJefe.Value)
                 return Forbid();
-
-            var repartidor = await _repartoService.CrearRepartidor(dto);
+            var repartidor = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.CrearRepartidorCommand(dto), HttpContext?.RequestAborted ?? CancellationToken.None);
             return CreatedAtAction(nameof(ObtenerRepartidores), null, repartidor);
         }
         catch (Exception ex)
@@ -134,7 +118,7 @@ public class RepartoController : ControllerBase
                 return Forbid();
         }
 
-        var (repartidor, error) = await _repartoService.EditarRepartidor(id, dto);
+        var(repartidor, error) = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.EditarRepartidorCommand(id, dto), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (repartidor == null)
             return BadRequest(new { message = error });
         return Ok(repartidor);
@@ -150,8 +134,7 @@ public class RepartoController : ControllerBase
         var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
         if (oficinaJefe.HasValue && !await PerteneceAOficinaAsync(id, oficinaJefe.Value))
             return Forbid();
-
-        var (ok, error) = await _repartoService.DesactivarRepartidor(id);
+        var(ok, error) = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.DesactivarRepartidorCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
         return ok ? NoContent() : BadRequest(new { message = error });
     }
 
@@ -165,34 +148,28 @@ public class RepartoController : ControllerBase
         var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
         if (oficinaJefe.HasValue && !await PerteneceAOficinaAsync(id, oficinaJefe.Value))
             return Forbid();
-
-        var (ok, error) = await _repartoService.ReactivarRepartidor(id);
+        var(ok, error) = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ReactivarRepartidorCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
         return ok ? NoContent() : BadRequest(new { message = error });
     }
 
     // ═══════════════════════════════════════════
     //  RUTAS DE REPARTO
     // ═══════════════════════════════════════════
-
     /// <summary>
     /// Obtiene las rutas de reparto. El JefeReparto solo ve rutas de su propia oficina.
     /// </summary>
     [HttpGet("rutas")]
     [Authorize(Roles = "Admin,JefeReparto")]
-    public async Task<IActionResult> ObtenerRutas(
-        [FromQuery] string? fecha,
-        [FromQuery] int? repartidorId)
+    public async Task<IActionResult> ObtenerRutas([FromQuery] string? fecha, [FromQuery] int? repartidorId)
     {
         try
         {
             DateOnly? fechaParsed = null;
             if (!string.IsNullOrEmpty(fecha) && DateOnly.TryParse(fecha, out var f))
                 fechaParsed = f;
-
             // El JefeReparto solo puede ver las rutas de su oficina
             var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
-
-            var rutas = await _repartoService.ObtenerRutas(fechaParsed, repartidorId, oficinaJefe);
+            var rutas = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRutasQuery(fechaParsed, repartidorId, oficinaJefe), HttpContext?.RequestAborted ?? CancellationToken.None);
             return Ok(rutas);
         }
         catch (Exception ex)
@@ -209,15 +186,13 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> CancelarRuta(int id)
     {
-        var ruta = await _repartoService.ObtenerRutaPorId(id);
+        var ruta = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRutaPorIdQuery(id), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (ruta == null)
             return NotFound(new { message = "Ruta no encontrada" });
-
         var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
         if (oficinaJefe.HasValue && ruta.OficinaOrigenJsonId != oficinaJefe.Value)
             return Forbid();
-
-        var (ok, error) = await _repartoService.CancelarRuta(id);
+        var(ok, error) = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.CancelarRutaCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
         return ok ? NoContent() : BadRequest(new { message = error });
     }
 
@@ -228,15 +203,13 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> ReactivarRuta(int id)
     {
-        var ruta = await _repartoService.ObtenerRutaPorId(id);
+        var ruta = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRutaPorIdQuery(id), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (ruta == null)
             return NotFound(new { message = "Ruta no encontrada" });
-
         var oficinaJefe = await GetOficinaSiJefeRepartoAsync();
         if (oficinaJefe.HasValue && ruta.OficinaOrigenJsonId != oficinaJefe.Value)
             return Forbid();
-
-        var (ok, error) = await _repartoService.ReactivarRuta(id);
+        var(ok, error) = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ReactivarRutaCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
         return ok ? NoContent() : BadRequest(new { message = error });
     }
 
@@ -249,19 +222,14 @@ public class RepartoController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                         ?? User.FindFirst("sub")?.Value
-                         ?? User.FindFirst("nameid")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
-
-            var repartidor = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
+            var repartidor = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRepartidorPorIdentityIdQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None);
             if (repartidor == null)
                 return NotFound(new { message = "No existe perfil de repartidor" });
-
             var hoy = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
-            var rutas = await _repartoService.ObtenerRutas(DateOnly.FromDateTime(DateTime.UtcNow), repartidor.Id);
-
+            var rutas = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRutasQuery(DateOnly.FromDateTime(DateTime.UtcNow), repartidor.Id), HttpContext?.RequestAborted ?? CancellationToken.None);
             return Ok(rutas);
         }
         catch (Exception ex)
@@ -278,7 +246,7 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto,Repartidor")]
     public async Task<IActionResult> ObtenerRutaPorId(int id)
     {
-        var ruta = await _repartoService.ObtenerRutaPorId(id);
+        var ruta = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRutaPorIdQuery(id), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (ruta == null)
             return NotFound(new { message = "Ruta no encontrada" });
         return Ok(ruta);
@@ -291,7 +259,7 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto,Repartidor")]
     public async Task<IActionResult> ObtenerRutaPorCodigo(string codigo)
     {
-        var ruta = await _repartoService.ObtenerRutaPorCodigo(codigo);
+        var ruta = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRutaPorCodigoQuery(codigo), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (ruta == null)
             return NotFound(new { message = "Ruta no encontrada" });
         return Ok(ruta);
@@ -306,7 +274,7 @@ public class RepartoController : ControllerBase
     {
         try
         {
-            var ruta = await _repartoService.CrearRuta(dto);
+            var ruta = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.CrearRutaCommand(dto), HttpContext?.RequestAborted ?? CancellationToken.None);
             return CreatedAtAction(nameof(ObtenerRutaPorId), new { id = ruta.Id }, ruta);
         }
         catch (Exception ex)
@@ -323,7 +291,7 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> IniciarRuta(int id)
     {
-        var ruta = await _repartoService.IniciarRuta(id);
+        var ruta = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.IniciarRutaCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (ruta == null)
             return BadRequest(new { message = "No se pudo iniciar la ruta. Verifique que existe y está en estado Planificada." });
         return Ok(ruta);
@@ -336,7 +304,7 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> FinalizarRuta(int id, [FromBody] FinalizarRutaRequest? request = null)
     {
-        var ruta = await _repartoService.FinalizarRuta(id, request?.Observaciones);
+        var ruta = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.FinalizarRutaCommand(id, request?.Observaciones), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (ruta == null)
             return BadRequest(new { message = "No se pudo finalizar la ruta. Verifique que existe y está en curso." });
         return Ok(ruta);
@@ -345,7 +313,6 @@ public class RepartoController : ControllerBase
     // ═══════════════════════════════════════════
     //  ENTREGAS
     // ═══════════════════════════════════════════
-
     /// <summary>
     /// Obtiene las entregas de una ruta.
     /// </summary>
@@ -355,13 +322,13 @@ public class RepartoController : ControllerBase
     {
         if (rutaId.HasValue)
         {
-            var entregas = await _repartoService.ObtenerEntregasPorRuta(rutaId.Value);
+            var entregas = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerEntregasPorRutaQuery(rutaId.Value), HttpContext?.RequestAborted ?? CancellationToken.None);
             return Ok(entregas);
         }
 
         if (!string.IsNullOrEmpty(seguimiento))
         {
-            var entregas = await _repartoService.ObtenerEntregasPorSeguimiento(seguimiento);
+            var entregas = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerEntregasPorSeguimientoQuery(seguimiento), HttpContext?.RequestAborted ?? CancellationToken.None);
             return Ok(entregas);
         }
 
@@ -375,7 +342,7 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> AgregarEntrega(int rutaId, [FromBody] AgregarEntregaDto dto)
     {
-        var entrega = await _repartoService.AgregarEntregaARuta(rutaId, dto);
+        var entrega = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.AgregarEntregaARutaCommand(rutaId, dto), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (entrega == null)
             return BadRequest(new { message = "No se pudo agregar la entrega. Verifique que la ruta existe y está planificada." });
         return CreatedAtAction(nameof(ObtenerEntregas), new { rutaId }, entrega);
@@ -389,10 +356,9 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> ConfirmarEntrega([FromQuery] int entregaId, [FromBody] RegistrarEntregaDto dto)
     {
-        var entrega = await _repartoService.RegistrarEntrega(entregaId, dto);
+        var entrega = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.RegistrarEntregaCommand(entregaId, dto), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (entrega == null)
             return BadRequest(new { message = "No se pudo registrar la entrega. Verifique el ID y el estado." });
-
         await NotificarEventoEntregaTracking(entrega);
         return Ok(entrega);
     }
@@ -404,10 +370,9 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> RegistrarEntrega(int entregaId, [FromBody] RegistrarEntregaDto dto)
     {
-        var entrega = await _repartoService.RegistrarEntrega(entregaId, dto);
+        var entrega = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.RegistrarEntregaCommand(entregaId, dto), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (entrega == null)
             return BadRequest(new { message = "No se pudo registrar la entrega." });
-
         await NotificarEventoEntregaTracking(entrega);
         return Ok(entrega);
     }
@@ -415,7 +380,6 @@ public class RepartoController : ControllerBase
     // ═══════════════════════════════════════════
     //  DASHBOARD
     // ═══════════════════════════════════════════
-
     /// <summary>
     /// Dashboard de reparto del día actual. Solo JefeReparto y Admin.
     /// </summary>
@@ -425,7 +389,7 @@ public class RepartoController : ControllerBase
     {
         try
         {
-            var dashboard = await _repartoService.ObtenerDashboard(oficinaJsonId);
+            var dashboard = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerDashboardQuery(oficinaJsonId), HttpContext?.RequestAborted ?? CancellationToken.None);
             return Ok(dashboard);
         }
         catch (Exception ex)
@@ -438,7 +402,6 @@ public class RepartoController : ControllerBase
     // ═══════════════════════════════════════════
     //  TRACKING TIEMPO REAL (JefeReparto)
     // ═══════════════════════════════════════════
-
     /// <summary>
     /// Devuelve la última ubicación conocida de cada repartidor activo
     /// (que ha enviado una posición en los últimos N minutos).
@@ -446,13 +409,11 @@ public class RepartoController : ControllerBase
     /// </summary>
     [HttpGet("ubicaciones-activas")]
     [Authorize(Roles = "Admin,JefeReparto")]
-    public async Task<IActionResult> ObtenerUbicacionesActivas(
-        [FromQuery] int? oficinaJsonId,
-        [FromQuery] int ventanaMinutos = 10)
+    public async Task<IActionResult> ObtenerUbicacionesActivas([FromQuery] int? oficinaJsonId, [FromQuery] int ventanaMinutos = 10)
     {
         try
         {
-            var ubicaciones = await _repartoService.ObtenerUbicacionesActivas(oficinaJsonId, ventanaMinutos);
+            var ubicaciones = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerUbicacionesActivasQuery(oficinaJsonId, ventanaMinutos), HttpContext?.RequestAborted ?? CancellationToken.None);
             return Ok(ubicaciones);
         }
         catch (Exception ex)
@@ -465,7 +426,6 @@ public class RepartoController : ControllerBase
     // ═══════════════════════════════════════════
     //  ASIGNACIÓN MANUAL DE PARADAS (JefeReparto)
     // ═══════════════════════════════════════════
-
     /// <summary>
     /// Lista las entregas pendientes de rutas planificadas del día actual,
     /// para que el JefeReparto pueda redistribuirlas entre repartidores.
@@ -476,7 +436,7 @@ public class RepartoController : ControllerBase
     {
         try
         {
-            var pendientes = await _repartoService.ObtenerEntregasPendientesAsignacion(oficinaJsonId);
+            var pendientes = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerEntregasPendientesAsignacionQuery(oficinaJsonId), HttpContext?.RequestAborted ?? CancellationToken.None);
             return Ok(pendientes);
         }
         catch (Exception ex)
@@ -493,7 +453,7 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> ReasignarEntrega(int entregaId, [FromBody] ReasignarEntregaDto dto)
     {
-        var entrega = await _repartoService.ReasignarEntregaARuta(entregaId, dto.NuevaRutaId);
+        var entrega = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ReasignarEntregaARutaCommand(entregaId, dto.NuevaRutaId), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (entrega == null)
             return BadRequest(new { message = "No se pudo reasignar la entrega. Verifique que está pendiente y que la ruta destino existe y está planificada." });
         return Ok(entrega);
@@ -508,24 +468,15 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Repartidor")]
     public async Task<IActionResult> RegistrarUbicacion([FromBody] UbicacionRepartidorRequest request)
     {
-        _logger.LogInformation("Ubicación recibida de repartidor: lat={Lat}, lng={Lng}",
-            request.Latitud, request.Longitud);
-
+        _logger.LogInformation("Ubicación recibida de repartidor: lat={Lat}, lng={Lng}", request.Latitud, request.Longitud);
         // Persistir última ubicación del repartidor autenticado
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst("sub")?.Value
-                     ?? User.FindFirst("nameid")?.Value;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
         if (!string.IsNullOrEmpty(userId))
         {
-            await _repartoService.RegistrarUbicacionRepartidor(
-                userId,
-                request.Latitud,
-                request.Longitud,
-                request.RutaId);
+            await _sender.Send(new Nexopostal.Reparto.Application.Reparto.RegistrarUbicacionRepartidorCommand(userId, request.Latitud, request.Longitud, request.RutaId), HttpContext?.RequestAborted ?? CancellationToken.None);
         }
 
         var seguimientos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
         if (!string.IsNullOrWhiteSpace(request.NumeroSeguimiento))
         {
             seguimientos.Add(request.NumeroSeguimiento.Trim().ToUpperInvariant());
@@ -533,7 +484,7 @@ public class RepartoController : ControllerBase
 
         if (request.RutaId.HasValue)
         {
-            var entregas = await _repartoService.ObtenerEntregasPorRuta(request.RutaId.Value);
+            var entregas = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerEntregasPorRutaQuery(request.RutaId.Value), HttpContext?.RequestAborted ?? CancellationToken.None);
             foreach (var entrega in entregas)
             {
                 if (!string.IsNullOrWhiteSpace(entrega.NumeroSeguimiento))
@@ -545,20 +496,10 @@ public class RepartoController : ControllerBase
 
         foreach (var numeroSeguimiento in seguimientos)
         {
-            await _ciudadanoTrackingNotifier.NotificarUbicacionAsync(
-                numeroSeguimiento,
-                request.Latitud,
-                request.Longitud,
-                request.TipoUbicacion,
-                request.Descripcion,
-                HttpContext.RequestAborted);
+            await _ciudadanoTrackingNotifier.NotificarUbicacionAsync(numeroSeguimiento, request.Latitud, request.Longitud, request.TipoUbicacion, request.Descripcion, HttpContext.RequestAborted);
         }
 
-        return Ok(new
-        {
-            message = "Ubicación registrada",
-            trackingNotificados = seguimientos.Count
-        });
+        return Ok(new { message = "Ubicación registrada", trackingNotificados = seguimientos.Count });
     }
 
     /// <summary>
@@ -574,18 +515,15 @@ public class RepartoController : ControllerBase
     {
         if (!IsInternalServiceAuthorized())
             return StatusCode(StatusCodes.Status403Forbidden, new { message = "Service key inválida" });
-
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-
-        var resultado = await _repartoService.AutoAsignarEntregaDesdeAdmision(dto);
+        var resultado = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.AutoAsignarEntregaDesdeAdmisionCommand(dto), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(resultado);
     }
 
     // ═══════════════════════════════════════════
     //  BANDEJA DEL JEFEREPARTO (paquetes DisponibleParaReparto)
     // ═══════════════════════════════════════════
-
     /// <summary>
     /// Endpoint interno usado por Intranet al escanear DisponibleParaReparto.
     /// Registra el paquete en la bandeja del JefeReparto del CTA destino.
@@ -599,14 +537,11 @@ public class RepartoController : ControllerBase
     {
         if (!IsInternalServiceAuthorized())
             return StatusCode(StatusCodes.Status403Forbidden, new { message = "Service key inválida" });
-
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-
-        var resultado = await _bandejaService.RegistrarPaqueteAsync(dto);
+        var resultado = await _sender.Send(new Nexopostal.Reparto.Application.BandejaPendientes.RegistrarPaqueteCommand(dto), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (!resultado.Success)
             return BadRequest(resultado);
-
         return Ok(resultado);
     }
 
@@ -616,11 +551,9 @@ public class RepartoController : ControllerBase
     /// </summary>
     [HttpGet("bandeja")]
     [Authorize(Roles = "Admin,JefeReparto")]
-    public async Task<IActionResult> ObtenerBandeja(
-        [FromQuery] int? ctaId,
-        [FromQuery] bool incluirAsignados = false)
+    public async Task<IActionResult> ObtenerBandeja([FromQuery] int? ctaId, [FromQuery] bool incluirAsignados = false)
     {
-        var pendientes = await _bandejaService.ListarPendientesAsync(ctaId, incluirAsignados);
+        var pendientes = await _sender.Send(new Nexopostal.Reparto.Application.BandejaPendientes.ListarPendientesQuery(ctaId, incluirAsignados), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(pendientes);
     }
 
@@ -632,26 +565,19 @@ public class RepartoController : ControllerBase
     [Authorize(Roles = "Admin,JefeReparto")]
     public async Task<IActionResult> AsignarPendienteARuta(int pendienteId, [FromBody] AsignarPendienteARutaDto dto)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst("sub")?.Value
-                     ?? User.FindFirst("nameid")?.Value;
-
-        var (pendiente, entrega, error) = await _bandejaService.AsignarARutaAsync(pendienteId, dto, userId);
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
+        var(pendiente, entrega, error) = await _sender.Send(new Nexopostal.Reparto.Application.BandejaPendientes.AsignarARutaCommand(pendienteId, dto, userId), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (error is not null)
             return BadRequest(new { message = error });
-
         return Ok(new { pendiente, entrega });
     }
 
     private bool IsInternalServiceAuthorized()
     {
-        var expectedKey = _configuration["InterServiceSettings:ServiceKey"]
-            ?? "nexopostal-internal-service-key-2025";
+        var expectedKey = _configuration["InterServiceSettings:ServiceKey"] ?? "nexopostal-internal-service-key-2025";
         var providedKey = Request.Headers["X-Service-Key"].FirstOrDefault();
-
         if (string.IsNullOrWhiteSpace(providedKey))
             return false;
-
         return SecureEquals(expectedKey, providedKey);
     }
 
@@ -662,21 +588,20 @@ public class RepartoController : ControllerBase
     /// </summary>
     private async Task<int?> GetOficinaSiJefeRepartoAsync()
     {
-        if (User.IsInRole("Admin")) return null;
-        if (!User.IsInRole("JefeReparto")) return null;
-
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst("sub")?.Value
-                     ?? User.FindFirst("nameid")?.Value;
-        if (string.IsNullOrEmpty(userId)) return null;
-
-        var perfil = await _repartoService.ObtenerRepartidorPorIdentityId(userId);
+        if (User.IsInRole("Admin"))
+            return null;
+        if (!User.IsInRole("JefeReparto"))
+            return null;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
+        if (string.IsNullOrEmpty(userId))
+            return null;
+        var perfil = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRepartidorPorIdentityIdQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None);
         return perfil?.OficinaJsonId;
     }
 
     private async Task<bool> PerteneceAOficinaAsync(int repartidorId, int oficinaJsonId)
     {
-        var lista = await _repartoService.ObtenerRepartidores(oficinaJsonId, incluirInactivos: true);
+        var lista = await _sender.Send(new Nexopostal.Reparto.Application.Reparto.ObtenerRepartidoresQuery(oficinaJsonId, IncluirInactivos: true), HttpContext?.RequestAborted ?? CancellationToken.None);
         return lista.Any(r => r.Id == repartidorId);
     }
 
@@ -684,10 +609,8 @@ public class RepartoController : ControllerBase
     {
         var expectedBytes = Encoding.UTF8.GetBytes(expected ?? string.Empty);
         var providedBytes = Encoding.UTF8.GetBytes(provided ?? string.Empty);
-
         if (expectedBytes.Length != providedBytes.Length)
             return false;
-
         return CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
     }
 
@@ -698,25 +621,14 @@ public class RepartoController : ControllerBase
             return;
         }
 
-        var payload = new TrackingEventoEntregaPayload(
-            entrega.NumeroSeguimiento.Trim().ToUpperInvariant(),
-            entrega.NumeroExpedicion,
-            entrega.Estado,
-            entrega.NumeroIntento,
-            entrega.Observaciones,
-            entrega.ReceptorNombre,
-            entrega.ReceptorDni,
-            entrega.LatitudEntrega,
-            entrega.LongitudEntrega,
-            entrega.FirmaDigital,
-            entrega.FotoEntrega);
-
+        var payload = new TrackingEventoEntregaPayload(entrega.NumeroSeguimiento.Trim().ToUpperInvariant(), entrega.NumeroExpedicion, entrega.Estado, entrega.NumeroIntento, entrega.Observaciones, entrega.ReceptorNombre, entrega.ReceptorDni, entrega.LatitudEntrega, entrega.LongitudEntrega, entrega.FirmaDigital, entrega.FotoEntrega);
         await _ciudadanoTrackingNotifier.NotificarEventoEntregaAsync(payload, HttpContext.RequestAborted);
     }
+
+    private readonly ISender _sender;
 }
 
 // ─── Request models auxiliares ───
-
 public class FinalizarRutaRequest
 {
     public string? Observaciones { get; set; }

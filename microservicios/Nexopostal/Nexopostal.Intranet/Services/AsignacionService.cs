@@ -9,70 +9,9 @@ namespace Nexopostal.Intranet.Services;
 /// El OperarioLogistico crea asignaciones → el Operario las ejecuta.
 /// Los paquetes urgentes tienen prioridad (pase VIP).
 /// </summary>
-public interface IAsignacionService
+public interface IAsignacionService : Nexopostal.Intranet.Application.Asignacion.IAsignacionCommands, Nexopostal.Intranet.Application.Asignacion.IAsignacionQueries
 {
-    /// <summary>Crea una asignación de tarea (solo OperarioLogistico)</summary>
-    Task<AsignacionDetalleDto> CrearAsignacion(CrearAsignacionDto dto, int operarioLogisticoId, int ctaId);
 
-    /// <summary>
-    /// Crea una asignación de tarea para un OperarioOficina (sin requerir CTA).
-    /// Usada en alta presencial, salida de oficina origen, entrega CTA→oficina destino y entrega al cliente.
-    /// <paramref name="creadorOperarioCtaId"/> es opcional (null si la crea el sistema).
-    /// </summary>
-    Task<AsignacionDetalleDto> CrearAsignacionOficina(
-        string numeroExpedicion,
-        int operarioOficinaId,
-        TipoTarea tipoTarea,
-        int? oficinaJsonId,
-        string? oficinaNombre,
-        bool esUrgente = false,
-        int? creadorOperarioCtaId = null,
-        string? observaciones = null);
-
-    /// <summary>Obtiene las tareas pendientes de un operario (urgentes primero)</summary>
-    Task<List<AsignacionResumenDto>> ObtenerTareasPendientes(int operarioId);
-
-    /// <summary>Obtiene las tareas en progreso de un operario</summary>
-    Task<List<AsignacionResumenDto>> ObtenerTareasEnProgreso(int operarioId);
-
-    /// <summary>Obtiene las últimas tareas completadas de un operario (más recientes primero).</summary>
-    Task<List<AsignacionResumenDto>> ObtenerTareasCompletadas(int operarioId, int max = 50);
-
-    /// <summary>Marca una tarea como iniciada (Pendiente → EnProgreso)</summary>
-    Task<AsignacionDetalleDto?> IniciarTarea(int asignacionId, int operarioId);
-
-    /// <summary>Marca una tarea como completada (EnProgreso → Completada)</summary>
-    Task<AsignacionDetalleDto?> CompletarTarea(int asignacionId, int operarioId);
-
-    /// <summary>Cancela una tarea (cualquier estado → Cancelada)</summary>
-    Task<bool> CancelarTarea(int asignacionId, int operarioLogisticoId);
-
-    /// <summary>
-    /// Reasigna una tarea (Pendiente o EnProgreso) a otro OperarioCTA del mismo CTA.
-    /// Resetea el estado a Pendiente para que el nuevo operario inicie de cero.
-    /// </summary>
-    Task<AsignacionDetalleDto?> ReasignarTarea(int asignacionId, int nuevoOperarioId, int supervisorOperarioId);
-
-    /// <summary>Obtiene todas las asignaciones de un CTA</summary>
-    Task<List<AsignacionResumenDto>> ObtenerAsignacionesCta(int ctaId, EstadoTarea? filtroEstado = null);
-
-    /// <summary>Obtiene el detalle de una asignación</summary>
-    Task<AsignacionDetalleDto?> ObtenerDetalle(int asignacionId);
-
-    /// <summary>Busca una tarea pendiente o en progreso del operario por número de expedición / seguimiento.</summary>
-    Task<AsignacionResumenDto?> BuscarEnMisTareasAsync(int operarioId, string codigo);
-
-    /// <summary>Obtiene las tareas pendientes de un OperarioOficina (urgentes primero).</summary>
-    Task<List<AsignacionResumenDto>> ObtenerTareasPendientesOficina(int operarioOficinaId);
-
-    /// <summary>Obtiene las tareas en progreso de un OperarioOficina.</summary>
-    Task<List<AsignacionResumenDto>> ObtenerTareasEnProgresoOficina(int operarioOficinaId);
-
-    /// <summary>Tareas completadas recientemente por un OperarioOficina (más recientes primero).</summary>
-    Task<List<AsignacionResumenDto>> ObtenerTareasCompletadasOficina(int operarioOficinaId, int max = 50);
-
-    /// <summary>Busca una tarea pendiente o en progreso de un OperarioOficina por número de expedición / seguimiento.</summary>
-    Task<AsignacionResumenDto?> BuscarEnMisTareasOficinaAsync(int operarioOficinaId, string codigo);
 }
 
 public class AsignacionService : IAsignacionService

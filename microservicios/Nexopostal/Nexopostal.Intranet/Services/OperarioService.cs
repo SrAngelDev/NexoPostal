@@ -9,40 +9,9 @@ namespace Nexopostal.Intranet.Services;
 /// <summary>
 /// Servicio para gestionar operarios asignados a CTAs.
 /// </summary>
-public interface IOperarioService
+public interface IOperarioService : Nexopostal.Intranet.Application.Operario.IOperarioCommands, Nexopostal.Intranet.Application.Operario.IOperarioQueries
 {
-    /// <summary>Obtiene el primer operario activo vinculado al IdentityUserId</summary>
-    Task<OperarioCta?> ObtenerPorIdentityUserId(string identityUserId);
 
-    /// <summary>Obtiene TODOS los operarios activos vinculados al IdentityUserId (uno por CTA)</summary>
-    Task<List<OperarioCta>> ObtenerTodosPorIdentityUserId(string identityUserId);
-
-    /// <summary>Obtiene la info resumida del CTA del operario autenticado (primer CTA)</summary>
-    Task<MiCtaInfoDto?> ObtenerMiCtaInfo(string identityUserId);
-
-    /// <summary>Obtiene la info de TODOS los CTAs del operario autenticado</summary>
-    Task<MisCtasInfoDto?> ObtenerMisCtasInfo(string identityUserId);
-
-    /// <summary>Obtiene todos los operarios de un CTA</summary>
-    Task<List<OperarioResumenDto>> ObtenerOperariosCta(int ctaId);
-
-    /// <summary>Obtiene el detalle de un operario</summary>
-    Task<OperarioDetalleDto?> ObtenerDetalle(int operarioId);
-
-    /// <summary>Obtiene el detalle operativo de un usuario por IdentityUserId (vista admin).</summary>
-    Task<AdminOperarioDetalleDto?> ObtenerDetalleAdminPorIdentityUserId(string identityUserId);
-
-    /// <summary>Mueve una asignación de CTA de un usuario (vista admin).</summary>
-    Task<(bool Ok, string? Error, bool Conflict)> ActualizarCtaAdmin(string identityUserId, AdminActualizarCtaDto dto);
-
-    /// <summary>Crea un nuevo operario y lo asigna a un CTA</summary>
-    Task<OperarioResumenDto> CrearOperario(CrearOperarioDto dto);
-
-    /// <summary>Desactiva un operario</summary>
-    Task<bool> DesactivarOperario(int operarioId);
-
-    /// <summary>Reactiva un operario previamente desactivado</summary>
-    Task<bool> ReactivarOperario(int operarioId);
 }
 
 public class OperarioService : IOperarioService

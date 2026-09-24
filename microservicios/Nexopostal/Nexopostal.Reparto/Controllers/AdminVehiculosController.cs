@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Reparto.DTOs;
 using Nexopostal.Reparto.Models;
 using Nexopostal.Reparto.Services;
+using MediatR;
 
 namespace Nexopostal.Reparto.Controllers;
-
 /// <summary>
 /// Gestión administrativa de la flota de vehículos solo para administradores.
 /// </summary>
@@ -15,23 +15,18 @@ namespace Nexopostal.Reparto.Controllers;
 [Authorize(Roles = "Admin")]
 public class AdminVehiculosController : ControllerBase
 {
-    private readonly IVehiculoService _service;
-
-    public AdminVehiculosController(IVehiculoService service)
+    public AdminVehiculosController(ISender sender)
     {
-        _service = service;
+        _sender = sender;
     }
 
     /// <summary>
     /// Devuelve la flota con filtros opcionales de actividad, oficina o repartidor asignado.
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<List<VehiculoDto>>> Listar(
-        [FromQuery] bool incluirInactivos = false,
-        [FromQuery] int? oficinaJsonId = null,
-        [FromQuery] int? repartidorId = null)
+    public async Task<ActionResult<List<VehiculoDto>>> Listar([FromQuery] bool incluirInactivos = false, [FromQuery] int? oficinaJsonId = null, [FromQuery] int? repartidorId = null)
     {
-        var lista = await _service.ListarAsync(incluirInactivos, oficinaJsonId, repartidorId);
+        var lista = await _sender.Send(new Nexopostal.Reparto.Application.Vehiculos.ListarQuery(incluirInactivos, oficinaJsonId, repartidorId), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(lista.Select(ToDto).ToList());
     }
 
@@ -39,8 +34,9 @@ public class AdminVehiculosController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<VehiculoDto>> Obtener(int id)
     {
-        var v = await _service.ObtenerAsync(id);
-        if (v == null) return NotFound(new { mensaje = "Vehículo no encontrado" });
+        var v = await _sender.Send(new Nexopostal.Reparto.Application.Vehiculos.ObtenerQuery(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (v == null)
+            return NotFound(new { mensaje = "Vehículo no encontrado" });
         return Ok(ToDto(v));
     }
 
@@ -48,9 +44,11 @@ public class AdminVehiculosController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<VehiculoDto>> Crear([FromBody] CrearVehiculoDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
-        var (v, error) = await _service.CrearAsync(dto, GetUserId());
-        if (error != null) return Conflict(new { mensaje = error });
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+        var(v, error) = await _sender.Send(new Nexopostal.Reparto.Application.Vehiculos.CrearCommand(dto, GetUserId()), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (error != null)
+            return Conflict(new { mensaje = error });
         return CreatedAtAction(nameof(Obtener), new { id = v!.Id }, ToDto(v));
     }
 
@@ -58,10 +56,13 @@ public class AdminVehiculosController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<VehiculoDto>> Actualizar(int id, [FromBody] ActualizarVehiculoDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
-        var (v, error) = await _service.ActualizarAsync(id, dto, GetUserId());
-        if (error == "Vehículo no encontrado") return NotFound(new { mensaje = error });
-        if (error != null) return Conflict(new { mensaje = error });
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+        var(v, error) = await _sender.Send(new Nexopostal.Reparto.Application.Vehiculos.ActualizarCommand(id, dto, GetUserId()), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (error == "Vehículo no encontrado")
+            return NotFound(new { mensaje = error });
+        if (error != null)
+            return Conflict(new { mensaje = error });
         return Ok(ToDto(v!));
     }
 
@@ -69,9 +70,11 @@ public class AdminVehiculosController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Desactivar(int id)
     {
-        var (ok, error) = await _service.DesactivarAsync(id, GetUserId());
-        if (!ok && error == "Vehículo no encontrado") return NotFound(new { mensaje = error });
-        if (!ok) return Conflict(new { mensaje = error });
+        var(ok, error) = await _sender.Send(new Nexopostal.Reparto.Application.Vehiculos.DesactivarCommand(id, GetUserId()), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (!ok && error == "Vehículo no encontrado")
+            return NotFound(new { mensaje = error });
+        if (!ok)
+            return Conflict(new { mensaje = error });
         return Ok(new { mensaje = "Vehículo desactivado", id });
     }
 
@@ -79,9 +82,11 @@ public class AdminVehiculosController : ControllerBase
     [HttpPost("{id:int}/reactivar")]
     public async Task<IActionResult> Reactivar(int id)
     {
-        var (ok, error) = await _service.ReactivarAsync(id, GetUserId());
-        if (!ok && error == "Vehículo no encontrado") return NotFound(new { mensaje = error });
-        if (!ok) return BadRequest(new { mensaje = error });
+        var(ok, error) = await _sender.Send(new Nexopostal.Reparto.Application.Vehiculos.ReactivarCommand(id, GetUserId()), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (!ok && error == "Vehículo no encontrado")
+            return NotFound(new { mensaje = error });
+        if (!ok)
+            return BadRequest(new { mensaje = error });
         return Ok(new { mensaje = "Vehículo reactivado", id });
     }
 
@@ -89,10 +94,11 @@ public class AdminVehiculosController : ControllerBase
     [HttpPost("{id:int}/asignar")]
     public async Task<ActionResult<VehiculoDto>> Asignar(int id, [FromBody] AsignarVehiculoDto dto)
     {
-        var (v, error) = await _service.AsignarAsync(id, dto.RepartidorId, GetUserId());
+        var(v, error) = await _sender.Send(new Nexopostal.Reparto.Application.Vehiculos.AsignarCommand(id, dto.RepartidorId, GetUserId()), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (error == "Vehículo no encontrado" || error == "Repartidor no encontrado")
             return NotFound(new { mensaje = error });
-        if (error != null) return BadRequest(new { mensaje = error });
+        if (error != null)
+            return BadRequest(new { mensaje = error });
         return Ok(ToDto(v!));
     }
 
@@ -102,7 +108,7 @@ public class AdminVehiculosController : ControllerBase
     [HttpPost("importar-desde-repartidores")]
     public async Task<ActionResult<ImportarDesdeRepartidoresResultDto>> Importar()
     {
-        var resultado = await _service.ImportarDesdeRepartidoresAsync(GetUserId());
+        var resultado = await _sender.Send(new Nexopostal.Reparto.Application.Vehiculos.ImportarDesdeRepartidoresCommand(GetUserId()), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(resultado);
     }
 
@@ -124,10 +130,7 @@ public class AdminVehiculosController : ControllerBase
         FechaAlta = v.FechaAlta,
         FechaModificacion = v.FechaModificacion
     };
-
     /// <summary>Obtiene el identificador del usuario autenticado desde las claims habituales del JWT.</summary>
-    private string? GetUserId() =>
-        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-        ?? User.FindFirst("sub")?.Value
-        ?? User.FindFirst("nameid")?.Value;
+    private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
+    private readonly ISender _sender;
 }

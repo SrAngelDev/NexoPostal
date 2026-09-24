@@ -8,25 +8,9 @@ namespace Nexopostal.Intranet.Services;
 /// Servicio para gestionar las incidencias de un CTA.
 /// Solo el Supervisor puede crear, actualizar y resolver incidencias.
 /// </summary>
-public interface IIncidenciaService
+public interface IIncidenciaService : Nexopostal.Intranet.Application.Incidencia.IIncidenciaCommands, Nexopostal.Intranet.Application.Incidencia.IIncidenciaQueries
 {
-    /// <summary>Crea una nueva incidencia</summary>
-    Task<IncidenciaDetalleDto> CrearIncidencia(CrearIncidenciaDto dto, int operarioJefeId, int ctaId);
 
-    /// <summary>Actualiza el estado de una incidencia</summary>
-    Task<IncidenciaDetalleDto?> ActualizarIncidencia(int incidenciaId, ActualizarIncidenciaDto dto);
-
-    /// <summary>Obtiene las incidencias de un CTA</summary>
-    Task<List<IncidenciaResumenDto>> ObtenerIncidenciasCta(int ctaId, EstadoIncidencia? filtroEstado = null);
-
-    /// <summary>Obtiene incidencias globales (Admin)</summary>
-    Task<List<IncidenciaResumenDto>> ObtenerIncidenciasGlobales(EstadoIncidencia? filtroEstado = null, int? ctaId = null, TipoIncidencia? tipo = null);
-
-    /// <summary>Obtiene el detalle de una incidencia</summary>
-    Task<IncidenciaDetalleDto?> ObtenerDetalle(int incidenciaId);
-
-    /// <summary>Obtiene las incidencias de un paquete específico</summary>
-    Task<List<IncidenciaResumenDto>> ObtenerIncidenciasPaquete(string numeroExpedicion);
 }
 
 public class IncidenciaService : IIncidenciaService

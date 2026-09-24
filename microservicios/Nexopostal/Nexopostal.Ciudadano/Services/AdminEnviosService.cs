@@ -8,28 +8,9 @@ namespace Nexopostal.Ciudadano.Services;
 /// Servicio admin de envíos. Operaciones de gestión (cambio de estado, anular, reabrir)
 /// sin tocar ningún flujo de pagos/Stripe.
 /// </summary>
-public interface IAdminEnviosService
+public interface IAdminEnviosService : Nexopostal.Ciudadano.Application.AdminEnvios.IAdminEnviosCommands, Nexopostal.Ciudadano.Application.AdminEnvios.IAdminEnviosQueries
 {
-    Task<List<AdminEnvioListItemDto>> ListarAsync(
-        EstadoEnvio? estado,
-        EstadoInterno? estadoInterno,
-        DateTime? fechaDesde,
-        DateTime? fechaHasta,
-        string? q,
-        string? codigoPostal,
-        bool? pagado,
-        int limit);
 
-    Task<AdminEnvioDetalleDto?> ObtenerAsync(string numeroSeguimiento);
-
-    Task<(AdminEnvioDetalleDto? envio, string? error)> CambiarEstadoAsync(
-        string numeroSeguimiento, CambiarEstadoEnvioDto dto, string? adminUserId);
-
-    Task<(AdminEnvioDetalleDto? envio, string? error)> AnularAsync(
-        string numeroSeguimiento, AccionEnvioDto dto, string? adminUserId);
-
-    Task<(AdminEnvioDetalleDto? envio, string? error)> ReabrirAsync(
-        string numeroSeguimiento, AccionEnvioDto dto, string? adminUserId);
 }
 
 public class AdminEnviosService : IAdminEnviosService

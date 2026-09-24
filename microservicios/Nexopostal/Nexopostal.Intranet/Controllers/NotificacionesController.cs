@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Intranet.Services;
+using MediatR;
 
 namespace Nexopostal.Intranet.Controllers;
-
 /// <summary>
 /// Endpoints administrativos para enviar notificaciones broadcast vía SignalR.
 /// </summary>
@@ -12,11 +12,9 @@ namespace Nexopostal.Intranet.Controllers;
 [Authorize(Roles = "Admin")]
 public class NotificacionesController : ControllerBase
 {
-    private readonly IBroadcastService _broadcast;
-
-    public NotificacionesController(IBroadcastService broadcast)
+    public NotificacionesController(ISender sender)
     {
-        _broadcast = broadcast;
+        _sender = sender;
     }
 
     /// <summary>Envía un mensaje broadcast por el hub.</summary>
@@ -25,10 +23,9 @@ public class NotificacionesController : ControllerBase
     {
         if (req == null || string.IsNullOrWhiteSpace(req.Titulo) || string.IsNullOrWhiteSpace(req.Mensaje))
             return BadRequest(new { message = "Título y mensaje son obligatorios." });
-
         try
         {
-            await _broadcast.BroadcastAsync(req);
+            await _sender.Send(new Nexopostal.Intranet.Application.Broadcast.BroadcastCommand(req), HttpContext?.RequestAborted ?? CancellationToken.None);
             return Ok(new { ok = true, fechaUtc = DateTime.UtcNow });
         }
         catch (ArgumentException ex)
@@ -36,4 +33,6 @@ public class NotificacionesController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    private readonly ISender _sender;
 }

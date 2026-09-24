@@ -16,41 +16,23 @@ namespace Nexopostal.Intranet.Services;
 ///   2. Buscar CTA de destino para ese CP en la BD (RutasCta)
 ///   3. Devolver oficina + CTA combinados
 /// </summary>
-public interface IOficinaPostalService
+public interface IOficinaPostalService : Nexopostal.Intranet.Application.OficinaPostal.IOficinaPostalCommands, Nexopostal.Intranet.Application.OficinaPostal.IOficinaPostalQueries
 {
     /// <summary>Obtiene todas las oficinas del JSON</summary>
     List<OficinaJsonDto> ObtenerTodas();
 
+
     /// <summary>Busca oficinas por código postal</summary>
     List<OficinaJsonDto> BuscarPorCodigoPostal(string codigoPostal);
+
 
     /// <summary>Busca oficinas por texto libre</summary>
     List<OficinaJsonDto> BuscarPorTexto(string query);
 
+
     /// <summary>Obtiene una oficina por su ID del JSON</summary>
     OficinaJsonDto? ObtenerPorId(int id);
 
-    /// <summary>
-    /// Resuelve la oficina más cercana + CTA para un código postal.
-    /// Este es el método clave del flujo logístico automático:
-    ///   CP 28919 → Oficina "NexoPostal Leganés" + CTA-MAD
-    /// </summary>
-    Task<ResolverOficinaCtaResponseDto?> ResolverOficinaPorCp(string codigoPostal);
-
-    /// <summary>Obtiene los operarios asignados a una oficina</summary>
-    Task<List<OperarioOficinaResumenDto>> ObtenerOperariosOficina(int oficinaJsonId);
-
-    /// <summary>Obtiene las oficinas cuyo prefijo de CP coincide con alguna ruta del CTA dado.</summary>
-    Task<List<OficinaJsonDto>> ObtenerOficinasPorCta(int ctaId);
-
-    /// <summary>Obtiene la oficina asignada activa al operario autenticado.</summary>
-    Task<MiOficinaInfoDto?> ObtenerMiOficina(string identityUserId);
-
-    /// <summary>Obtiene la asignación de oficina (activa o no) de un usuario, vista admin.</summary>
-    Task<MiOficinaInfoDto?> ObtenerOficinaAdmin(string identityUserId);
-
-    /// <summary>Crea o cambia la oficina asignada a un operario (acción admin).</summary>
-    Task<(bool Ok, string? Error, MiOficinaInfoDto? Resultado)> ActualizarOficinaAdmin(string identityUserId, AdminActualizarOficinaDto dto);
 }
 
 public class OficinaPostalService : IOficinaPostalService

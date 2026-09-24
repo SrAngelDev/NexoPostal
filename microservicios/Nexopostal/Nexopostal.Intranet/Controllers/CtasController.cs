@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexopostal.Intranet.DTOs;
 using Nexopostal.Intranet.Services;
+using MediatR;
 
 namespace Nexopostal.Intranet.Controllers;
-
 /// <summary>
 /// Controlador para la gestión de Centros de Tratamiento Automatizado (CTAs).
 /// Permite consultar la red logística, resolver enrutamiento por código postal
@@ -17,15 +17,9 @@ namespace Nexopostal.Intranet.Controllers;
 [Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
 public class CtasController : ControllerBase
 {
-    private readonly IClasificacionService _clasificacionService;
-    private readonly IAdminCtaService _adminCtaService;
-
-    public CtasController(
-        IClasificacionService clasificacionService,
-        IAdminCtaService adminCtaService)
+    public CtasController(ISender sender)
     {
-        _clasificacionService = clasificacionService;
-        _adminCtaService = adminCtaService;
+        _sender = sender;
     }
 
     /// <summary>
@@ -35,7 +29,7 @@ public class CtasController : ControllerBase
     [ProducesResponseType(typeof(List<CtaResumenDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<CtaResumenDto>>> ObtenerTodos()
     {
-        var ctas = await _clasificacionService.ObtenerTodosCtas();
+        var ctas = await _sender.Send(new Nexopostal.Intranet.Application.Clasificacion.ObtenerTodosCtasQuery(), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(ctas);
     }
 
@@ -47,8 +41,9 @@ public class CtasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CtaDetalleDto>> ObtenerDetalle(int id)
     {
-        var cta = await _clasificacionService.ObtenerCtaDetalle(id);
-        if (cta == null) return NotFound(new { message = "CTA no encontrado" });
+        var cta = await _sender.Send(new Nexopostal.Intranet.Application.Clasificacion.ObtenerCtaDetalleQuery(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (cta == null)
+            return NotFound(new { message = "CTA no encontrado" });
         return Ok(cta);
     }
 
@@ -62,8 +57,9 @@ public class CtasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ResolverCtaResponseDto>> ResolverCta(string codigoPostal)
     {
-        var resultado = await _clasificacionService.ResolverCtaDestino(codigoPostal);
-        if (resultado == null) return NotFound(new { message = $"No se encontró CTA para el código postal: {codigoPostal}" });
+        var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Clasificacion.ResolverCtaDestinoQuery(codigoPostal), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (resultado == null)
+            return NotFound(new { message = $"No se encontró CTA para el código postal: {codigoPostal}" });
         return Ok(resultado);
     }
 
@@ -77,8 +73,9 @@ public class CtasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DashboardCtaDto>> ObtenerDashboard(int id)
     {
-        var dashboard = await _clasificacionService.ObtenerDashboardCta(id);
-        if (dashboard == null) return NotFound(new { message = "CTA no encontrado" });
+        var dashboard = await _sender.Send(new Nexopostal.Intranet.Application.Clasificacion.ObtenerDashboardCtaQuery(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (dashboard == null)
+            return NotFound(new { message = "CTA no encontrado" });
         return Ok(dashboard);
     }
 
@@ -91,14 +88,13 @@ public class CtasController : ControllerBase
     [ProducesResponseType(typeof(DashboardAdminDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<DashboardAdminDto>> ObtenerDashboardAdmin()
     {
-        var dashboard = await _clasificacionService.ObtenerDashboardAdmin();
+        var dashboard = await _sender.Send(new Nexopostal.Intranet.Application.Clasificacion.ObtenerDashboardAdminQuery(), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(dashboard);
     }
 
     // ============================================================
     //  Endpoints administrativos (Admin) — CRUD de CTAs
     // ============================================================
-
     /// <summary>
     /// Crea un nuevo Centro de Tratamiento Automatizado. Solo Admin.
     /// </summary>
@@ -108,8 +104,9 @@ public class CtasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CtaDetalleDto>> Crear([FromBody] CrearCtaDto dto)
     {
-        var (cta, error) = await _adminCtaService.CrearCta(dto);
-        if (cta == null) return BadRequest(new { message = error ?? "No se pudo crear el CTA." });
+        var(cta, error) = await _sender.Send(new Nexopostal.Intranet.Application.AdminCta.CrearCtaCommand(dto), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (cta == null)
+            return BadRequest(new { message = error ?? "No se pudo crear el CTA." });
         return CreatedAtAction(nameof(ObtenerDetalle), new { id = cta.Id }, cta);
     }
 
@@ -123,12 +120,14 @@ public class CtasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CtaDetalleDto>> Editar(int id, [FromBody] EditarCtaDto dto)
     {
-        var (cta, error) = await _adminCtaService.EditarCta(id, dto);
+        var(cta, error) = await _sender.Send(new Nexopostal.Intranet.Application.AdminCta.EditarCtaCommand(id, dto), HttpContext?.RequestAborted ?? CancellationToken.None);
         if (cta == null)
         {
-            if (error == "CTA no encontrado.") return NotFound(new { message = error });
+            if (error == "CTA no encontrado.")
+                return NotFound(new { message = error });
             return BadRequest(new { message = error });
         }
+
         return Ok(cta);
     }
 
@@ -141,8 +140,9 @@ public class CtasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Desactivar(int id)
     {
-        var (ok, error) = await _adminCtaService.DesactivarCta(id);
-        if (!ok) return BadRequest(new { message = error });
+        var(ok, error) = await _sender.Send(new Nexopostal.Intranet.Application.AdminCta.DesactivarCtaCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (!ok)
+            return BadRequest(new { message = error });
         return NoContent();
     }
 
@@ -155,8 +155,11 @@ public class CtasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Reactivar(int id)
     {
-        var (ok, error) = await _adminCtaService.ReactivarCta(id);
-        if (!ok) return BadRequest(new { message = error });
+        var(ok, error) = await _sender.Send(new Nexopostal.Intranet.Application.AdminCta.ReactivarCtaCommand(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (!ok)
+            return BadRequest(new { message = error });
         return NoContent();
     }
+
+    private readonly ISender _sender;
 }

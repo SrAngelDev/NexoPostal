@@ -5,9 +5,9 @@ using Nexopostal.Intranet.Models;
 using Nexopostal.Intranet.Repositories;
 using Nexopostal.Intranet.Services;
 using System.Security.Claims;
+using MediatR;
 
 namespace Nexopostal.Intranet.Controllers;
-
 /// <summary>
 /// Controlador para la gestión de asignaciones de paquetes a operarios.
 /// 
@@ -24,18 +24,11 @@ namespace Nexopostal.Intranet.Controllers;
 [Authorize(Roles = "Admin,Supervisor,OperarioCTA,OperarioOficina")]
 public class AsignacionesController : ControllerBase
 {
-    private readonly IAsignacionService _asignacionService;
-    private readonly IOperarioService _operarioService;
     private readonly IOperarioOficinaRepository _operarioOficinaRepo;
-
-    public AsignacionesController(
-        IAsignacionService asignacionService,
-        IOperarioService operarioService,
-        IOperarioOficinaRepository operarioOficinaRepo)
+    public AsignacionesController(IOperarioOficinaRepository operarioOficinaRepo, ISender sender)
     {
-        _asignacionService = asignacionService;
-        _operarioService = operarioService;
         _operarioOficinaRepo = operarioOficinaRepo;
+        _sender = sender;
     }
 
     /// <summary>
@@ -53,14 +46,14 @@ public class AsignacionesController : ControllerBase
     public async Task<ActionResult<AsignacionDetalleDto>> Crear([FromBody] CrearAsignacionDto dto)
     {
         var operario = await ObtenerOperarioActual();
-        if (operario == null) return Forbid();
-
+        if (operario == null)
+            return Forbid();
         try
         {
-            var asignacion = await _asignacionService.CrearAsignacion(dto, operario.Id, operario.CentroTratamientoId);
+            var asignacion = await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.CrearAsignacionCommand(dto, operario.Id, operario.CentroTratamientoId), HttpContext?.RequestAborted ?? CancellationToken.None);
             return CreatedAtAction(nameof(ObtenerDetalle), new { id = asignacion.Id }, asignacion);
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        catch (Exception ex)when (ex is ArgumentException or InvalidOperationException)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -81,14 +74,13 @@ public class AsignacionesController : ControllerBase
         {
             var operarioOficina = await ObtenerOperarioOficinaActual();
             if (operarioOficina != null)
-                return Ok(await _asignacionService.ObtenerTareasPendientesOficina(operarioOficina.Id));
+                return Ok(await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.ObtenerTareasPendientesOficinaQuery(operarioOficina.Id), HttpContext?.RequestAborted ?? CancellationToken.None));
             return Ok(new List<AsignacionResumenDto>());
         }
 
         var operario = await ObtenerOperarioActual();
         if (operario != null)
-            return Ok(await _asignacionService.ObtenerTareasPendientes(operario.Id));
-
+            return Ok(await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.ObtenerTareasPendientesQuery(operario.Id), HttpContext?.RequestAborted ?? CancellationToken.None));
         return Ok(new List<AsignacionResumenDto>());
     }
 
@@ -103,14 +95,13 @@ public class AsignacionesController : ControllerBase
         {
             var operarioOficina = await ObtenerOperarioOficinaActual();
             if (operarioOficina != null)
-                return Ok(await _asignacionService.ObtenerTareasEnProgresoOficina(operarioOficina.Id));
+                return Ok(await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.ObtenerTareasEnProgresoOficinaQuery(operarioOficina.Id), HttpContext?.RequestAborted ?? CancellationToken.None));
             return Ok(new List<AsignacionResumenDto>());
         }
 
         var operario = await ObtenerOperarioActual();
         if (operario != null)
-            return Ok(await _asignacionService.ObtenerTareasEnProgreso(operario.Id));
-
+            return Ok(await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.ObtenerTareasEnProgresoQuery(operario.Id), HttpContext?.RequestAborted ?? CancellationToken.None));
         return Ok(new List<AsignacionResumenDto>());
     }
 
@@ -127,14 +118,13 @@ public class AsignacionesController : ControllerBase
         {
             var operarioOficina = await ObtenerOperarioOficinaActual();
             if (operarioOficina != null)
-                return Ok(await _asignacionService.ObtenerTareasCompletadasOficina(operarioOficina.Id, max));
+                return Ok(await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.ObtenerTareasCompletadasOficinaQuery(operarioOficina.Id, max), HttpContext?.RequestAborted ?? CancellationToken.None));
             return Ok(new List<AsignacionResumenDto>());
         }
 
         var operario = await ObtenerOperarioActual();
         if (operario != null)
-            return Ok(await _asignacionService.ObtenerTareasCompletadas(operario.Id, max));
-
+            return Ok(await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.ObtenerTareasCompletadasQuery(operario.Id, max), HttpContext?.RequestAborted ?? CancellationToken.None));
         return Ok(new List<AsignacionResumenDto>());
     }
 
@@ -150,24 +140,26 @@ public class AsignacionesController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(codigo))
             return BadRequest(new { message = "Código requerido" });
-
         if (EsRolOficina())
         {
             var operarioOficina = await ObtenerOperarioOficinaActual();
             if (operarioOficina != null)
             {
-                var resultado = await _asignacionService.BuscarEnMisTareasOficinaAsync(operarioOficina.Id, codigo);
-                if (resultado == null) return NotFound(new { message = "Paquete fuera de tus tareas" });
+                var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.BuscarEnMisTareasOficinaQuery(operarioOficina.Id, codigo), HttpContext?.RequestAborted ?? CancellationToken.None);
+                if (resultado == null)
+                    return NotFound(new { message = "Paquete fuera de tus tareas" });
                 return Ok(resultado);
             }
+
             return Forbid();
         }
 
         var operario = await ObtenerOperarioActual();
         if (operario != null)
         {
-            var resultado = await _asignacionService.BuscarEnMisTareasAsync(operario.Id, codigo);
-            if (resultado == null) return NotFound(new { message = "Paquete fuera de tus tareas" });
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.BuscarEnMisTareasQuery(operario.Id, codigo), HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (resultado == null)
+                return NotFound(new { message = "Paquete fuera de tus tareas" });
             return Ok(resultado);
         }
 
@@ -180,14 +172,12 @@ public class AsignacionesController : ControllerBase
     [HttpGet("cta/{ctaId:int}")]
     [Authorize(Roles = "Admin,Supervisor,OperarioCTA")]
     [ProducesResponseType(typeof(List<AsignacionResumenDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<AsignacionResumenDto>>> ObtenerPorCta(
-        int ctaId, [FromQuery] string? estado = null)
+    public async Task<ActionResult<List<AsignacionResumenDto>>> ObtenerPorCta(int ctaId, [FromQuery] string? estado = null)
     {
         EstadoTarea? filtro = null;
         if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoTarea>(estado, true, out var e))
             filtro = e;
-
-        var asignaciones = await _asignacionService.ObtenerAsignacionesCta(ctaId, filtro);
+        var asignaciones = await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.ObtenerAsignacionesCtaQuery(ctaId, filtro), HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(asignaciones);
     }
 
@@ -199,8 +189,9 @@ public class AsignacionesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AsignacionDetalleDto>> ObtenerDetalle(int id)
     {
-        var detalle = await _asignacionService.ObtenerDetalle(id);
-        if (detalle == null) return NotFound(new { message = "Asignación no encontrada" });
+        var detalle = await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.ObtenerDetalleQuery(id), HttpContext?.RequestAborted ?? CancellationToken.None);
+        if (detalle == null)
+            return NotFound(new { message = "Asignación no encontrada" });
         return Ok(detalle);
     }
 
@@ -215,12 +206,13 @@ public class AsignacionesController : ControllerBase
     public async Task<ActionResult<AsignacionDetalleDto>> Iniciar(int id)
     {
         var operario = await ObtenerOperarioActual();
-        if (operario == null) return Forbid();
-
+        if (operario == null)
+            return Forbid();
         try
         {
-            var resultado = await _asignacionService.IniciarTarea(id, operario.Id);
-            if (resultado == null) return NotFound(new { message = "Asignación no encontrada" });
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.IniciarTareaCommand(id, operario.Id), HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (resultado == null)
+                return NotFound(new { message = "Asignación no encontrada" });
             return Ok(resultado);
         }
         catch (InvalidOperationException ex)
@@ -240,12 +232,13 @@ public class AsignacionesController : ControllerBase
     public async Task<ActionResult<AsignacionDetalleDto>> Completar(int id)
     {
         var operario = await ObtenerOperarioActual();
-        if (operario == null) return Forbid();
-
+        if (operario == null)
+            return Forbid();
         try
         {
-            var resultado = await _asignacionService.CompletarTarea(id, operario.Id);
-            if (resultado == null) return NotFound(new { message = "Asignación no encontrada" });
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.CompletarTareaCommand(id, operario.Id), HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (resultado == null)
+                return NotFound(new { message = "Asignación no encontrada" });
             return Ok(resultado);
         }
         catch (InvalidOperationException ex)
@@ -264,12 +257,13 @@ public class AsignacionesController : ControllerBase
     public async Task<IActionResult> Cancelar(int id)
     {
         var operario = await ObtenerOperarioActual();
-        if (operario == null) return Forbid();
-
+        if (operario == null)
+            return Forbid();
         try
         {
-            var resultado = await _asignacionService.CancelarTarea(id, operario.Id);
-            if (!resultado) return NotFound(new { message = "Asignación no encontrada" });
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.CancelarTareaCommand(id, operario.Id), HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (!resultado)
+                return NotFound(new { message = "Asignación no encontrada" });
             return NoContent();
         }
         catch (InvalidOperationException ex)
@@ -290,12 +284,13 @@ public class AsignacionesController : ControllerBase
     public async Task<ActionResult<AsignacionDetalleDto>> Reasignar(int id, [FromBody] ReasignarTareaDto dto)
     {
         var operario = await ObtenerOperarioActual();
-        if (operario == null) return Forbid();
-
+        if (operario == null)
+            return Forbid();
         try
         {
-            var resultado = await _asignacionService.ReasignarTarea(id, dto.NuevoOperarioId, operario.Id);
-            if (resultado == null) return NotFound(new { message = "Asignación no encontrada" });
+            var resultado = await _sender.Send(new Nexopostal.Intranet.Application.Asignacion.ReasignarTareaCommand(id, dto.NuevoOperarioId, operario.Id), HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (resultado == null)
+                return NotFound(new { message = "Asignación no encontrada" });
             return Ok(resultado);
         }
         catch (ArgumentException ex)
@@ -309,18 +304,19 @@ public class AsignacionesController : ControllerBase
     }
 
     // === Helper privado ===
-
     private async Task<OperarioCta?> ObtenerOperarioActual()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return null;
-        return await _operarioService.ObtenerPorIdentityUserId(userId);
+        if (string.IsNullOrEmpty(userId))
+            return null;
+        return await _sender.Send(new Nexopostal.Intranet.Application.Operario.ObtenerPorIdentityUserIdQuery(userId), HttpContext?.RequestAborted ?? CancellationToken.None);
     }
 
     private async Task<OperarioOficina?> ObtenerOperarioOficinaActual()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return null;
+        if (string.IsNullOrEmpty(userId))
+            return null;
         return await _operarioOficinaRepo.GetByIdentityUserIdAsync(userId);
     }
 
@@ -331,4 +327,5 @@ public class AsignacionesController : ControllerBase
     /// aparece en ambas (caso de filas históricas/seed antiguas).
     /// </summary>
     private bool EsRolOficina() => User.IsInRole("OperarioOficina");
+    private readonly ISender _sender;
 }

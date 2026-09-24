@@ -11,13 +11,9 @@ namespace Nexopostal.Intranet.Services;
 /// Cada modo de escaneo avanza el paquete al siguiente estado del flujo:
 ///   Oficina origen → CTA origen → (troncal) → CTA destino → Oficina destino → Reparto
 /// </summary>
-public interface IScanProcessorService
+public interface IScanProcessorService : Nexopostal.Intranet.Application.ScanProcessor.IScanProcessorCommands
 {
-    /// <summary>Procesa un escaneo individual.</summary>
-    Task<ScanResultDto> ProcesarEscaneo(ScanRequestDto request);
 
-    /// <summary>Procesa un lote de escaneos con el mismo modo.</summary>
-    Task<ScanBatchResultDto> ProcesarLote(ScanBatchRequestDto request);
 }
 
 public class ScanProcessorService : IScanProcessorService

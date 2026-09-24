@@ -1,3 +1,4 @@
+using Nexopostal.Ciudadano.Application;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Nexopostal.Ciudadano.Hubs;
@@ -12,6 +13,7 @@ using Nexopostal.Ciudadano.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddCiudadanoCqrs();
 
 static string ResolveConfigValue(string? value)
 {

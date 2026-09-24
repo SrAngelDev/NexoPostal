@@ -1,3 +1,4 @@
+using NexoPostal.Auth.Application;
 using Nexopostal.Shared.Infrastructures;
 using Nexopostal.Shared.Middleware;
 using Microsoft.EntityFrameworkCore;
@@ -5,6 +6,7 @@ using NexoPostal.Auth.Data;
 using NexoPostal.Auth.Infrastructures;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddAuthCqrs();
 
 // Logging unificado con Serilog
 builder.AddNexopostalSerilog("Nexopostal.Auth");
