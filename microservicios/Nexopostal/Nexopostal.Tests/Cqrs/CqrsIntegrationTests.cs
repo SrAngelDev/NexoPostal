@@ -25,7 +25,8 @@ public class CqrsIntegrationTests(CustomWebApplicationFactory factory) : IClassF
         Assert.True(created.Creado);
         var read = await Send(new ObtenerPerfilQuery(user));
         Assert.Equal("600000001", read.Telefono);
-        Assert.Equal(created.Perfil.FechaCreacion, read.FechaCreacion);
+        // PostgreSQL timestamps preserve microseconds; DateTime also has sub-microsecond ticks.
+        Assert.Equal(created.Perfil.FechaCreacion.Ticks / 10, read.FechaCreacion.Ticks / 10);
 
         var updated = await Send(new GuardarPerfilCommand(user, new ActualizarPerfilDto { Telefono = "600000002" }));
         Assert.False(updated.Creado);
